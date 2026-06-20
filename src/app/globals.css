@@ -1,0 +1,311 @@
+@import "tailwindcss";
+
+/* ============================================================ design tokens */
+@theme {
+  --color-ink: #0b0a10;
+  --color-ink-2: #15131f;
+  --color-ink-3: #1e1b2e;
+  --color-paper: #f4f1ea;
+  --color-muted: #a8a2bd;
+  --color-faint: #6f6a85;
+  --color-line: #2b2740;
+
+  /* Vivid accents (also used as per-chapter colors). */
+  --color-lime: #c2f24a;
+  --color-cyan: #3dd7e0;
+  --color-pink: #ff5da2;
+  --color-violet: #a98bff;
+  --color-amber: #ffb84d;
+  --color-azure: #5b8cff;
+
+  /* `accent` follows the per-chapter `--accent` var set inline at runtime. */
+  --color-accent: var(--accent, #c2f24a);
+
+  --font-display: var(--font-space-grotesk), "Space Grotesk", system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+}
+
+/* =================================================================== base */
+* {
+  border-color: var(--color-line);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-x: none;
+}
+
+::selection {
+  background: var(--color-lime);
+  color: #10130a;
+}
+
+/* Slim, on-brand scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 999px;
+}
+
+/* ============================================================== utilities */
+
+/* Dot-grid backdrop for big surfaces. */
+.bg-dotgrid {
+  background-image: radial-gradient(
+    circle at center,
+    color-mix(in oklab, var(--color-line) 70%, transparent) 1px,
+    transparent 1.4px
+  );
+  background-size: 26px 26px;
+}
+
+/* Soft colored bloom behind hero/feature elements. */
+.glow-accent {
+  box-shadow: 0 0 90px -20px var(--accent, var(--color-lime));
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* A chunky, slightly-rotated "sticker" look for playful chips. */
+.sticker {
+  box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.55);
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 38s linear infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-float {
+    animation: none;
+  }
+}
+
+/* ============================================== markdown prose (.prose-yap) */
+.prose-yap {
+  font-size: clamp(1.05rem, 0.95rem + 0.5vw, 1.3rem);
+  line-height: 1.7;
+  color: color-mix(in oklab, var(--color-paper) 92%, transparent);
+}
+.prose-yap > * + * {
+  margin-top: 1.05em;
+}
+.prose-yap strong {
+  color: var(--color-paper);
+  font-weight: 700;
+}
+.prose-yap em {
+  color: color-mix(in oklab, var(--color-paper) 90%, var(--accent));
+}
+.prose-yap a {
+  color: var(--accent, var(--color-lime));
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  font-weight: 600;
+}
+.prose-yap h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.4em;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--color-paper);
+  margin-top: 1.6em;
+}
+.prose-yap h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.12em;
+  color: var(--color-paper);
+  margin-top: 1.4em;
+}
+.prose-yap h3 + *,
+.prose-yap h4 + * {
+  margin-top: 0.5em;
+}
+.prose-yap ul,
+.prose-yap ol {
+  padding-left: 1.4em;
+}
+.prose-yap ul {
+  list-style: none;
+}
+.prose-yap ul > li {
+  position: relative;
+  padding-left: 0.4em;
+}
+.prose-yap ul > li::before {
+  content: "";
+  position: absolute;
+  left: -0.9em;
+  top: 0.72em;
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 2px;
+  background: var(--accent, var(--color-lime));
+  transform: rotate(45deg);
+}
+.prose-yap ol {
+  list-style: decimal;
+}
+.prose-yap ol > li::marker {
+  color: var(--accent, var(--color-lime));
+  font-weight: 700;
+  font-family: var(--font-display);
+}
+.prose-yap li + li {
+  margin-top: 0.4em;
+}
+.prose-yap blockquote {
+  border-left: 3px solid var(--accent, var(--color-lime));
+  padding: 0.2em 0 0.2em 1.1em;
+  color: var(--color-muted);
+  font-style: italic;
+}
+.prose-yap code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--color-ink-3);
+  border: 1px solid var(--color-line);
+  color: color-mix(in oklab, var(--accent, var(--color-lime)) 75%, var(--color-paper));
+  padding: 0.12em 0.4em;
+  border-radius: 0.4em;
+  white-space: nowrap;
+}
+.prose-yap pre {
+  background: var(--color-ink-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
+  padding: 1.1em 1.25em;
+  overflow-x: auto;
+  font-size: 0.85em;
+  line-height: 1.6;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.prose-yap pre code {
+  background: none;
+  border: none;
+  color: var(--color-paper);
+  padding: 0;
+  white-space: pre;
+  font-size: 1em;
+}
+.prose-yap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92em;
+  display: block;
+  overflow-x: auto;
+}
+.prose-yap th,
+.prose-yap td {
+  border: 1px solid var(--color-line);
+  padding: 0.55em 0.8em;
+  text-align: left;
+}
+.prose-yap th {
+  background: var(--color-ink-2);
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-paper);
+}
+.prose-yap hr {
+  border: none;
+  border-top: 1px dashed var(--color-line);
+  margin: 1.6em 0;
+}
+
+/* ===================================== syntax highlighting (highlight.js) */
+.hljs-comment,
+.hljs-quote {
+  color: var(--color-faint);
+  font-style: italic;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-doctag {
+  color: var(--color-pink);
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-meta .hljs-string {
+  color: var(--color-lime);
+}
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--color-amber);
+}
+.hljs-title,
+.hljs-title.function_,
+.hljs-section,
+.hljs-name {
+  color: var(--color-cyan);
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-variable,
+.hljs-template-variable {
+  color: var(--color-violet);
+}
+.hljs-built_in,
+.hljs-class .hljs-title,
+.hljs-type,
+.hljs-meta {
+  color: var(--color-azure);
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: 700;
+}
