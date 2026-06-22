@@ -145,3 +145,44 @@ If you're starting fresh: skeleton & schema → provider layer → ingestion →
 Across every chapter, one belief recurs: **the model is the easy part.** The provider makes it smart; you make it useful, safe, grounded, reliable, observable, and affordable. A great agent is great *systems engineering* with a capable model at the center — the right context in front of it, well-designed tools around it, faithful records behind it, and disciplined operations beneath it. Build those, and the model will shine. Skip them, and no model can save you.
 
 That's the whole craft. Go build something people can trust.
+
+---
+
+## Review
+
+### Quick Check
+
+1. In the reference architecture, where does all durable state live?
+   * A) In process memory on the app servers
+   * B) In the relational database and object storage, with secrets from the environment or secrets manager
+   * C) On the client
+   * D) Inside the model provider
+   <details><summary>Answer</summary>B) In the relational database and object storage - app servers stay stateless so any instance can serve any request.</details>
+
+2. According to the chapter mapping, the "agent core" covers which set of concerns?
+   * A) Security and multi-tenancy
+   * B) Provider abstraction and tiering
+   * C) Document processing
+   * D) The loop, context engineering, prompt architecture, and streaming/events
+   <details><summary>Answer</summary>D) The loop, context engineering, prompt architecture, and streaming/events - these are the heart of the agent core.</details>
+
+3. Following the reference data flow, what happens to a request first at the API tier?
+   * A) The agent loop runs immediately
+   * B) It is streamed to the client first
+   * C) It is authenticated, authorized, and validated before the agent core builds context
+   * D) It is written to object storage
+   <details><summary>Answer</summary>C) It is authenticated, authorized, and validated - the API tier gates the request before any agent work begins.</details>
+
+4. You are starting fresh. According to the build order, which comes before tools and prompts?
+   * A) Bulk extraction
+   * B) The skeleton and schema, then the provider layer, ingestion, and the agent loop
+   * C) Storage and downloads
+   * D) Workflows
+   <details><summary>Answer</summary>B) The skeleton and schema, provider layer, ingestion, and loop come first - tools and prompts build on that foundation.</details>
+
+5. What single belief does the chapter say recurs across the whole folder?
+   * A) The model is the system; everything else is glue
+   * B) Bigger models remove the need for systems engineering
+   * C) The model is the easy part; you make it useful, safe, grounded, reliable, observable, and affordable
+   * D) Tools matter more than data modeling
+   <details><summary>Answer</summary>C) The model is the easy part - a great agent is great systems engineering with a capable model at the center.</details>

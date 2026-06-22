@@ -92,3 +92,117 @@ The theme: the loop is where the model's unreliability meets your code, so the l
 ---
 
 Next: [Chapter 3 — Tool design](chapter-03-tool-design.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. The agent loop terminates under which two conditions?
+   * A) The user disconnects, or a tool fails
+   * B) The model produces a final answer with no tool calls, or a hard iteration cap is hit
+   * C) The context window fills, or the model requests a tool
+   * D) A reflection step approves, or memory runs out
+   <details><summary>Answer</summary>B) The model produces a final answer with no tool calls, or a hard iteration cap is hit - these are the loop's two stopping conditions.</details>
+
+2. When the model requests a tool, what must be appended before the next model call?
+   * A) Only the tool result
+   * B) Only the model's tool-request turn
+   * C) Both the model's tool-request turn and the matching tool-result turn
+   * D) A natural-language summary of the result
+   <details><summary>Answer</summary>C) Both the model's tool-request turn and the matching tool-result turn - providers need to see "I asked for X and X returned Y" to continue coherently.</details>
+
+3. Your agent occasionally spins, re-calling the same tool with identical arguments. Beyond the hard cap, what guard directly addresses this?
+   * A) Increasing the iteration cap
+   * B) Repetition detection that breaks when the same call repeats
+   * C) Switching to a planner-executor variant
+   * D) Disabling streaming
+   <details><summary>Answer</summary>B) Repetition detection that breaks when the same call repeats - identical repeated calls signal the model is stuck, so break early.</details>
+
+4. A team is convinced they need several coordinating agents. What does the chapter suggest they consider first?
+   * A) That most products which think they need multi-agent actually need better tools and context in a single loop
+   * B) Immediately adopting a supervisor and worker design
+   * C) Adding a reflection loop to every agent
+   * D) Removing the iteration cap to allow deeper reasoning
+   <details><summary>Answer</summary>A) That most products which think they need multi-agent actually need better tools and context in a single loop - reach for multi-agent only when sub-tasks are truly independent.</details>
+
+5. A tool throws an exception in the middle of a turn. What is the recommended handling?
+   * A) Let the exception propagate and crash the turn so the user retries
+   * B) Skip appending any result for that call and continue
+   * C) Catch it and feed the error back as a tool result so the model can adapt
+   * D) Immediately hit the iteration cap and return
+   <details><summary>Answer</summary>C) Catch it and feed the error back as a tool result so the model can adapt - this also satisfies the rule that every call gets a result.</details>
+
+### Coding Challenge
+
+**Build a minimal agent loop**
+
+Write a `run_agent(model, tools, user_msg, max_iters)` function that drives the loop. Call the model; return its text when there are no tool calls; otherwise run each requested tool, append both the request turn and a result for every call, and stop at a hard iteration cap. Guarantee a result even when a tool raises.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+def run_agent(model, tools, user_msg, max_iters=10):
+    messages = [{"role": "user", "content": user_msg}]
+    for _ in range(max_iters):
+        resp = model(messages)
+        if not resp.get("tool_calls"):
+            return resp.get("text", "")
+        messages.append({"role": "assistant", "tool_calls": resp["tool_calls"]})
+        results = []
+        for call in resp["tool_calls"]:
+            try:
+                output = tools[call["name"]](**call.get("args", {}))
+            except Exception as e:                 # guarantee a result per call
+                output = f"error: {e}"
+            results.append({"id": call["id"], "content": str(output)})
+        messages.append({"role": "tool", "results": results})
+    return "Stopped: iteration cap reached."
+
+
+def fake_model(messages):
+    if not any(m["role"] == "tool" for m in messages):
+        return {"tool_calls": [{"id": "1", "name": "add", "args": {"a": 2, "b": 3}}]}
+    return {"text": "The sum is 5."}
+
+
+print(run_agent(fake_model, {"add": lambda a, b: a + b}, "add 2 and 3"))
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+function runAgent(model, tools, userMsg, maxIters = 10) {
+  const messages = [{ role: "user", content: userMsg }];
+  for (let i = 0; i < maxIters; i++) {
+    const resp = model(messages);
+    if (!resp.toolCalls || resp.toolCalls.length === 0) return resp.text || "";
+    messages.push({ role: "assistant", toolCalls: resp.toolCalls });
+    const results = resp.toolCalls.map((call) => {
+      try {
+        return { id: call.id, content: String(tools[call.name](call.args || {})) };
+      } catch (e) {                                // guarantee a result per call
+        return { id: call.id, content: `error: ${e.message}` };
+      }
+    });
+    messages.push({ role: "tool", results });
+  }
+  return "Stopped: iteration cap reached.";
+}
+
+function fakeModel(messages) {
+  if (!messages.some((m) => m.role === "tool")) {
+    return { toolCalls: [{ id: "1", name: "add", args: { a: 2, b: 3 } }] };
+  }
+  return { text: "The sum is 5." };
+}
+
+console.log(runAgent(fakeModel, { add: ({ a, b }) => a + b }, "add 2 and 3"));
+```
+
+</details>

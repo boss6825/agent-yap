@@ -72,3 +72,115 @@ A well-designed agent data model, read on its own, tells you what the product do
 ---
 
 Next: [Chapter 10 — Document and file processing pipelines](chapter-10-document-pipelines.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. Why model assistant turns as structured event logs rather than as plain {role, text} messages?
+   * A) It uses less storage than text
+   * B) Providers require this exact format
+   * C) Plain text cannot reproduce the chips, cards, and citations the user saw live
+   * D) It removes the need for a database
+   <details><summary>Answer</summary>C) Plain text cannot reproduce the chips, cards, and citations the user saw live - storing the event timeline is what makes faithful replay possible.</details>
+
+2. In the immutable-versioning model, what does the artifact identity record hold to locate the live content?
+   * A) A current_version_id pointer to the live version
+   * B) The raw bytes stored inline
+   * C) Nothing; versions are mutated in place
+   * D) A concatenated list of every file path
+   <details><summary>Answer</summary>A) A current_version_id pointer to the live version - versions are immutable rows, and the identity just points at the current one.</details>
+
+3. An edit was "pending" when proposed but later accepted, yet loading the old conversation should show current truth. Best approach?
+   * A) Update every historical snapshot whenever the underlying fact changes
+   * B) Reconcile on read - store the snapshot as-is, then patch it against live records when loading
+   * C) Never store snapshots at all
+   * D) Re-run the agent to regenerate the turn
+   <details><summary>Answer</summary>B) Reconcile on read - keep writes cheap and localised, and accept a small read-time join to present current truth.</details>
+
+4. You want async extraction work to be resumable after a crash. Which modeling choice enables this?
+   * A) Storing only the final results
+   * B) A larger context window
+   * C) Caching the model output
+   * D) An explicit status field (pending/generating/done/error) you can query for unfinished work
+   <details><summary>Answer</summary>D) An explicit status field you can query for unfinished work - you can find everything still pending and continue.</details>
+
+5. What is the chapter's advice on choosing data stores?
+   * A) Start with many specialised stores, one per data type
+   * B) Use a vector database as the primary store by default
+   * C) A relational database plus object storage covers most needs; add a vector store only if you adopt semantic search
+   * D) Store large binaries directly inside the relational database
+   <details><summary>Answer</summary>C) A relational database plus object storage covers a remarkable amount; add a vector store only when you adopt semantic search.</details>
+
+### Coding Challenge
+
+**Implement an immutable versioned artifact store**
+
+Build an `ArtifactStore` that appends immutable versions (each with content and a `source`), tracks the live version with a `current_version_id` pointer, exposes `get_current()`, and supports `rollback(version_id)` as a pointer move that never rewrites data.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+class ArtifactStore:
+    def __init__(self):
+        self.versions = []          # immutable rows, never mutated
+        self.current_id = None
+
+    def add_version(self, content, source):
+        version = {"id": len(self.versions) + 1, "content": content, "source": source}
+        self.versions.append(version)
+        self.current_id = version["id"]
+        return version["id"]
+
+    def get_current(self):
+        return next(v for v in self.versions if v["id"] == self.current_id)
+
+    def rollback(self, version_id):
+        self.current_id = version_id    # pointer move, no data rewrite
+
+
+store = ArtifactStore()
+store.add_version("draft v1", "generated")
+store.add_version("draft v2", "agent_edit")
+print(store.get_current())              # v2
+store.rollback(1)
+print(store.get_current())              # back to v1
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+class ArtifactStore {
+  constructor() {
+    this.versions = []; // immutable rows, never mutated
+    this.currentId = null;
+  }
+  addVersion(content, source) {
+    const version = { id: this.versions.length + 1, content, source };
+    this.versions.push(version);
+    this.currentId = version.id;
+    return version.id;
+  }
+  getCurrent() {
+    return this.versions.find((v) => v.id === this.currentId);
+  }
+  rollback(versionId) {
+    this.currentId = versionId; // pointer move, no data rewrite
+  }
+}
+
+const store = new ArtifactStore();
+store.addVersion("draft v1", "generated");
+store.addVersion("draft v2", "agent_edit");
+console.log(store.getCurrent()); // v2
+store.rollback(1);
+console.log(store.getCurrent()); // back to v1
+```
+
+</details>

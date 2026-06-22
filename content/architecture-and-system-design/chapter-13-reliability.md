@@ -108,3 +108,119 @@ A reliable agent feels calm: when something underneath it breaks, the user gets 
 ---
 
 Next: [Chapter 14 — Cost, latency, and model tiering](chapter-14-cost-latency.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. The chapter's core stance toward failure is:
+   * A) Prevent all failures up front
+   * B) Assume everything fails and have a defined response to each failure
+   * C) Retry everything infinitely
+   * D) Crash the turn and let the user retry
+   <details><summary>Answer</summary>B) Assume everything fails - reliability is the sum of your defined responses to each failure mode.</details>
+
+2. Which errors should you retry?
+   * A) All errors, including bad-request and auth failures
+   * B) Only terminal errors
+   * C) Transient errors (timeouts, rate limits, 5xx), not terminal ones
+   * D) None; retries are always unsafe
+   <details><summary>Answer</summary>C) Transient errors only - retrying a terminal error like a bad request just wastes time.</details>
+
+3. You want to retry a "create" operation safely. What makes that safe?
+   * A) Adding more retries
+   * B) Removing the attempt cap
+   * C) Retrying faster
+   * D) Making the operation idempotent, e.g. an upsert by a deterministic key, so a retried create does not duplicate
+   <details><summary>Answer</summary>D) Making the operation idempotent - idempotency is what turns "retrying might double-create" into "retrying is safe."</details>
+
+4. A document's preview rendering fails during upload. How should the system respond?
+   * A) Degrade - keep the document usable for text and reading without the preview
+   * B) Fail the whole upload
+   * C) Retry forever until the preview renders
+   * D) Delete the document
+   <details><summary>Answer</summary>A) Degrade - an optional enhancement failing should not fail the request.</details>
+
+5. Why add jitter to exponential backoff?
+   * A) It makes each wait longer
+   * B) It guarantees the call eventually succeeds
+   * C) Randomization prevents synchronized retries from becoming a thundering herd against a recovering service
+   * D) Providers require jitter
+   <details><summary>Answer</summary>C) Randomization spreads retries out so you do not synchronize them into a thundering herd.</details>
+
+### Coding Challenge
+
+**Retry transient failures with capped backoff and jitter**
+
+Write `retry(fn, max_attempts)` that retries only transient failures with exponential backoff plus jitter, caps the attempts, and lets terminal (non-transient) errors propagate immediately.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+import random
+import time
+
+
+class Transient(Exception):
+    pass
+
+
+def retry(fn, max_attempts=5, base=0.01):
+    """Retry transient failures with capped exponential backoff and jitter."""
+    for attempt in range(max_attempts):
+        try:
+            return fn()                                   # terminal errors propagate
+        except Transient:
+            if attempt == max_attempts - 1:
+                raise
+            time.sleep(base * (2 ** attempt) + random.uniform(0, base))  # jitter
+
+
+attempts = {"n": 0}
+
+
+def flaky():
+    attempts["n"] += 1
+    if attempts["n"] < 3:
+        raise Transient("temporary")
+    return "ok"
+
+
+print(retry(flaky), "after", attempts["n"], "attempts")   # ok after 3 attempts
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+class Transient extends Error {}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function retry(fn, maxAttempts = 5, base = 10) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn();                                  // terminal errors propagate
+    } catch (e) {
+      if (!(e instanceof Transient) || attempt === maxAttempts - 1) throw e;
+      await sleep(base * 2 ** attempt + Math.random() * base); // jitter
+    }
+  }
+}
+
+let n = 0;
+async function flaky() {
+  n += 1;
+  if (n < 3) throw new Transient("temporary");
+  return "ok";
+}
+
+retry(flaky).then((r) => console.log(r, "after", n, "attempts")); // ok after 3
+```
+
+</details>

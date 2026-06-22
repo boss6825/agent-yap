@@ -85,3 +85,100 @@ A regulated-domain agent is a general agent plus a relentless commitment to **ve
 ---
 
 Next: [Chapter 18 — Reference architecture and a design checklist](chapter-18-reference-architecture.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. The organizing principle for regulated-domain agents is:
+   * A) Always use the most powerful model
+   * B) Every consequential claim must be traceable to a source the expert can check
+   * C) Minimize latency above all else
+   * D) Never refuse a request
+   <details><summary>Answer</summary>B) Every consequential claim must be traceable to a checkable source - verifiability is what makes the agent trustworthy in professional settings.</details>
+
+2. What makes a citation "machine-checkable" in this chapter?
+   * A) It uses a hyperlink to the source
+   * B) It is written in plain prose
+   * C) An emitted protocol your code parses and validates by confirming the quoted text appears at the cited location
+   * D) A human reads it aloud
+   <details><summary>Answer</summary>C) A parseable, validated protocol - confirming the quoted text actually appears at the cited location catches hallucinated citations automatically.</details>
+
+3. A legal agent needs to change a contract. Which approach fits the professional's workflow?
+   * A) Silently rewrite the contract
+   * B) Email the contract to all parties
+   * C) Refuse to touch contracts entirely
+   * D) Propose redlines the lawyer can accept or reject one by one
+   <details><summary>Answer</summary>D) Propose redlines the lawyer can accept or reject - propose, do not impose, keeping the professional in control and accountable.</details>
+
+4. Your domain requires that content not be retained or used for training by the provider. What might this dictate?
+   * A) Using a larger context window
+   * B) Provider choice, enterprise agreements, or BYOK so the customer's own provider relationship governs the data
+   * C) Turning off streaming
+   * D) Storing everything in plaintext
+   <details><summary>Answer</summary>B) Provider choice, enterprise agreements, or BYOK - data-handling terms can shape architecture as much as performance does.</details>
+
+5. For an expert, an answer they cannot verify is:
+   * A) Better than no answer because it saves time
+   * B) Equivalent to a verified answer
+   * C) Worse than no answer, because acting on an unverifiable claim is a liability
+   * D) Acceptable if the model is confident
+   <details><summary>Answer</summary>C) Worse than no answer - an unverifiable claim is a liability, which is why verifiability drives the design.</details>
+
+### Coding Challenge
+
+**Validate citations against the source**
+
+Write `validate_citations(pages, citations)` that confirms each cited quote appears verbatim at its cited page and flags the ones that do not, so a hallucinated citation is caught before it reaches the expert.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+def validate_citations(pages, citations):
+    """Confirm each cited quote appears verbatim at its cited page; flag the rest."""
+    report = []
+    for c in citations:
+        page_text = pages.get(c["page"], "")
+        report.append({
+            "page": c["page"],
+            "quote": c["quote"],
+            "valid": c["quote"] in page_text,
+        })
+    return report
+
+
+pages = {1: "The term is five years.", 3: "Either party may terminate."}
+citations = [
+    {"page": 1, "quote": "five years"},           # valid
+    {"page": 3, "quote": "auto-renews forever"},  # hallucinated
+]
+for r in validate_citations(pages, citations):
+    print(r)
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+function validateCitations(pages, citations) {
+  return citations.map((c) => ({
+    page: c.page,
+    quote: c.quote,
+    valid: (pages[c.page] || "").includes(c.quote),
+  }));
+}
+
+const pages = { 1: "The term is five years.", 3: "Either party may terminate." };
+const citations = [
+  { page: 1, quote: "five years" },          // valid
+  { page: 3, quote: "auto-renews forever" }, // hallucinated
+];
+console.log(validateCitations(pages, citations));
+```
+
+</details>

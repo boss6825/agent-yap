@@ -74,3 +74,44 @@ Hold both stances and you'll make architecture decisions that age well.
 ---
 
 Next: [Chapter 2 — The agent loop pattern](chapter-02-agent-loop-pattern.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. What is the defining feature that distinguishes an agent from a chatbot?
+   * A) A larger context window
+   * B) A loop that takes actions through tools and observes the results
+   * C) The ability to hold conversation history
+   * D) Access to a more capable underlying model
+   <details><summary>Answer</summary>B) A loop that takes actions through tools and observes the results - a chatbot has history but only talks, while the agent's defining feature is the loop with tools.</details>
+
+2. Which of the six parts is described as being constructed fresh for every model call?
+   * A) The context
+   * B) The memory and state
+   * C) The model
+   * D) The surrounding system
+   <details><summary>Answer</summary>A) The context - it is assembled fresh on each call from the system prompt, history, tools, and injected information, unlike memory which persists.</details>
+
+3. A developer wants the agent to remember a user's preferences across separate sessions. Which part is responsible?
+   * A) The loop
+   * B) The model
+   * C) The memory and state
+   * D) The context
+   <details><summary>Answer</summary>C) The memory and state - it persists across calls and sessions in a database and is selectively loaded into context when relevant.</details>
+
+4. Where does the chapter say most of the engineering effort actually goes?
+   * A) Training or fine-tuning the model
+   * B) Choosing the cheapest provider
+   * C) Writing a single perfect prompt
+   * D) The surrounding system: auth, storage, streaming, state, and observability
+   <details><summary>Answer</summary>D) The surrounding system - the provider gives you a smart model cheaply, so the bulk of the engineering is everything around it.</details>
+
+5. Which statement captures the chapter's crucial reframing rather than the common newcomer assumption?
+   * A) Better models eliminate the need for context engineering
+   * B) The model is the system and everything else is glue
+   * C) The model is the easy part; you are building the system that makes a model useful, safe, and reliable
+   * D) Tools matter less than raw model capability
+   <details><summary>Answer</summary>C) The model is the easy part; you are building the system that makes a model useful, safe, and reliable - this is the chapter's central reframing.</details>

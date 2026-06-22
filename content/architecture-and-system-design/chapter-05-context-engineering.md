@@ -79,3 +79,96 @@ Teams obsess over model choice and prompt wording, but in practice the biggest q
 ---
 
 Next: [Chapter 6 — Prompt architecture](chapter-06-prompt-architecture.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. How does the chapter distinguish "context" from "memory"?
+   * A) Memory is your database; context is the curated subset loaded into a given call
+   * B) Context is durable storage; memory is rebuilt per call
+   * C) They are two names for the same thing
+   * D) Context persists across sessions; memory does not
+   <details><summary>Answer</summary>A) Memory is your database; context is the curated subset loaded into a given call - the skill is in choosing that subset.</details>
+
+2. The "reference, don't embed" pattern hands the model:
+   * A) The full text of every document inline
+   * B) Short stable handles plus a tool to read content on demand
+   * C) A larger context window
+   * D) A fresh summary of all documents on every call
+   <details><summary>Answer</summary>B) Short stable handles plus a tool to read content on demand - the model reads only what the task actually requires.</details>
+
+3. Your agent edits a document, then reasons about a version it read three turns ago. Which discipline fixes this?
+   * A) Increase the context window
+   * B) Cache the old version for reuse
+   * C) Require re-fetching content each turn and tell the model it does not retain content between turns
+   * D) Embed every version in the prompt
+   <details><summary>Answer</summary>C) Require re-fetching content each turn and tell the model it does not retain content between turns - fresh-every-turn beats remembered-and-wrong for mutable data.</details>
+
+4. A conversation has grown past the token budget, but you want to bound tokens while preserving the gist. Which strategy fits?
+   * A) Send the full history on every call
+   * B) Summarise older turns and prepend them, keeping recent turns verbatim
+   * C) Drop the system prompt
+   * D) Stop responding
+   <details><summary>Answer</summary>B) Summarise older turns and prepend them, keeping recent turns verbatim - this compresses the gist while bounding tokens.</details>
+
+5. Why does the chapter discourage "give the model everything just in case"?
+   * A) It is always cheaper
+   * B) It improves quality by adding detail
+   * C) It costs more, is slower, and can degrade quality through the lost-in-the-middle effect
+   * D) Providers forbid large prompts
+   <details><summary>Answer</summary>C) It costs more, is slower, and can degrade quality through the lost-in-the-middle effect - important details get diluted among irrelevant ones.</details>
+
+### Coding Challenge
+
+**Build a recent-window context within a token budget**
+
+Write `build_context(system_prompt, history, budget)` that always keeps the system prompt and then adds the most recent turns (newest first) until the next turn would exceed the budget. Return the kept turns in chronological order. Use a simple word count as the token estimate.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+def build_context(system_prompt, history, budget):
+    """Keep the system prompt plus the most recent turns within a token budget."""
+    tokens = lambda s: len(s.split())
+    used, kept = tokens(system_prompt), []
+    for turn in reversed(history):             # newest first
+        if used + tokens(turn) > budget:
+            break
+        kept.append(turn)
+        used += tokens(turn)
+    return [system_prompt] + list(reversed(kept))   # restore chronological order
+
+
+history = ["turn one", "turn two", "turn three", "turn four"]
+print(build_context("system", history, budget=5))
+# ['system', 'turn three', 'turn four']
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+function buildContext(systemPrompt, history, budget) {
+  const tokens = (s) => s.split(/\s+/).length;
+  const kept = [];
+  let used = tokens(systemPrompt);
+  for (let i = history.length - 1; i >= 0; i--) {  // newest first
+    if (used + tokens(history[i]) > budget) break;
+    kept.unshift(history[i]);                       // restore chronological order
+    used += tokens(history[i]);
+  }
+  return [systemPrompt, ...kept];
+}
+
+const history = ["turn one", "turn two", "turn three", "turn four"];
+console.log(buildContext("system", history, 5));
+// ['system', 'turn three', 'turn four']
+```
+
+</details>

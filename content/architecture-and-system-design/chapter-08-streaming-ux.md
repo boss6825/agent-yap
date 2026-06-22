@@ -79,3 +79,106 @@ Done well, streaming transforms the perceived quality of an agent. A turn that t
 ---
 
 Next: [Chapter 9 — Data modeling for agents](chapter-09-data-modeling.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. Why is SSE the pragmatic default transport for agents?
+   * A) The data flow is overwhelmingly server-to-client, and SSE is simple, proxy-friendly, and auto-reconnecting
+   * B) It is full-duplex for rich client-to-server messaging mid-turn
+   * C) It requires WebSockets under the hood
+   * D) It cannot be buffered by proxies under any circumstances
+   <details><summary>Answer</summary>A) The data flow is overwhelmingly server-to-client, and SSE is simple, proxy-friendly, and auto-reconnecting - full-duplex WebSockets are usually overkill.</details>
+
+2. A turn is best modeled as:
+   * A) A single final text blob
+   * B) An ordered stream of typed events
+   * C) One reasoning token
+   * D) A flat list of role and text pairs only
+   <details><summary>Answer</summary>B) An ordered stream of typed events - this lets the UI render meaningful activity and lets persistence replay the turn exactly.</details>
+
+3. The model writes some text, then calls a tool, but the tool's output appears before the preceding text. The fix is:
+   * A) Disable streaming entirely
+   * B) Increase the iteration cap
+   * C) Hide all reasoning output
+   * D) Flush buffered text when transitioning to a tool call, and emit a tool_call_start event
+   <details><summary>Answer</summary>D) Flush buffered text when transitioning to a tool call, and emit a tool_call_start event - this keeps the timeline chronological.</details>
+
+4. You want a reloaded conversation to reproduce the chips, cards, and citations exactly as they streamed. You should:
+   * A) Store only the final text
+   * B) Re-run the model on every reload
+   * C) Persist the same ordered event timeline you streamed
+   * D) Save a screenshot of the rendering
+   <details><summary>Answer</summary>C) Persist the same ordered event timeline you streamed - the client replays the events to reconstruct the rich rendering.</details>
+
+5. Your streaming code is correct, yet the real-time feel disappears. The most likely cause is:
+   * A) Buffering at a framework hop or reverse proxy is batching events; disable buffering at every hop
+   * B) The model is responding too fast
+   * C) SSE does not support text content
+   * D) Heartbeats are slowing the stream
+   <details><summary>Answer</summary>A) Buffering at a framework hop or reverse proxy is batching events - disable buffering at every hop or events arrive in clumps.</details>
+
+### Coding Challenge
+
+**Stream visible prose while hiding a machine trailer**
+
+Write a generator `stream_visible(chunks, marker)` that emits visible prose from incoming token chunks but stops emitting as soon as a trailer marker appears (the marker may straddle two chunks). Hold back only a marker-sized tail so a split marker is still detected.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+def stream_visible(chunks, marker="<cite>"):
+    """Emit visible prose tokens; withhold everything from the marker onward."""
+    buffer = ""
+    for chunk in chunks:
+        buffer += chunk
+        i = buffer.find(marker)
+        if i != -1:
+            if buffer[:i]:
+                yield buffer[:i]
+            return                              # rest is machine protocol; stop
+        safe = len(buffer) - (len(marker) - 1)  # keep a tail for a split marker
+        if safe > 0:
+            yield buffer[:safe]
+            buffer = buffer[safe:]
+    if buffer:
+        yield buffer
+
+
+chunks = ["The sum is 5.", "<ci", "te>data"]
+print("".join(stream_visible(chunks)))   # The sum is 5.
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+function* streamVisible(chunks, marker = "<cite>") {
+  let buffer = "";
+  for (const chunk of chunks) {
+    buffer += chunk;
+    const i = buffer.indexOf(marker);
+    if (i !== -1) {
+      if (buffer.slice(0, i)) yield buffer.slice(0, i);
+      return;                                  // rest is machine protocol; stop
+    }
+    const safe = buffer.length - (marker.length - 1); // keep a tail for a split marker
+    if (safe > 0) {
+      yield buffer.slice(0, safe);
+      buffer = buffer.slice(safe);
+    }
+  }
+  if (buffer) yield buffer;
+}
+
+const chunks = ["The sum is 5.", "<ci", "te>data"];
+console.log([...streamVisible(chunks)].join(""));  // The sum is 5.
+```
+
+</details>

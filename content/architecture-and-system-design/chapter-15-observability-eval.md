@@ -82,3 +82,106 @@ Observability and evaluation form a loop: traces show you what's happening and s
 ---
 
 Next: [Chapter 16 — Scaling and infrastructure](chapter-16-scaling-infra.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. The unit of agent observability is:
+   * A) A single log line
+   * B) The trace - the complete record of one turn
+   * C) The system prompt
+   * D) The token count
+   <details><summary>Answer</summary>B) The trace - it captures the full trajectory: context in, model decisions, tool calls, and outputs.</details>
+
+2. Which grading method should you prefer where possible?
+   * A) LLM-as-judge for everything
+   * B) Human review for everything
+   * C) Deterministic checks, such as whether the citation block parses, whether cited quotes match, and whether the expected tool was called
+   * D) User thumbs-up only
+   <details><summary>Answer</summary>C) Deterministic checks - they are cheap and reliable, so prefer them over subjective grading.</details>
+
+3. You tweak a prompt to fix one case. How do you avoid silently breaking five others?
+   * A) Ship it and watch production
+   * B) Add more emphasis to the prompt
+   * C) Ask the model if it is sure
+   * D) Run an eval set on every prompt change and compare against the baseline
+   <details><summary>Answer</summary>D) Run an eval set and compare against the baseline - treat prompts and tools like code with a test suite.</details>
+
+4. You want to answer "which tool fails most?" across many turns. What enables this?
+   * A) Searchable traces with token and cost capture and structured fields by tool and outcome
+   * B) A single correlation id per request only
+   * C) Free-text logs
+   * D) Hiding reasoning
+   <details><summary>Answer</summary>A) Searchable, structured traces - searchability by user, model, tool, and outcome is what lets you aggregate failures.</details>
+
+5. What is the role of production "implicit signals" (accept/reject, re-asking) relative to an offline eval set?
+   * A) They replace the eval set entirely
+   * B) They are noise and should be ignored
+   * C) They reveal performance on the messy real distribution and should be fed back into the eval set
+   * D) They only measure cost
+   <details><summary>Answer</summary>C) They reveal the real distribution your eval set cannot, and surprising cases should become new eval examples.</details>
+
+### Coding Challenge
+
+**Build a deterministic eval harness**
+
+Write `check_format(output, required)` that passes only when the output parses as JSON and contains all required keys, and `run_evals(examples, required)` that returns per-example results and an overall pass rate.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+import json
+
+
+def check_format(output, required):
+    """Deterministic format-compliance check: parses as JSON with all required keys."""
+    try:
+        data = json.loads(output)
+    except (ValueError, TypeError):
+        return False
+    return all(key in data for key in required)
+
+
+def run_evals(examples, required):
+    results = [check_format(ex, required) for ex in examples]
+    score = sum(results) / len(results)
+    return results, score
+
+
+examples = ['{"answer": "yes", "page": 3}', "not json", '{"answer": "no"}']
+print(run_evals(examples, ["answer", "page"]))
+# ([True, False, False], 0.333...)
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+function checkFormat(output, required) {
+  let data;
+  try {
+    data = JSON.parse(output);
+  } catch {
+    return false;
+  }
+  return required.every((key) => key in data);
+}
+
+function runEvals(examples, required) {
+  const results = examples.map((ex) => checkFormat(ex, required));
+  const score = results.filter(Boolean).length / results.length;
+  return { results, score };
+}
+
+const examples = ['{"answer":"yes","page":3}', "not json", '{"answer":"no"}'];
+console.log(runEvals(examples, ["answer", "page"]));
+// { results: [true, false, false], score: 0.333... }
+```
+
+</details>

@@ -80,3 +80,109 @@ This layer is among the highest-leverage abstractions in any agent. Build it ear
 ---
 
 Next: [Chapter 5 — Context engineering and memory](chapter-05-context-engineering.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. The adapter layer's job is to translate between:
+   * A) The user and the database
+   * B) A neutral interface your system speaks and each provider's native API
+   * C) Tools and memory
+   * D) Streaming and persistence
+   <details><summary>Answer</summary>B) A neutral interface your system speaks and each provider's native API - one thin adapter per provider converts to and from the native wire format.</details>
+
+2. In the three-tier model strategy, generating a chat title should be routed to:
+   * A) The top tier
+   * B) The mid tier
+   * C) The low tier
+   * D) Whichever model has the largest context window
+   <details><summary>Answer</summary>C) The low tier - title generation is a trivial background task best served by the cheapest, fastest model.</details>
+
+3. A client sends a model id you do not recognize. What does the chapter say to do?
+   * A) Validate against the registry allow-list and fall back to a safe default
+   * B) Pass it straight through to the provider
+   * C) Reject the entire request
+   * D) Pick a random registered model
+   <details><summary>Answer</summary>A) Validate against the registry allow-list and fall back to a safe default - never hand an unvalidated, client-supplied model id to an API.</details>
+
+4. You run bulk extraction across a thousand documents. The chapter's tiering and reasoning guidance suggests:
+   * A) Top tier with reasoning on
+   * B) Mid tier with reasoning off
+   * C) Low tier with reasoning on
+   * D) Top tier with reasoning off
+   <details><summary>Answer</summary>B) Mid tier with reasoning off - high-volume structured work wants throughput and lower cost, and the reasoning stream would just burn tokens.</details>
+
+5. What should a well-designed adapter know about your domain (for example "documents" or "citations")?
+   * A) Everything, so it can format the final answer
+   * B) Only the tool names
+   * C) Nothing; domain logic is reconstructed above the adapter
+   * D) Just the citation format
+   <details><summary>Answer</summary>C) Nothing; domain logic is reconstructed above the adapter - keeping adapters domain-free keeps them small and interchangeable.</details>
+
+### Coding Challenge
+
+**Resolve and validate a model id**
+
+Write `resolve_model(requested)` backed by a registry. Validate the requested id against an allow-list, fall back to a safe default for anything unknown, and infer the provider from the id prefix. Return the resolved model and its provider.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+REGISTRY = {"gpt-4o", "gpt-4o-mini", "claude-sonnet", "gemini-pro"}
+DEFAULT_MODEL = "gpt-4o-mini"
+PREFIXES = {"gpt": "openai", "claude": "anthropic", "gemini": "google"}
+
+
+def infer_provider(model_id):
+    for prefix, provider in PREFIXES.items():
+        if model_id.startswith(prefix):
+            return provider
+    return None
+
+
+def resolve_model(requested):
+    """Validate against the allow-list, fall back to default, infer provider."""
+    model = requested if requested in REGISTRY else DEFAULT_MODEL
+    provider = infer_provider(model)
+    if provider is None:
+        raise ValueError(f"no provider for {model}")
+    return model, provider
+
+
+print(resolve_model("claude-sonnet"))  # ('claude-sonnet', 'anthropic')
+print(resolve_model("evil-model"))     # ('gpt-4o-mini', 'openai')
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+const REGISTRY = new Set(["gpt-4o", "gpt-4o-mini", "claude-sonnet", "gemini-pro"]);
+const DEFAULT_MODEL = "gpt-4o-mini";
+const PREFIXES = { gpt: "openai", claude: "anthropic", gemini: "google" };
+
+function inferProvider(modelId) {
+  for (const [prefix, provider] of Object.entries(PREFIXES)) {
+    if (modelId.startsWith(prefix)) return provider;
+  }
+  return null;
+}
+
+function resolveModel(requested) {
+  const model = REGISTRY.has(requested) ? requested : DEFAULT_MODEL;
+  const provider = inferProvider(model);
+  if (!provider) throw new Error(`no provider for ${model}`);
+  return [model, provider];
+}
+
+console.log(resolveModel("claude-sonnet")); // ['claude-sonnet', 'anthropic']
+console.log(resolveModel("evil-model"));    // ['gpt-4o-mini', 'openai']
+```
+
+</details>

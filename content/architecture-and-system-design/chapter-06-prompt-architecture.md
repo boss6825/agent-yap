@@ -77,3 +77,96 @@ Prompts deserve evaluation like any other component (Chapter 15). Maintain a set
 ---
 
 Next: [Chapter 7 — Retrieval: RAG vs tools vs long context](chapter-07-retrieval-strategies.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. The "emitted protocol" pattern is best summarised as:
+   * A) The model produces structure, and your code consumes it deterministically
+   * B) Your code produces structure, and the model parses it
+   * C) Another model call extracts meaning from the prose
+   * D) The user formats the output by hand
+   <details><summary>Answer</summary>A) The model produces structure, and your code consumes it deterministically - this turns the model into a structured-data source you can build features on.</details>
+
+2. What belongs in the system prompt, versus being loaded on demand?
+   * A) Everything possible should be concatenated into the system prompt
+   * B) Task-specific templates belong in the system prompt
+   * C) The system prompt carries invariant behaviour; task-specific instructions are loaded on demand
+   * D) The system prompt should contain only the user's message
+   <details><summary>Answer</summary>C) The system prompt carries invariant behaviour; task-specific instructions are loaded on demand - this keeps it focused on the universal.</details>
+
+3. Your generator already numbers clauses automatically, but the model also types numbers, causing duplicates. The prompt's job here is to:
+   * A) Ask the model to number more carefully
+   * B) Add another model call to strip the numbers
+   * C) Emphasise every rule in capitals
+   * D) Tell the model not to type the numbers, since the code handles them
+   <details><summary>Answer</summary>D) Tell the model not to type the numbers, since the code handles them - the prompt's job here is negative, keeping the model from fighting your deterministic formatter.</details>
+
+4. You want the agent to reliably follow "read before you answer." The chapter recommends:
+   * A) Stating it once, prominently, in the system prompt only
+   * B) Repeating it at the point of use - in the tool description and the tool's result - as well as the system prompt
+   * C) Capitalising the entire system prompt
+   * D) Adding it only to the read tool's result
+   <details><summary>Answer</summary>B) Repeating it at the point of use as well as the system prompt - redundant reinforcement at the decision point measurably improves compliance.</details>
+
+5. What is the failure mode of "over-prompting"?
+   * A) The prompt becomes too short to be useful
+   * B) Emphasis becomes more effective as the prompt grows
+   * C) The ever-growing prompt becomes so large the model cannot prioritise, so rule-following degrades
+   * D) The model ignores the user's message entirely
+   <details><summary>Answer</summary>C) The ever-growing prompt becomes so large the model cannot prioritise, so rule-following degrades - a focused prompt the model follows beats an exhaustive one it cannot.</details>
+
+### Coding Challenge
+
+**Parse an emitted citation protocol**
+
+Write `split_response(text)` that separates visible prose from a trailing machine-readable block of the form `<citations>...</citations>` containing JSON. Return the clean prose and the parsed citations list, using only the standard library.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+import json
+import re
+
+
+def split_response(text):
+    """Separate visible prose from a trailing <citations>...</citations> JSON block."""
+    match = re.search(r"<citations>(.*?)</citations>\s*$", text, re.DOTALL)
+    if not match:
+        return text.strip(), []
+    prose = text[: match.start()].strip()
+    citations = json.loads(match.group(1))
+    return prose, citations
+
+
+raw = 'The contract auto-renews. <citations>[{"marker": 1, "page": 3}]</citations>'
+prose, cites = split_response(raw)
+print(prose)   # The contract auto-renews.
+print(cites)   # [{'marker': 1, 'page': 3}]
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+function splitResponse(text) {
+  const match = text.match(/<citations>([\s\S]*?)<\/citations>\s*$/);
+  if (!match) return { prose: text.trim(), citations: [] };
+  const prose = text.slice(0, match.index).trim();
+  const citations = JSON.parse(match[1]);
+  return { prose, citations };
+}
+
+const raw =
+  'The contract auto-renews. <citations>[{"marker":1,"page":3}]</citations>';
+console.log(splitResponse(raw));
+// { prose: 'The contract auto-renews.', citations: [ { marker: 1, page: 3 } ] }
+```
+
+</details>

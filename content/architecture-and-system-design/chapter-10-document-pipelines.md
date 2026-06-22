@@ -69,3 +69,114 @@ A document pipeline is a small ETL system bolted to your agent. Treat it with th
 ---
 
 Next: [Chapter 11 — Security, auth, and multi-tenancy](chapter-11-security-multitenancy.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. In the ingestion pipeline, when is the metadata record with a "processing" status created?
+   * A) After conversion and extraction both succeed
+   * B) Before the heavy work begins, so there is a durable handle even if a later step fails
+   * C) Only if the file is already a PDF
+   * D) After the first version row is written
+   <details><summary>Answer</summary>B) Before the heavy work begins - writing the record first gives you a durable, recoverable handle on the file.</details>
+
+2. Why use your own sequential location markers rather than the page numbers printed inside a document?
+   * A) Internal numbers are always missing
+   * B) It is faster to compute
+   * C) Providers require sequential markers
+   * D) Extraction and rendering must agree on locations, and internal footers or roman numerals do not line up with the rendered view
+   <details><summary>Answer</summary>D) Extraction and rendering must agree on locations - markers tied to the rendering let a "page 3" citation scroll to the right place.</details>
+
+3. Document conversion (Office to PDF) fails on a malformed file. What does the chapter recommend?
+   * A) Fail softly - degrade so the document stays usable for text extraction even without a rendered preview
+   * B) Reject the upload outright
+   * C) Retry the conversion forever
+   * D) Write your own converter from scratch
+   <details><summary>Answer</summary>A) Fail softly - wrap conversion in a try/catch and continue with what succeeded rather than losing the upload.</details>
+
+4. You are launching with modest file sizes and moderate volume but expect to grow. What is the pragmatic path?
+   * A) Build the queue and workers first
+   * B) Start synchronous but design as if it will become asynchronous, using an explicit status field from day one
+   * C) Process every file on the client
+   * D) Never support asynchronous processing
+   <details><summary>Answer</summary>B) Start synchronous but design for async - the status field makes the later migration to workers a localised change.</details>
+
+5. Which single design choice most makes a later synchronous-to-asynchronous migration easy?
+   * A) Using a faster converter
+   * B) Larger object storage
+   * C) Already having the explicit status field (processing, ready, error)
+   * D) A bigger context window
+   <details><summary>Answer</summary>C) Already having the explicit status field - the rest of the system already understands "not ready yet," so moving steps to a worker is localised.</details>
+
+### Coding Challenge
+
+**Run a fail-soft ingestion pipeline**
+
+Write `ingest(file)` that validates the format (error on unsupported), attempts a preview conversion that fails soft (keep the document usable without a preview), then marks the record `ready`. Track the status field throughout.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+def convert_to_pdf(file):
+    if file.get("corrupt"):
+        raise ValueError("conversion failed")
+    return file["name"] + ".pdf"
+
+
+def ingest(file, supported={"pdf", "docx"}):
+    """Run a tiny ingestion pipeline, tracking status and failing soft on preview."""
+    record = {"name": file["name"], "status": "processing", "preview": None}
+    if file["ext"] not in supported:
+        record["status"] = "error"
+        record["message"] = f"unsupported format: {file['ext']}"
+        return record
+    try:
+        record["preview"] = convert_to_pdf(file)   # may fail
+    except Exception:
+        record["preview"] = None                   # fail soft: keep it usable
+    record["text"] = file.get("text", "")
+    record["status"] = "ready"
+    return record
+
+
+print(ingest({"name": "a", "ext": "docx", "text": "hi"}))      # ready, with preview
+print(ingest({"name": "b", "ext": "docx", "corrupt": True}))   # ready, no preview
+print(ingest({"name": "c", "ext": "exe"}))                     # error
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+function convertToPdf(file) {
+  if (file.corrupt) throw new Error("conversion failed");
+  return file.name + ".pdf";
+}
+
+function ingest(file, supported = new Set(["pdf", "docx"])) {
+  const record = { name: file.name, status: "processing", preview: null };
+  if (!supported.has(file.ext)) {
+    return { ...record, status: "error", message: `unsupported format: ${file.ext}` };
+  }
+  try {
+    record.preview = convertToPdf(file);   // may fail
+  } catch {
+    record.preview = null;                 // fail soft: keep it usable
+  }
+  record.text = file.text || "";
+  record.status = "ready";
+  return record;
+}
+
+console.log(ingest({ name: "a", ext: "docx", text: "hi" }));     // ready, with preview
+console.log(ingest({ name: "b", ext: "docx", corrupt: true }));  // ready, no preview
+console.log(ingest({ name: "c", ext: "exe" }));                  // error
+```
+
+</details>

@@ -84,3 +84,108 @@ Get this right and you can offer BYOK confidently, attribute costs correctly, an
 ---
 
 Next: [Chapter 13 — Reliability: retries, idempotency, and failure handling](chapter-13-reliability.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. Where do operator secrets and user secrets live, respectively?
+   * A) Both in the database
+   * B) Operator secrets in the environment; user secrets encrypted in the database
+   * C) Both in the environment
+   * D) Operator secrets on the client; user secrets in the database
+   <details><summary>Answer</summary>B) Operator secrets in the environment; user secrets encrypted in the database - operator secrets never touch the database, and user secrets persist but stay unreadable.</details>
+
+2. The credential resolution rule is:
+   * A) Operator key always wins
+   * B) Whichever key was configured most recently
+   * C) User key if present, else operator key, else error
+   * D) Both keys are always required
+   <details><summary>Answer</summary>C) User key if present, else operator key, else error - one rule serves both shared-key and BYOK deployments.</details>
+
+3. Why must the encryption key be derived from an environment secret rather than stored in the database?
+   * A) It is faster to read from the environment
+   * B) Databases cannot store keys
+   * C) To avoid IV reuse
+   * D) So that a database dump alone is useless to an attacker
+   <details><summary>Answer</summary>D) So that a database dump alone is useless - the key lives in the environment, not alongside the ciphertext.</details>
+
+4. The settings UI needs to show whether a provider key is configured and where it came from. What should the status endpoint return?
+   * A) The decrypted key so the UI can display it
+   * B) Whether the credential exists and its source (user, operator/env, or none), and nothing more
+   * C) The ciphertext and IV
+   * D) Only a boolean, with no source
+   <details><summary>Answer</summary>B) Whether it exists and its source, and nothing more - the client learns that and from where, never what.</details>
+
+5. Why must a fresh random IV be generated for every encryption with AES-256-GCM?
+   * A) It makes the ciphertext shorter
+   * B) The provider requires it
+   * C) Reusing an IV with GCM is catastrophic for security
+   * D) It speeds up decryption
+   <details><summary>Answer</summary>C) Reusing an IV with GCM is catastrophic - generate a new one every time you encrypt.</details>
+
+### Coding Challenge
+
+**Resolve a credential and report its status**
+
+Write `resolve_credential(provider, operator_keys, user_keys)` that returns the value and its source using user-beats-operator precedence (raising if neither exists), plus `credential_status(...)` that reports existence and source without ever returning the secret.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+def resolve_credential(provider, operator_keys, user_keys):
+    """User key if present, else operator key, else raise."""
+    if provider in user_keys:
+        return user_keys[provider], "user"
+    if provider in operator_keys:
+        return operator_keys[provider], "operator/env"
+    raise ValueError(f"no credential for {provider}")
+
+
+def credential_status(provider, operator_keys, user_keys):
+    """Report whether a credential exists and its source, never the secret."""
+    if provider in user_keys:
+        return {"configured": True, "source": "user"}
+    if provider in operator_keys:
+        return {"configured": True, "source": "operator/env"}
+    return {"configured": False, "source": None}
+
+
+operator = {"openai": "sk-op"}
+user = {"anthropic": "sk-user"}
+print(resolve_credential("anthropic", operator, user))  # ('sk-user', 'user')
+print(resolve_credential("openai", operator, user))     # ('sk-op', 'operator/env')
+print(credential_status("openai", operator, user))      # configured, operator/env
+print(credential_status("google", operator, user))      # not configured
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+function resolveCredential(provider, operatorKeys, userKeys) {
+  if (provider in userKeys) return [userKeys[provider], "user"];
+  if (provider in operatorKeys) return [operatorKeys[provider], "operator/env"];
+  throw new Error(`no credential for ${provider}`);
+}
+
+function credentialStatus(provider, operatorKeys, userKeys) {
+  if (provider in userKeys) return { configured: true, source: "user" };
+  if (provider in operatorKeys) return { configured: true, source: "operator/env" };
+  return { configured: false, source: null };
+}
+
+const operator = { openai: "sk-op" };
+const user = { anthropic: "sk-user" };
+console.log(resolveCredential("anthropic", operator, user)); // ['sk-user', 'user']
+console.log(resolveCredential("openai", operator, user));    // ['sk-op', 'operator/env']
+console.log(credentialStatus("openai", operator, user));     // configured, operator/env
+console.log(credentialStatus("google", operator, user));     // not configured
+```
+
+</details>

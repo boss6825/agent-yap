@@ -72,3 +72,90 @@ Don't reach for a vector database reflexively because "RAG" is the default story
 ---
 
 Next: [Chapter 8 — Streaming and real-time UX](chapter-08-streaming-ux.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. Which retrieval strategy requires an embedding pipeline, a vector store, and a chunking strategy?
+   * A) Long context
+   * B) RAG (retrieval-augmented generation)
+   * C) Tool-based retrieval
+   * D) None of them
+   <details><summary>Answer</summary>B) RAG - it pre-processes documents into embedded chunks in a vector store, which is real infrastructure the other strategies avoid.</details>
+
+2. How does the chapter reframe RAG inside a hybrid design?
+   * A) As the mandatory front door for every query
+   * B) As a full replacement for all read tools
+   * C) As a tool the model can choose to call
+   * D) As something that is never useful
+   <details><summary>Answer</summary>C) As a tool the model can choose to call - a search tool, possibly vector-backed, sits alongside read and list tools rather than gating every query.</details>
+
+3. You need exact verbatim quotes with precise page citations from a user's identified set of contracts. Best default?
+   * A) Tool-based reads, plus a list tool
+   * B) Long context with everything embedded inline
+   * C) RAG over chunked embeddings
+   * D) Fine-tuning a model on the contracts
+   <details><summary>Answer</summary>A) Tool-based reads, plus a list tool - reading actual paginated text lets the model quote verbatim and cite precise locations.</details>
+
+4. The corpus is so large the model cannot even know what documents exist. What do you add?
+   * A) Nothing; rely on the model's training knowledge
+   * B) Discovery tools - a list tool and a search tool (possibly vector-backed)
+   * C) Only a bigger context window
+   * D) More aggressive prompt emphasis
+   <details><summary>Answer</summary>B) Discovery tools - a list tool so it sees what exists and a search tool so it can find by meaning.</details>
+
+5. Why can RAG undermine citation precision?
+   * A) Embeddings are always wrong
+   * B) Vector databases cannot store page numbers
+   * C) RAG only works on images
+   * D) Chunk boundaries and approximate (similar, not exact) retrieval can fragment structure and miss the exact clause
+   <details><summary>Answer</summary>D) Chunk boundaries and approximate retrieval can fragment structure and miss the exact clause - embeddings retrieve "similar," not "the exact text."</details>
+
+### Coding Challenge
+
+**Implement the retrieval decision guide**
+
+Write `choose_strategy(small_and_whole, bounded_identified, model_knows_corpus)` that returns the recommended retrieval approach by applying the chapter's decision guide in order: small-and-whole content, then a bounded identified set, then a corpus the model cannot enumerate, otherwise a hybrid.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+def choose_strategy(small_and_whole, bounded_identified, model_knows_corpus):
+    """Apply the chapter's retrieval decision guide, in order."""
+    if small_and_whole:
+        return "long-context"
+    if bounded_identified:
+        return "tool-based reads + list tool"
+    if not model_knows_corpus:
+        return "add a search tool (keyword or vector)"
+    return "hybrid: read/find/list tools + search"
+
+
+print(choose_strategy(True, False, False))    # long-context
+print(choose_strategy(False, True, True))     # tool-based reads + list tool
+print(choose_strategy(False, False, False))   # add a search tool (keyword or vector)
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+function chooseStrategy(smallAndWhole, boundedIdentified, modelKnowsCorpus) {
+  if (smallAndWhole) return "long-context";
+  if (boundedIdentified) return "tool-based reads + list tool";
+  if (!modelKnowsCorpus) return "add a search tool (keyword or vector)";
+  return "hybrid: read/find/list tools + search";
+}
+
+console.log(chooseStrategy(true, false, false));   // long-context
+console.log(chooseStrategy(false, true, true));    // tool-based reads + list tool
+console.log(chooseStrategy(false, false, false));  // add a search tool (keyword or vector)
+```
+
+</details>
