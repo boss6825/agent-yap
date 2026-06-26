@@ -1,5 +1,7 @@
 # Agent YAP
 
+> **Full project analysis:** see [OVERVIEW.md](OVERVIEW.md) for architecture, code structure, product evaluation, Mermaid diagrams, and a detailed explanation of the markdown → slides pipeline.
+
 A public, slide-by-slide field guide to **architecting and designing AI agents**.
 It turns a markdown knowledge base into a reader you page through left/right —
 each chapter split into bite-size, one-page slides — plus on-site search and an
