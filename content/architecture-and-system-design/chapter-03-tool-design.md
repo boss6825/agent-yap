@@ -44,7 +44,7 @@ Without the cheap option, the model pays full price for every lookup: more token
 
 ## Batching
 
-When the model commonly needs N of something, give it a tool that does N at once rather than forcing N separate calls. "Fetch these documents" (a list) beats N× "fetch this document." Batching cuts round-trips, which cuts latency and loop iterations. Cap the batch size in the schema to prevent abuse.
+When the model commonly needs N of something, give it a tool that does N at once rather than forcing N separate calls. "Fetch these documents" (a list) beats N× "fetch this document." ***Batching cuts round-trips, which cuts latency and loop iterations***. Cap the batch size in the schema to prevent abuse.
 
 ## Schema discipline
 
