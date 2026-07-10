@@ -1,4 +1,4 @@
-# Chapter 12 — Secrets and Bring-Your-Own-Key
+# Chapter 12: Secrets and Bring-Your-Own-Key
 
 Agents depend on credentials: model-provider API keys, integration tokens, signing secrets. Some belong to the operator; some belong to individual users who "bring their own key" (BYOK). Mishandling any of them is a serious breach. This chapter covers how to store secrets safely, how to resolve which one to use, and the BYOK pattern.
 
@@ -6,8 +6,8 @@ Agents depend on credentials: model-provider API keys, integration tokens, signi
 
 Distinguish:
 
-- **Operator secrets** — credentials the operator configures for the whole deployment, held in environment variables / a secrets manager: the system's provider keys, database credentials, signing secrets. These never touch the database and never reach the client.
-- **User secrets** — credentials individual users supply: their own provider API key, their own integration token. These must be *stored* (so they persist) but stored such that even someone with database access can't read them.
+- **Operator secrets**: credentials the operator configures for the whole deployment, held in environment variables / a secrets manager: the system's provider keys, database credentials, signing secrets. These never touch the database and never reach the client.
+- **User secrets**: credentials individual users supply: their own provider API key, their own integration token. These must be *stored* (so they persist) but stored such that even someone with database access can't read them.
 
 The architecture must handle both, and must define a clear precedence when both exist.
 
@@ -24,10 +24,10 @@ So a mature agent supports both an operator-wide key (everyone uses it) *and* pe
 
 Never store a user secret in plaintext. Use **authenticated symmetric encryption** (AES-256-GCM is the standard choice):
 
-- **Derive the encryption key from an operator secret** held in the environment (e.g. hash a long random `ENCRYPTION_SECRET` into a 32-byte key). The encryption key lives in the environment, *not* in the database — so a database dump alone is useless to an attacker.
-- **Encrypt with a fresh random IV per record.** Store the ciphertext, the IV, and the authentication tag — the three outputs of GCM. Reusing an IV with GCM is catastrophic, so generate a new one every time you encrypt.
+- **Derive the encryption key from an operator secret** held in the environment (e.g. hash a long random `ENCRYPTION_SECRET` into a 32-byte key). The encryption key lives in the environment, *not* in the database, so a database dump alone is useless to an attacker.
+- **Encrypt with a fresh random IV per record.** Store the ciphertext, the IV, and the authentication tag: the three outputs of GCM. Reusing an IV with GCM is catastrophic, so generate a new one every time you encrypt.
 - **Authenticated encryption gives integrity, not just secrecy.** A tampered ciphertext fails the auth-tag check on decryption rather than silently producing attacker-influenced plaintext.
-- **Fail closed on decryption.** If the auth tag doesn't verify (corruption, wrong key, tampering), return nothing and log — never return garbage that might be used as a credential.
+- **Fail closed on decryption.** If the auth tag doesn't verify (corruption, wrong key, tampering), return nothing and log; never return garbage that might be used as a credential.
 
 Store each secret type in an appropriately-constrained table (e.g. a provider key per `(user, provider)`; a separate table for a different token type so a check constraint reserved for providers isn't stretched).
 
@@ -49,7 +49,7 @@ The same precedence applies to integration tokens (e.g. a third-party research A
 
 ## Expose status, never secrets
 
-The UI needs to show users whether a credential is configured and where it came from — but must never receive the secret itself. Provide a **status** endpoint that returns, per credential, *whether* it exists and its *source* (`user`, `operator/env`, or none) — and nothing more. This lets the settings UI display "configured (from environment, read-only)" or "configured (your key, editable)" without ever transmitting a key to the browser. The client learns *that* and *from where*, never *what*.
+The UI needs to show users whether a credential is configured and where it came from, but must never receive the secret itself. Provide a **status** endpoint that returns, per credential, *whether* it exists and its *source* (`user`, `operator/env`, or none), and nothing more. This lets the settings UI display "configured (from environment, read-only)" or "configured (your key, editable)" without ever transmitting a key to the browser. The client learns *that* and *from where*, never *what*.
 
 ## Tie model routing to available credentials
 
@@ -75,7 +75,7 @@ Not all secrets are user-supplied. Operator secrets like a **download-signing se
 
 - Operator secrets live in the environment; user secrets live encrypted in the database.
 - Encrypt user secrets with AES-256-GCM: per-record IV, auth tag, key derived from an environment secret, fail closed on decryption.
-- Resolve credentials as **user-beats-operator, with operator as fallback** — one rule that serves both shared-key and BYOK deployments.
+- Resolve credentials as **user-beats-operator, with operator as fallback**: one rule that serves both shared-key and BYOK deployments.
 - Expose *status and source*, never the secret.
 - Never log secrets; decrypt only at point of use.
 
@@ -83,109 +83,4 @@ Get this right and you can offer BYOK confidently, attribute costs correctly, an
 
 ---
 
-Next: [Chapter 13 — Reliability: retries, idempotency, and failure handling](chapter-13-reliability.md)
-
----
-
-## Review
-
-### Quick Check
-
-1. Where do operator secrets and user secrets live, respectively?
-   * A) Both in the database
-   * B) Operator secrets in the environment; user secrets encrypted in the database
-   * C) Both in the environment
-   * D) Operator secrets on the client; user secrets in the database
-   <details><summary>Answer</summary>B) Operator secrets in the environment; user secrets encrypted in the database - operator secrets never touch the database, and user secrets persist but stay unreadable.</details>
-
-2. The credential resolution rule is:
-   * A) Operator key always wins
-   * B) Whichever key was configured most recently
-   * C) User key if present, else operator key, else error
-   * D) Both keys are always required
-   <details><summary>Answer</summary>C) User key if present, else operator key, else error - one rule serves both shared-key and BYOK deployments.</details>
-
-3. Why must the encryption key be derived from an environment secret rather than stored in the database?
-   * A) It is faster to read from the environment
-   * B) Databases cannot store keys
-   * C) To avoid IV reuse
-   * D) So that a database dump alone is useless to an attacker
-   <details><summary>Answer</summary>D) So that a database dump alone is useless - the key lives in the environment, not alongside the ciphertext.</details>
-
-4. The settings UI needs to show whether a provider key is configured and where it came from. What should the status endpoint return?
-   * A) The decrypted key so the UI can display it
-   * B) Whether the credential exists and its source (user, operator/env, or none), and nothing more
-   * C) The ciphertext and IV
-   * D) Only a boolean, with no source
-   <details><summary>Answer</summary>B) Whether it exists and its source, and nothing more - the client learns that and from where, never what.</details>
-
-5. Why must a fresh random IV be generated for every encryption with AES-256-GCM?
-   * A) It makes the ciphertext shorter
-   * B) The provider requires it
-   * C) Reusing an IV with GCM is catastrophic for security
-   * D) It speeds up decryption
-   <details><summary>Answer</summary>C) Reusing an IV with GCM is catastrophic - generate a new one every time you encrypt.</details>
-
-### Coding Challenge
-
-**Resolve a credential and report its status**
-
-Write `resolve_credential(provider, operator_keys, user_keys)` that returns the value and its source using user-beats-operator precedence (raising if neither exists), plus `credential_status(...)` that reports existence and source without ever returning the secret.
-
-<details>
-<summary>Python Solution</summary>
-
-```python
-def resolve_credential(provider, operator_keys, user_keys):
-    """User key if present, else operator key, else raise."""
-    if provider in user_keys:
-        return user_keys[provider], "user"
-    if provider in operator_keys:
-        return operator_keys[provider], "operator/env"
-    raise ValueError(f"no credential for {provider}")
-
-
-def credential_status(provider, operator_keys, user_keys):
-    """Report whether a credential exists and its source, never the secret."""
-    if provider in user_keys:
-        return {"configured": True, "source": "user"}
-    if provider in operator_keys:
-        return {"configured": True, "source": "operator/env"}
-    return {"configured": False, "source": None}
-
-
-operator = {"openai": "sk-op"}
-user = {"anthropic": "sk-user"}
-print(resolve_credential("anthropic", operator, user))  # ('sk-user', 'user')
-print(resolve_credential("openai", operator, user))     # ('sk-op', 'operator/env')
-print(credential_status("openai", operator, user))      # configured, operator/env
-print(credential_status("google", operator, user))      # not configured
-```
-
-</details>
-
-<details>
-<summary>JavaScript Solution</summary>
-
-```javascript
-function resolveCredential(provider, operatorKeys, userKeys) {
-  if (provider in userKeys) return [userKeys[provider], "user"];
-  if (provider in operatorKeys) return [operatorKeys[provider], "operator/env"];
-  throw new Error(`no credential for ${provider}`);
-}
-
-function credentialStatus(provider, operatorKeys, userKeys) {
-  if (provider in userKeys) return { configured: true, source: "user" };
-  if (provider in operatorKeys) return { configured: true, source: "operator/env" };
-  return { configured: false, source: null };
-}
-
-const operator = { openai: "sk-op" };
-const user = { anthropic: "sk-user" };
-console.log(resolveCredential("anthropic", operator, user)); // ['sk-user', 'user']
-console.log(resolveCredential("openai", operator, user));    // ['sk-op', 'operator/env']
-console.log(credentialStatus("openai", operator, user));     // configured, operator/env
-console.log(credentialStatus("google", operator, user));     // not configured
-```
-
-</details>
+Next: [Chapter 13: Reliability: retries, idempotency, and failure handling](chapter-13-reliability.md)

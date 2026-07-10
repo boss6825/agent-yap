@@ -1,4 +1,4 @@
-# Chapter 1: Anatomy of an AI Agent
+# Chapter 1 — Anatomy of an AI Agent
 
 Before you can design an agent, you need a clear mental model of its parts. This chapter lays out that anatomy and the vocabulary the rest of the folder uses. Every term here recurs throughout, so it's worth getting precise.
 
@@ -7,7 +7,7 @@ Before you can design an agent, you need a clear mental model of its parts. This
 It helps to place "agent" on a spectrum:
 
 - **A single prompt** takes input and returns output once. No memory, no actions. (A summariser, a classifier.)
-- **A chatbot** holds a conversation: it has history, but it still only *talks*. It can't do anything in the world.
+- **A chatbot** holds a conversation — it has history — but it still only *talks*. It can't do anything in the world.
 - **An agent** is a model in a loop that can *take actions* through tools, observe their results, and decide its next step, repeating until a task is done. It can read a file, call an API, write a document, and chain these together.
 
 The defining feature of an agent is the **loop with tools**. Everything else in this folder elaborates on the pieces that make that loop useful, safe, and reliable.
@@ -18,7 +18,7 @@ A production agent has six conceptual parts. Hold all six in your head and most 
 
 ### 1. The model
 
-The LLM itself, the reasoning engine. You usually don't build this; you call it via a provider API. Key properties you'll design around: its context window (how much it can read at once), whether it supports tool/function calling, whether it can stream, and whether it exposes a reasoning/thinking mode. Treat the model as a powerful but stateless, occasionally-unreliable component you orchestrate, not as the system itself.
+The LLM itself — the reasoning engine. You usually don't build this; you call it via a provider API. Key properties you'll design around: its context window (how much it can read at once), whether it supports tool/function calling, whether it can stream, and whether it exposes a reasoning/thinking mode. Treat the model as a powerful but stateless, occasionally-unreliable component you orchestrate — not as the system itself.
 
 ### 2. The loop (orchestrator)
 
@@ -47,7 +47,7 @@ Walk through a single user request to see the parts cooperate:
 1. The request arrives. The **surrounding system** authenticates the user and authorizes what they can touch.
 2. The **orchestrator** assembles **context**: it loads relevant **memory** (history, available artifacts), builds the system prompt, and gathers the **tools** available on this surface.
 3. The orchestrator calls the **model** with that context.
-4. The model streams reasoning and text, and may request **tools**. The orchestrator runs each tool (these may touch the surrounding system: storage, external APIs), and feeds results back into the **loop**.
+4. The model streams reasoning and text, and may request **tools**. The orchestrator runs each tool (these may touch the surrounding system — storage, external APIs), and feeds results back into the **loop**.
 5. The model produces a final answer. The orchestrator streams it to the user and writes the outcome into **memory**.
 
 Every chapter in this folder is, in effect, a deep look at one of these steps.
@@ -56,9 +56,9 @@ Every chapter in this folder is, in effect, a deep look at one of these steps.
 
 Newcomers assume the model is the system and the rest is glue. The opposite is closer to the truth. The provider gives you a smart model for a few cents a call. Your design work is everything around it:
 
-- *Context engineering* (deciding what the model sees) is where most quality lives.
-- *Tool design* (what actions exist and how they're described) is where most capability and reliability live.
-- *The surrounding system* (auth, storage, streaming, state, observability) is where most of the *engineering effort* lives.
+- *Context engineering* — deciding what the model sees — is where most quality lives.
+- *Tool design* — what actions exist and how they're described — is where most capability and reliability live.
+- *The surrounding system* — auth, storage, streaming, state, observability — is where most of the *engineering effort* lives.
 
 If you remember one thing from this chapter, make it this: **you are not building a model; you are building the system that makes a model useful, safe, and reliable.** The chapters ahead are a tour of that system, part by part.
 
@@ -73,4 +73,45 @@ Hold both stances and you'll make architecture decisions that age well.
 
 ---
 
-Next: [Chapter 2: The agent loop pattern](chapter-02-agent-loop-pattern.md)
+Next: [Chapter 2 — The agent loop pattern](chapter-02-agent-loop-pattern.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. What is the defining feature that distinguishes an agent from a chatbot?
+   * A) A larger context window
+   * B) A loop that takes actions through tools and observes the results
+   * C) The ability to hold conversation history
+   * D) Access to a more capable underlying model
+   <details><summary>Answer</summary>B) A loop that takes actions through tools and observes the results - a chatbot has history but only talks, while the agent's defining feature is the loop with tools.</details>
+
+2. Which of the six parts is described as being constructed fresh for every model call?
+   * A) The context
+   * B) The memory and state
+   * C) The model
+   * D) The surrounding system
+   <details><summary>Answer</summary>A) The context - it is assembled fresh on each call from the system prompt, history, tools, and injected information, unlike memory which persists.</details>
+
+3. A developer wants the agent to remember a user's preferences across separate sessions. Which part is responsible?
+   * A) The loop
+   * B) The model
+   * C) The memory and state
+   * D) The context
+   <details><summary>Answer</summary>C) The memory and state - it persists across calls and sessions in a database and is selectively loaded into context when relevant.</details>
+
+4. Where does the chapter say most of the engineering effort actually goes?
+   * A) Training or fine-tuning the model
+   * B) Choosing the cheapest provider
+   * C) Writing a single perfect prompt
+   * D) The surrounding system: auth, storage, streaming, state, and observability
+   <details><summary>Answer</summary>D) The surrounding system - the provider gives you a smart model cheaply, so the bulk of the engineering is everything around it.</details>
+
+5. Which statement captures the chapter's crucial reframing rather than the common newcomer assumption?
+   * A) Better models eliminate the need for context engineering
+   * B) The model is the system and everything else is glue
+   * C) The model is the easy part; you are building the system that makes a model useful, safe, and reliable
+   * D) Tools matter less than raw model capability
+   <details><summary>Answer</summary>C) The model is the easy part; you are building the system that makes a model useful, safe, and reliable - this is the chapter's central reframing.</details>

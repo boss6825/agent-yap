@@ -1,6 +1,6 @@
-# Chapter 13 — Reliability: Retries, Idempotency, and Failure Handling
+# Chapter 13: Reliability: Retries, Idempotency, and Failure Handling
 
-Agents are built on components that fail routinely: model APIs time out or rate-limit, tools hit flaky external services, the model itself produces malformed output. A reliable agent isn't one where nothing fails — it's one that *expects* failure and degrades gracefully. This chapter covers the patterns that make agents dependable.
+Agents are built on components that fail routinely: model APIs time out or rate-limit, tools hit flaky external services, the model itself produces malformed output. A reliable agent isn't one where nothing fails; it's one that *expects* failure and degrades gracefully. This chapter covers the patterns that make agents dependable.
 
 ## Assume everything fails
 
@@ -18,27 +18,27 @@ A naive agent crashes the whole turn on any of these. A reliable one has a defin
 
 The model is a probabilistic component; its output will sometimes be malformed. Guard every place you consume it:
 
-- **Tool arguments** — parse defensively; if the JSON is malformed, default to empty arguments rather than throwing, and let the tool report a useful error.
-- **Unknown tool names** — if the model calls a tool you don't have, return a "that tool isn't available" result so the model can recover, rather than erroring out.
-- **Emitted protocols** — if the citation/structured block is missing or malformed, proceed without it; don't make a missing trailer fatal.
-- **Missing tool results** — guarantee that every tool call the model made gets *some* result back (a real one or a synthesized error). Providers require this pairing; a missing result breaks the next call (Chapter 2).
+- **Tool arguments**: parse defensively; if the JSON is malformed, default to empty arguments rather than throwing, and let the tool report a useful error.
+- **Unknown tool names**: if the model calls a tool you don't have, return a "that tool isn't available" result so the model can recover, rather than erroring out.
+- **Emitted protocols**: if the citation/structured block is missing or malformed, proceed without it; don't make a missing trailer fatal.
+- **Missing tool results**: guarantee that every tool call the model made gets *some* result back (a real one or a synthesized error). Providers require this pairing; a missing result breaks the next call (Chapter 2).
 
-The principle: **the model's mistakes should become recoverable signals, not crashes.** Often the best recovery is to feed the error back to the model as a tool result — it will frequently adjust and try again.
+The principle: **the model's mistakes should become recoverable signals, not crashes.** Often the best recovery is to feed the error back to the model as a tool result; it will frequently adjust and try again.
 
 ## Retries with backoff
 
-For transient failures (timeouts, rate limits, 5xx from a provider or external API), retry — but correctly:
+For transient failures (timeouts, rate limits, 5xx from a provider or external API), retry, but correctly:
 
 - **Only retry idempotent or safe operations.** A read is safe to retry; an action with side effects needs idempotency first (below).
 - **Exponential backoff with jitter.** Wait progressively longer between attempts, with randomization, so you don't synchronize retries into a thundering herd against a recovering service.
 - **Cap attempts.** A few retries, then surface a clear failure. Infinite retries just move the hang.
 - **Respect rate-limit signals.** If a provider returns a retry-after, honor it rather than guessing.
 
-Distinguish *retryable* errors (transient) from *terminal* ones (bad request, auth failure) — retrying a terminal error just wastes time.
+Distinguish *retryable* errors (transient) from *terminal* ones (bad request, auth failure); retrying a terminal error just wastes time.
 
 ## Idempotency for actions with side effects
 
-Retries are only safe if repeating an operation doesn't duplicate its effect. Design side-effecting operations to be **idempotent** — safe to run more than once with the same result:
+Retries are only safe if repeating an operation doesn't duplicate its effect. Design side-effecting operations to be **idempotent**: safe to run more than once with the same result:
 
 - **Use deterministic keys / upserts.** "Create or update by this key" instead of "insert," so a retried create doesn't make duplicates.
 - **Make processing steps re-runnable.** A reprocessed document shouldn't spawn duplicate versions or orphaned files; check-then-act, or key derived work so re-running converges.
@@ -70,7 +70,7 @@ Map each dependency to "fatal" or "degradable" deliberately, and wrap accordingl
 Because agent responses are streamed (Chapter 8), failures often occur *after* you've started responding. Handle it:
 
 - Wrap the orchestration so that on error you can still emit an `error` event and a terminating sentinel, so the client shows a clean failure rather than hanging.
-- Don't lose persisted progress — the pre-saved user message and any incrementally-saved results survive.
+- Don't lose persisted progress: the pre-saved user message and any incrementally-saved results survive.
 - Clean up server-side resources (abort the in-flight model call) when the client disconnects, so abandoned turns stop burning tokens.
 
 ## Timeouts and circuit breakers
@@ -84,7 +84,7 @@ Caching slow or rate-limited external calls (Chapter 9) is also a reliability ta
 
 ## Bound the agent's own runaway behavior
 
-Some failures come from the agent, not its dependencies. The hard iteration cap (Chapter 2) prevents an infinite tool-calling loop; repetition detection catches a stuck agent; rate limits (Chapter 11) bound abuse. These are reliability mechanisms too — they keep a confused agent from consuming unbounded resources.
+Some failures come from the agent, not its dependencies. The hard iteration cap (Chapter 2) prevents an infinite tool-calling loop; repetition detection catches a stuck agent; rate limits (Chapter 11) bound abuse. These are reliability mechanisms too: they keep a confused agent from consuming unbounded resources.
 
 ## Observability closes the loop
 
@@ -107,120 +107,4 @@ A reliable agent feels calm: when something underneath it breaks, the user gets 
 
 ---
 
-Next: [Chapter 14 — Cost, latency, and model tiering](chapter-14-cost-latency.md)
-
----
-
-## Review
-
-### Quick Check
-
-1. The chapter's core stance toward failure is:
-   * A) Prevent all failures up front
-   * B) Assume everything fails and have a defined response to each failure
-   * C) Retry everything infinitely
-   * D) Crash the turn and let the user retry
-   <details><summary>Answer</summary>B) Assume everything fails - reliability is the sum of your defined responses to each failure mode.</details>
-
-2. Which errors should you retry?
-   * A) All errors, including bad-request and auth failures
-   * B) Only terminal errors
-   * C) Transient errors (timeouts, rate limits, 5xx), not terminal ones
-   * D) None; retries are always unsafe
-   <details><summary>Answer</summary>C) Transient errors only - retrying a terminal error like a bad request just wastes time.</details>
-
-3. You want to retry a "create" operation safely. What makes that safe?
-   * A) Adding more retries
-   * B) Removing the attempt cap
-   * C) Retrying faster
-   * D) Making the operation idempotent, e.g. an upsert by a deterministic key, so a retried create does not duplicate
-   <details><summary>Answer</summary>D) Making the operation idempotent - idempotency is what turns "retrying might double-create" into "retrying is safe."</details>
-
-4. A document's preview rendering fails during upload. How should the system respond?
-   * A) Degrade - keep the document usable for text and reading without the preview
-   * B) Fail the whole upload
-   * C) Retry forever until the preview renders
-   * D) Delete the document
-   <details><summary>Answer</summary>A) Degrade - an optional enhancement failing should not fail the request.</details>
-
-5. Why add jitter to exponential backoff?
-   * A) It makes each wait longer
-   * B) It guarantees the call eventually succeeds
-   * C) Randomization prevents synchronized retries from becoming a thundering herd against a recovering service
-   * D) Providers require jitter
-   <details><summary>Answer</summary>C) Randomization spreads retries out so you do not synchronize them into a thundering herd.</details>
-
-### Coding Challenge
-
-**Retry transient failures with capped backoff and jitter**
-
-Write `retry(fn, max_attempts)` that retries only transient failures with exponential backoff plus jitter, caps the attempts, and lets terminal (non-transient) errors propagate immediately.
-
-<details>
-<summary>Python Solution</summary>
-
-```python
-import random
-import time
-
-
-class Transient(Exception):
-    pass
-
-
-def retry(fn, max_attempts=5, base=0.01):
-    """Retry transient failures with capped exponential backoff and jitter."""
-    for attempt in range(max_attempts):
-        try:
-            return fn()                                   # terminal errors propagate
-        except Transient:
-            if attempt == max_attempts - 1:
-                raise
-            time.sleep(base * (2 ** attempt) + random.uniform(0, base))  # jitter
-
-
-attempts = {"n": 0}
-
-
-def flaky():
-    attempts["n"] += 1
-    if attempts["n"] < 3:
-        raise Transient("temporary")
-    return "ok"
-
-
-print(retry(flaky), "after", attempts["n"], "attempts")   # ok after 3 attempts
-```
-
-</details>
-
-<details>
-<summary>JavaScript Solution</summary>
-
-```javascript
-class Transient extends Error {}
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function retry(fn, maxAttempts = 5, base = 10) {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      return await fn();                                  // terminal errors propagate
-    } catch (e) {
-      if (!(e instanceof Transient) || attempt === maxAttempts - 1) throw e;
-      await sleep(base * 2 ** attempt + Math.random() * base); // jitter
-    }
-  }
-}
-
-let n = 0;
-async function flaky() {
-  n += 1;
-  if (n < 3) throw new Transient("temporary");
-  return "ok";
-}
-
-retry(flaky).then((r) => console.log(r, "after", n, "attempts")); // ok after 3
-```
-
-</details>
+Next: [Chapter 14: Cost, latency, and model tiering](chapter-14-cost-latency.md)

@@ -1,6 +1,6 @@
-# Chapter 16: Scaling and Infrastructure
+# Chapter 16 — Scaling and Infrastructure
 
-A demo runs on one process on one laptop. A product serves many users concurrently, holds long-lived streaming connections, processes files, and calls slow external APIs, all without falling over. This chapter covers the infrastructure patterns that take an agent from "works for me" to "works for everyone," and where the bottlenecks actually are.
+A demo runs on one process on one laptop. A product serves many users concurrently, holds long-lived streaming connections, processes files, and calls slow external APIs — all without falling over. This chapter covers the infrastructure patterns that take an agent from "works for me" to "works for everyone," and where the bottlenecks actually are.
 
 ## What's different about scaling an agent
 
@@ -18,7 +18,7 @@ So scaling an agent is less about raw compute and more about concurrency, statel
 The single most important property for horizontal scaling is **stateless application servers**. Each request should be servable by any instance, carrying no in-memory state between requests. Achieve it by:
 
 - Keeping all durable state in shared stores (database, object storage, cache), not in process memory.
-- Making the agent loop a function of its inputs: it loads context from the database at the start and writes results at the end (Chapters 2, 9), holding nothing between turns.
+- Making the agent loop a function of its inputs — it loads context from the database at the start and writes results at the end (Chapters 2, 9), holding nothing between turns.
 - Carrying session/identity in tokens validated per request (Chapter 11), not server-side session memory.
 
 With stateless servers, you scale by adding instances behind a load balancer, and any instance can handle any user.
@@ -34,13 +34,13 @@ Long-lived SSE connections need attention:
 
 ## Move heavy work off the request path
 
-CPU/memory-heavy or slow work (document conversion, OCR, large bulk extraction) shouldn't run inside the request that holds a user's connection. As load grows, move it to **background workers** fed by a **queue**:
+CPU/memory-heavy or slow work — document conversion, OCR, large bulk extraction — shouldn't run inside the request that holds a user's connection. As load grows, move it to **background workers** fed by a **queue**:
 
 - The request enqueues a job and returns quickly (with a `processing` status; Chapter 9).
 - Workers pull jobs, do the heavy work, and update status; the client polls or subscribes for completion.
 - Workers scale independently of the web tier, so a burst of uploads doesn't starve interactive chat.
 
-As emphasized in Chapter 10, *design for this from the start with status fields even if you begin synchronous*; the migration to workers is then localized.
+As emphasized in Chapter 10, *design for this from the start with status fields even if you begin synchronous* — the migration to workers is then localized.
 
 ## Respect and manage upstream rate limits
 
@@ -70,14 +70,14 @@ Introduce caching where it pays:
 - **Hot-data cache** for frequently-read, rarely-changed data.
 - **Provider prompt caching** by keeping a stable context prefix (Chapter 14).
 
-Add these as evidence (from observability, Chapter 15) shows a hotspot, not preemptively.
+Add these as evidence (from observability, Chapter 15) shows a hotspot — not preemptively.
 
 ## Don't over-build early
 
 A caution: it's easy to design a microservice-and-queue cathedral before you have users. The pragmatic path:
 
 - **Start as a single well-structured service** with a relational DB and object storage. This scales remarkably far with stateless instances behind a load balancer.
-- **Keep the seams ready**: status fields for future async, a provider abstraction, stateless servers, so you can extract workers and add caches *when the load justifies it*.
+- **Keep the seams ready** — status fields for future async, a provider abstraction, stateless servers — so you can extract workers and add caches *when the load justifies it*.
 - **Let observability drive infra decisions.** Add the queue when synchronous processing actually hurts; add the cache when a call is actually hot; add replicas when reads actually saturate. Build for the scale you have plus a bit, not the scale you fantasize about.
 
 ## Deployment and operational basics
@@ -90,8 +90,104 @@ A caution: it's easy to design a microservice-and-queue cathedral before you hav
 
 ## The scaling mindset
 
-Scaling an agent is mostly about **statelessness, concurrency, and respecting the slow external bottleneck**. Keep servers stateless so you can add them freely; use async I/O so idle streaming connections are cheap; push heavy work to workers behind a queue; keep blobs in object storage and metadata in a well-indexed database; cache and rate-limit toward upstreams; and let real measurements, not speculation, tell you when to add the next piece of infrastructure.
+Scaling an agent is mostly about **statelessness, concurrency, and respecting the slow external bottleneck**. Keep servers stateless so you can add them freely; use async I/O so idle streaming connections are cheap; push heavy work to workers behind a queue; keep blobs in object storage and metadata in a well-indexed database; cache and rate-limit toward upstreams; and let real measurements — not speculation — tell you when to add the next piece of infrastructure.
 
 ---
 
-Next: [Chapter 17: Domain-specific and regulated-industry agents](chapter-17-domain-and-compliance.md)
+Next: [Chapter 17 — Domain-specific and regulated-industry agents](chapter-17-domain-and-compliance.md)
+
+---
+
+## Review
+
+### Quick Check
+
+1. The single most important property for horizontal scaling is:
+   * A) Faster CPUs
+   * B) Stateless application servers, with all durable state in shared stores
+   * C) A larger context window
+   * D) More database tables
+   <details><summary>Answer</summary>B) Stateless application servers - if any instance can serve any request, you scale by adding instances behind a load balancer.</details>
+
+2. For an agent, the dominant latency usually comes from:
+   * A) Your own compute
+   * B) The database
+   * C) The model provider, which you do not control
+   * D) The load balancer
+   <details><summary>Answer</summary>C) The model provider - your own compute is often nearly idle while waiting on the model.</details>
+
+3. Why use async, non-blocking I/O for streaming connections rather than thread-per-connection?
+   * A) Threads are inherently insecure
+   * B) Async reduces token cost
+   * C) It avoids needing a database
+   * D) Most connections are just waiting on the model, so an event loop handles many idle connections cheaply while threads would be exhausted
+   <details><summary>Answer</summary>D) Most connections are just waiting on the model - an event-loop runtime keeps idle streaming connections cheap.</details>
+
+4. Bursts of uploads risk starving interactive chat. What does the chapter recommend?
+   * A) Move heavy work to background workers behind a queue that scale independently of the web tier
+   * B) Process uploads on the client
+   * C) Reject uploads during busy periods
+   * D) Increase the iteration cap
+   <details><summary>Answer</summary>A) Move heavy work to workers behind a queue - they scale separately, so a burst of uploads does not starve chat.</details>
+
+5. When should you add the queue, cache, and read replicas?
+   * A) Up front, before you have users, to be safe
+   * B) Never; a single service always suffices
+   * C) When observability shows the load actually justifies each one
+   * D) Only after a full rewrite
+   <details><summary>Answer</summary>C) When measurements justify it - build for the scale you have plus a bit, not the scale you fantasize about.</details>
+
+### Coding Challenge
+
+**Bound a fan-out into rate-limited batches**
+
+Write `batched(items, size)` that splits work into fixed-size batches so a parallel fan-out stays within an upstream rate limit, plus a `process_all` that runs batch by batch instead of firing everything at once.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+def batched(items, size):
+    """Split work into fixed-size batches to bound fan-out toward a rate-limited API."""
+    for i in range(0, len(items), size):
+        yield items[i : i + size]
+
+
+def process_all(items, limit):
+    done = []
+    for batch in batched(items, limit):
+        # in real code each batch runs concurrently, then we wait before the next
+        done.extend(f"processed:{x}" for x in batch)
+    return done
+
+
+print([list(b) for b in batched(range(7), 3)])   # [[0,1,2],[3,4,5],[6]]
+print(process_all(["a", "b", "c", "d", "e"], 2))
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+function* batched(items, size) {
+  for (let i = 0; i < items.length; i += size) {
+    yield items.slice(i, i + size);
+  }
+}
+
+function processAll(items, limit) {
+  const done = [];
+  for (const batch of batched(items, limit)) {
+    // in real code each batch runs concurrently, then we await before the next
+    done.push(...batch.map((x) => `processed:${x}`));
+  }
+  return done;
+}
+
+console.log([...batched([0, 1, 2, 3, 4, 5, 6], 3)]); // [[0,1,2],[3,4,5],[6]]
+console.log(processAll(["a", "b", "c", "d", "e"], 2));
+```
+
+</details>

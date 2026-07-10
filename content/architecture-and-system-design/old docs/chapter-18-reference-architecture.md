@@ -1,10 +1,10 @@
-# Chapter 18: Reference Architecture and a Design Checklist
+# Chapter 18 — Reference Architecture and a Design Checklist
 
 This final chapter assembles everything into a single reference architecture and a checklist you can carry into your own design review. Treat it as the one-page (well, several-page) summary of the whole folder.
 
 ## The reference architecture
 
-A complete, production-grade agent, the kind the earlier chapters describe, has this shape:
+A complete, production-grade agent — the kind the earlier chapters describe — has this shape:
 
 ```
                           ┌─────────────────────────────────────────┐
@@ -56,13 +56,13 @@ The data flows: a request is authenticated, authorized, and validated at the API
 
 ## How the chapters map onto it
 
-- **API tier**: security & multi-tenancy (Ch 11), reliability at the edges (Ch 13), scaling/statelessness (Ch 16).
-- **Agent core**: the loop (Ch 2), context engineering (Ch 5), prompt architecture (Ch 6), streaming/events (Ch 8).
-- **Provider layer**: abstraction & tiering (Ch 4), cost/latency (Ch 14).
-- **Tools**: tool design (Ch 3), retrieval strategy (Ch 7), integrations (Ch 7, 17).
-- **Document pipeline**: file processing (Ch 10).
-- **Data tier**: data modeling (Ch 9), storage & downloads.
-- **Cross-cutting**: secrets/BYOK (Ch 12), observability/eval (Ch 15), domain/compliance (Ch 17), anatomy & vocabulary (Ch 1).
+- **API tier** — security & multi-tenancy (Ch 11), reliability at the edges (Ch 13), scaling/statelessness (Ch 16).
+- **Agent core** — the loop (Ch 2), context engineering (Ch 5), prompt architecture (Ch 6), streaming/events (Ch 8).
+- **Provider layer** — abstraction & tiering (Ch 4), cost/latency (Ch 14).
+- **Tools** — tool design (Ch 3), retrieval strategy (Ch 7), integrations (Ch 7, 17).
+- **Document pipeline** — file processing (Ch 10).
+- **Data tier** — data modeling (Ch 9), storage & downloads.
+- **Cross-cutting** — secrets/BYOK (Ch 12), observability/eval (Ch 15), domain/compliance (Ch 17), anatomy & vocabulary (Ch 1).
 
 ## The design checklist
 
@@ -142,6 +142,47 @@ If you're starting fresh: skeleton & schema → provider layer → ingestion →
 
 ## Closing thought
 
-Across every chapter, one belief recurs: **the model is the easy part.** The provider makes it smart; you make it useful, safe, grounded, reliable, observable, and affordable. A great agent is great *systems engineering* with a capable model at the center: the right context in front of it, well-designed tools around it, faithful records behind it, and disciplined operations beneath it. Build those, and the model will shine. Skip them, and no model can save you.
+Across every chapter, one belief recurs: **the model is the easy part.** The provider makes it smart; you make it useful, safe, grounded, reliable, observable, and affordable. A great agent is great *systems engineering* with a capable model at the center — the right context in front of it, well-designed tools around it, faithful records behind it, and disciplined operations beneath it. Build those, and the model will shine. Skip them, and no model can save you.
 
 That's the whole craft. Go build something people can trust.
+
+---
+
+## Review
+
+### Quick Check
+
+1. In the reference architecture, where does all durable state live?
+   * A) In process memory on the app servers
+   * B) In the relational database and object storage, with secrets from the environment or secrets manager
+   * C) On the client
+   * D) Inside the model provider
+   <details><summary>Answer</summary>B) In the relational database and object storage - app servers stay stateless so any instance can serve any request.</details>
+
+2. According to the chapter mapping, the "agent core" covers which set of concerns?
+   * A) Security and multi-tenancy
+   * B) Provider abstraction and tiering
+   * C) Document processing
+   * D) The loop, context engineering, prompt architecture, and streaming/events
+   <details><summary>Answer</summary>D) The loop, context engineering, prompt architecture, and streaming/events - these are the heart of the agent core.</details>
+
+3. Following the reference data flow, what happens to a request first at the API tier?
+   * A) The agent loop runs immediately
+   * B) It is streamed to the client first
+   * C) It is authenticated, authorized, and validated before the agent core builds context
+   * D) It is written to object storage
+   <details><summary>Answer</summary>C) It is authenticated, authorized, and validated - the API tier gates the request before any agent work begins.</details>
+
+4. You are starting fresh. According to the build order, which comes before tools and prompts?
+   * A) Bulk extraction
+   * B) The skeleton and schema, then the provider layer, ingestion, and the agent loop
+   * C) Storage and downloads
+   * D) Workflows
+   <details><summary>Answer</summary>B) The skeleton and schema, provider layer, ingestion, and loop come first - tools and prompts build on that foundation.</details>
+
+5. What single belief does the chapter say recurs across the whole folder?
+   * A) The model is the system; everything else is glue
+   * B) Bigger models remove the need for systems engineering
+   * C) The model is the easy part; you make it useful, safe, grounded, reliable, observable, and affordable
+   * D) Tools matter more than data modeling
+   <details><summary>Answer</summary>C) The model is the easy part - a great agent is great systems engineering with a capable model at the center.</details>
