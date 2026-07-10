@@ -30,7 +30,7 @@ A central design question is tool *granularity*: too fine and the model drowns i
 - **Too coarse**: a single `do_everything` tool with a giant polymorphic schema confuses the model about what it can actually do.
 - **Right-sized**: each tool maps to one meaningful user-level action. "Read a document," "search case law," "generate a document," "edit a document."
 
-A good test: each tool should correspond to a verb a *user* would recognise. If you can't describe the tool in one clear sentence, it's probably mis-sized.
+A good test: each tool should correspond to a verb a *user* would recognise. If you can't describe the tool in one clear sentence, it's probably mis-sized (i couldn't find a better word🥲).
 
 ## The cheap/expensive pairing- A way to reduce token usage in models :-P
 
