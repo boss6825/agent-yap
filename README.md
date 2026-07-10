@@ -76,6 +76,15 @@ Drop a new folder under `content/` containing an `index.md` (its first `#` is th
 title, its first `>` blockquote is the description) and `chapter-NN-*.md` files.
 Each chapter's `##` sections become slides automatically.
 
+## Agent instructions
+
+[`AGENTS.md`](AGENTS.md) is the **single source of truth** for coding-agent
+rules (stack, lanes, commands). Cursor and Codex read it directly.
+
+Claude Code reads [`CLAUDE.md`](CLAUDE.md), which only contains `@AGENTS.md` —
+an import that expands at load time. Edit `AGENTS.md`; do not duplicate rules in
+`CLAUDE.md`.
+
 ## Notes
 
 The backend API layer (search + RAG) was implemented by OpenAI Codex against

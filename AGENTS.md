@@ -1,3 +1,8 @@
+<!-- Agent instructions: single source of truth for coding agents in this repo.
+     - Cursor, Codex, Cline, etc.: read AGENTS.md at the project root.
+     - Claude Code: reads CLAUDE.md, which imports this file via @AGENTS.md.
+     Edit project rules here only. Keep CLAUDE.md as the one-line import. -->
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
