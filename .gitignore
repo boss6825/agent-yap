@@ -40,6 +40,10 @@ yarn-error.log*
 # local Claude Code settings
 /.claude
 
+# Local reference repos and machine-specific workspaces (not for commit)
+/reference/
+*.local.code-workspace
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

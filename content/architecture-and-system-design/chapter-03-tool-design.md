@@ -19,9 +19,8 @@ The single most important idea in tool design: **a tool description is a mini sy
 - **State when to use the tool**, not just what it does. "Always call this before answering questions about a document" is far more effective than "reads a document."
 - **State how to use it well.** "Make minimal substitutions of specific words, not whole-line replacements" shapes the model's behaviour decisively.
 - **Encode the intended workflow.** If tool B should follow tool A, say so in both descriptions ("after searching, call read_X with the id from the results"). The model learns the sequence.
-- **Warn about pitfalls.** "Wrong codes silently return zero results, so prefer free-text search over guessing."
 
-Time spent sharpening descriptions usually beats time spent tweaking the system prompt, because descriptions are read exactly when the decision is being made.
+I would say - Time spent sharpening descriptions usually beats time spent tweaking the system prompt, because descriptions are read exactly when the decision is being made, so think wisely here.
 
 ## Granularity: how big should a tool be?
 
@@ -33,7 +32,7 @@ A central design question is tool *granularity*: too fine and the model drowns i
 
 A good test: each tool should correspond to a verb a *user* would recognise. If you can't describe the tool in one clear sentence, it's probably mis-sized.
 
-## The cheap/expensive pairing
+## The cheap/expensive pairing- A way to reduce token usage in models :-P
 
 A recurring, valuable pattern: offer a **cheap, narrow** variant alongside an **expensive, broad** one, so the model can pick the right cost for the task.
 
@@ -77,6 +76,8 @@ The *result* you return is read by the model, so design it too:
 - **Reinforce instructions at the point of use.** Returning a document? Prepend a short reminder of how to cite it. Instructions delivered alongside the data are obeyed more reliably than ones only in the system prompt.
 - **Distill, don't dump.** If a tool calls an external API with a huge response, return the decision-relevant fields and cap long ones, rather than flooding the context. Leave a separate tool for "get more detail" when needed. (See Chapters 5 and 7.)
 - **Keep results stable and parseable** if your code will read them too.
+
+
 
 ## Scoping tools to the surface
 
