@@ -1,30 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-});
 
 const SITE = "Agent YAP";
 const TAGLINE =
-  "A slide-by-slide field guide to architecting and designing AI agents.";
+  "RAG, context engineering, memory, orchestration, and coding agent internals. Taught at the depth practitioners actually need.";
 
 export const metadata: Metadata = {
   title: {
-    default: `${SITE} — Designing AI Agents`,
+    default: `${SITE} — Understand agents from the inside`,
     template: `%s · ${SITE}`,
   },
   description: TAGLINE,
@@ -39,13 +22,13 @@ export const metadata: Metadata = {
     "context engineering",
   ],
   openGraph: {
-    title: `${SITE} — Designing AI Agents`,
+    title: `${SITE} — Understand agents from the inside`,
     description: TAGLINE,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE} — Designing AI Agents`,
+    title: `${SITE} — Understand agents from the inside`,
     description: TAGLINE,
   },
 };
@@ -56,11 +39,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-ink text-paper">{children}</body>
+    <html lang="en" className="h-full antialiased">
+      <body className="min-h-full flex flex-col bg-canvas text-ink">
+        {children}
+      </body>
     </html>
   );
 }

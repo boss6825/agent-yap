@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import {
-  getBooks,
-  getChapter,
-  getSlide,
-} from "@/lib/content";
-import { chapterAccent } from "@/lib/chapter-color";
+import { getBooks, getChapter, getSlide } from "@/lib/content";
+import { chapterDisplayTitle } from "@/lib/display";
 import { Markdown } from "@/components/Markdown";
 
 type Params = { book: string; chapter: string; slide: string };
@@ -52,51 +48,36 @@ export default async function SlidePage({
   const ch = getChapter(book, chapter);
   if (!s || !ch || !Number.isInteger(sectionIndex)) notFound();
 
-  const accent = chapterAccent(s.chapterNumber);
   const isIntro = s.sectionIndex === 0;
   const sectionCount = ch.slides.length - 1; // excludes the intro slide
+  const displayTitle = chapterDisplayTitle(s.chapterTitle);
 
   return (
-    <article
-      className="w-full max-w-3xl"
-      style={{ ["--accent" as string]: accent.hex }}
-    >
+    <article className="w-full max-w-[720px]">
       {/* kicker */}
-      <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs uppercase tracking-[0.18em]">
-        <span
-          className="rounded px-1.5 py-0.5 font-bold"
-          style={{ background: accent.hex, color: accent.on }}
-        >
-          Ch {String(s.chapterNumber).padStart(2, "0")}
-        </span>
-        <span className="text-muted">{s.chapterTitle}</span>
+      <p className="mb-5 text-xs font-semibold uppercase tracking-[0.10em] text-ink-2">
+        Chapter {String(s.chapterNumber).padStart(2, "0")} · {displayTitle}
         {!isIntro && (
-          <span className="text-faint">
+          <span className="font-normal">
+            {" "}
             · {s.sectionIndex} / {sectionCount}
           </span>
         )}
-      </div>
+      </p>
 
       {isIntro ? (
         <>
-          <p className="mb-3 font-mono text-sm uppercase tracking-[0.3em] text-accent">
-            Chapter {s.chapterNumber}
-          </p>
-          <h1 className="text-balance font-display text-5xl font-bold leading-[1.04] tracking-tight text-paper sm:text-6xl">
-            {s.chapterTitle}
+          <h1 className="mb-7 font-display text-[clamp(34px,5.6vw,48px)] font-semibold leading-[1.08] tracking-[-0.01em] text-ink [text-wrap:pretty]">
+            {displayTitle}
           </h1>
-          <div className="mt-6 text-lg text-muted">
-            <Markdown>{s.markdown}</Markdown>
-          </div>
+          <Markdown>{s.markdown}</Markdown>
         </>
       ) : (
         <>
-          <h1 className="text-balance font-display text-4xl font-bold leading-[1.08] tracking-tight text-paper sm:text-5xl">
+          <h1 className="mb-7 font-display text-[clamp(30px,5vw,40px)] font-semibold leading-[1.12] tracking-[-0.01em] text-ink [text-wrap:pretty]">
             {s.title}
           </h1>
-          <div className="mt-6">
-            <Markdown>{s.markdown}</Markdown>
-          </div>
+          <Markdown>{s.markdown}</Markdown>
         </>
       )}
     </article>

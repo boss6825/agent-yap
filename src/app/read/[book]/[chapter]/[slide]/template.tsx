@@ -5,8 +5,8 @@ import { getNavDirection } from "@/components/reader/nav-direction";
 
 /**
  * Re-mounts on every slide navigation (Next.js templates do), so each slide
- * animates in. It slides from the left or right depending on travel direction,
- * and centers the slide (tall slides scroll within the stage).
+ * animates in with the design's calm rise: 16px up + fade, nudged slightly
+ * toward the direction of travel.
  */
 export default function SlideTemplate({
   children,
@@ -16,10 +16,10 @@ export default function SlideTemplate({
   const dir = getNavDirection();
   return (
     <motion.div
-      initial={{ opacity: 0, x: dir * 56 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-      className="grid min-h-full place-items-center px-5 pb-28 pt-24 sm:px-10 lg:px-24"
+      initial={{ opacity: 0, y: 16, x: dir * 24 }}
+      animate={{ opacity: 1, y: 0, x: 0 }}
+      transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+      className="flex min-h-full items-center justify-center px-6 pb-[132px] pt-24"
     >
       {children}
     </motion.div>

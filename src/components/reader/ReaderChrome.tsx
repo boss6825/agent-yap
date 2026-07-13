@@ -5,49 +5,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import type { NavManifest, NavSlide } from "@/lib/content";
-import { chapterAccent } from "@/lib/chapter-color";
+import { chapterDisplayTitle } from "@/lib/display";
 import { setNavDirection } from "@/components/reader/nav-direction";
-import { Wordmark } from "@/components/Wordmark";
 import { SearchPanel } from "@/components/SearchPanel";
 import { AskPanel } from "@/components/AskPanel";
-
-function Chevron({ dir }: { dir: "left" | "right" }) {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d={dir === "left" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"}
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconButton({
-  label,
-  onClick,
-  children,
-  hint,
-}: {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-  hint?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={hint ? `${label} (${hint})` : label}
-      className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-ink-2/70 px-3 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-paper"
-    >
-      {children}
-    </button>
-  );
-}
 
 export function ReaderChrome({
   manifest,
@@ -73,7 +34,6 @@ export function ReaderChrome({
   const total = manifest.total;
   const prev = manifest.slides[index - 1];
   const next = manifest.slides[index + 1];
-  const accent = chapterAccent(current?.chapterNumber ?? 1);
 
   const anyOverlay = tocOpen || searchOpen || askOpen;
 
@@ -136,57 +96,65 @@ export function ReaderChrome({
     touch.current = null;
   };
 
-  const progress = total > 1 ? ((index + 1) / total) * 100 : 100;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const progress = total > 0 ? ((index + 1) / total) * 100 : 100;
 
   return (
-    <div
-      className="flex min-h-dvh flex-col bg-ink"
-      style={{ ["--accent" as string]: accent.hex }}
-    >
-      {/* progress rail */}
-      <div className="fixed inset-x-0 top-0 z-40 h-1 bg-ink-2">
+    <div className="flex min-h-dvh flex-col bg-canvas text-ink">
+      {/* progress bar */}
+      <div className="fixed inset-x-0 top-0 z-[60] h-0.5 bg-canvas-2">
         <div
-          className="h-full bg-accent transition-[width] duration-300 ease-out"
+          className="h-0.5 bg-blue transition-[width] duration-[400ms] ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      {/* top bar */}
-      <header className="fixed inset-x-0 top-1 z-40 flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <Wordmark size="sm" />
-
-        <div className="hidden min-w-0 items-center gap-2 text-sm sm:flex">
-          <span
-            className="grid h-6 min-w-6 place-items-center rounded-md px-1 font-display text-xs font-bold"
-            style={{ background: accent.hex, color: accent.on }}
+      {/* top chrome */}
+      <header className="glass-light fixed inset-x-0 top-0.5 z-50 h-[52px]">
+        <div className="mx-auto flex h-[52px] max-w-[1200px] items-center justify-between gap-6 px-6">
+          <Link
+            href="/"
+            className="flex h-11 items-center font-display text-[17px] font-semibold tracking-[-0.2px] text-ink"
           >
-            {current?.chapterNumber ?? 1}
+            Agent YAP
+          </Link>
+          <span className="hidden truncate text-xs text-ink-2 sm:block">
+            {manifest.bookTitle} · Chapter {current?.chapterNumber ?? 1} ·{" "}
+            {chapterDisplayTitle(current?.chapterTitle ?? "")}
           </span>
-          <span className="truncate text-muted">{current?.chapterTitle}</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <IconButton label="Search" hint="/" onClick={() => setSearchOpen(true)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-              <path d="M20 20l-3.2-3.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            <span className="hidden md:inline">Search</span>
-          </IconButton>
-          <IconButton label="Ask the docs" onClick={() => setAskOpen(true)}>
-            <span aria-hidden>✦</span>
-            <span className="hidden md:inline">Ask</span>
-          </IconButton>
-          <IconButton label="Contents" hint="t" onClick={() => setTocOpen(true)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            <span className="hidden md:inline">Contents</span>
-          </IconButton>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              title="Search (/)"
+              className="flex h-11 cursor-pointer items-center px-2.5 text-xs text-ink-2 transition-colors hover:text-ink"
+            >
+              Search
+            </button>
+            <button
+              type="button"
+              onClick={() => setAskOpen(true)}
+              title="Ask the docs"
+              className="flex h-11 cursor-pointer items-center px-2.5 text-xs text-ink-2 transition-colors hover:text-ink"
+            >
+              Ask
+            </button>
+            <button
+              type="button"
+              onClick={() => setTocOpen(true)}
+              title="Contents (t)"
+              className="flex h-11 cursor-pointer items-center px-2.5 text-xs text-ink-2 transition-colors hover:text-ink"
+            >
+              Contents
+            </button>
+            <span className="min-w-[56px] text-right text-xs tabular-nums text-ink-2">
+              {pad(index + 1)} / {pad(total)}
+            </span>
+          </div>
         </div>
       </header>
 
-      {/* slide stage (scrolls vertically; the slide template centers content) */}
+      {/* slide stage */}
       <main
         className="relative flex-1 overflow-y-auto overflow-x-hidden"
         onTouchStart={onTouchStart}
@@ -195,54 +163,31 @@ export function ReaderChrome({
         {children}
       </main>
 
-      {/* side arrows (desktop) */}
-      <button
-        type="button"
-        onClick={() => go(prev, -1)}
-        disabled={!prev}
-        aria-label="Previous slide"
-        className="group fixed left-3 top-1/2 z-30 hidden -translate-y-1/2 place-items-center rounded-full border border-line bg-ink-2/70 p-3 text-muted backdrop-blur transition-all hover:border-accent hover:text-paper disabled:pointer-events-none disabled:opacity-25 lg:grid"
-      >
-        <Chevron dir="left" />
-      </button>
-      <button
-        type="button"
-        onClick={() => go(next, 1)}
-        disabled={!next}
-        aria-label="Next slide"
-        className="group fixed right-3 top-1/2 z-30 hidden -translate-y-1/2 place-items-center rounded-full border border-line bg-ink-2/70 p-3 text-muted backdrop-blur transition-all hover:border-accent hover:text-paper disabled:pointer-events-none disabled:opacity-25 lg:grid"
-      >
-        <Chevron dir="right" />
-      </button>
-
-      {/* bottom control bar */}
-      <footer className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-line bg-ink/85 px-4 py-3 backdrop-blur sm:px-6">
-        <button
-          type="button"
-          onClick={() => go(prev, -1)}
-          disabled={!prev}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-paper disabled:opacity-25"
-        >
-          <Chevron dir="left" />
-          <span className="hidden sm:inline">Prev</span>
-        </button>
-
-        <div className="flex items-center gap-3 font-mono text-xs text-faint">
-          <span className="tabular-nums text-muted">
-            {String(index + 1).padStart(2, "0")}
-            <span className="text-faint"> / {total}</span>
-          </span>
+      {/* bottom chrome */}
+      <footer className="pointer-events-none fixed inset-x-0 bottom-0 z-50 h-[92px] bg-[linear-gradient(to_top,#ffffff_60%,rgba(255,255,255,0))]">
+        <div className="pointer-events-auto mx-auto flex h-[92px] max-w-[1200px] items-center justify-between px-6">
+          <span className="text-xs text-ink-2">← → arrow keys work too</span>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => go(prev, -1)}
+              disabled={!prev}
+              aria-label="Previous slide"
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-pill bg-canvas-2 text-[19px] text-ink transition-[opacity,transform] duration-300 hover:bg-canvas-3 active:scale-95 disabled:pointer-events-none disabled:opacity-35"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={() => go(next, 1)}
+              disabled={!next}
+              aria-label="Next slide"
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-pill bg-canvas-2 text-[19px] text-ink transition-[opacity,transform] duration-300 hover:bg-canvas-3 active:scale-95 disabled:pointer-events-none disabled:opacity-35"
+            >
+              ›
+            </button>
+          </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => go(next, 1)}
-          disabled={!next}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-paper transition-colors hover:text-accent disabled:opacity-25"
-        >
-          <span className="hidden sm:inline">{next ? "Next" : "End"}</span>
-          <Chevron dir="right" />
-        </button>
       </footer>
 
       {/* contents drawer */}
@@ -290,66 +235,59 @@ function TableOfContents({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm"
+        className="fixed inset-0 z-[70] bg-black/30 backdrop-blur-sm"
       />
       <motion.aside
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", stiffness: 320, damping: 34 }}
-        className="fixed inset-y-0 right-0 z-50 flex w-[min(420px,90vw)] flex-col border-l border-line bg-ink-2"
+        className="glass-light fixed inset-y-0 right-0 z-[70] flex w-[min(420px,90vw)] flex-col border-l border-hairline"
       >
-        <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <span className="font-display text-lg font-bold">Contents</span>
+        <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
+          <span className="font-display text-[17px] font-semibold text-ink">
+            Contents
+          </span>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close contents"
-            className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-ink-3 hover:text-paper"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-pill text-ink-2 transition-colors hover:bg-canvas-2 hover:text-ink"
           >
             ✕
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-3">
           {manifest.chapters.map((c) => {
-            const accent = chapterAccent(c.number);
             const isCurrent = c.slug === currentChapter;
             return (
               <div key={c.slug} className="mb-1">
                 <Link
                   href={c.slides[0].href}
                   onClick={onClose}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-ink-3 ${
-                    isCurrent ? "bg-ink-3" : ""
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-canvas-2 ${
+                    isCurrent ? "bg-canvas-2" : ""
                   }`}
                 >
-                  <span
-                    className="grid h-6 w-6 shrink-0 place-items-center rounded-md font-display text-xs font-bold"
-                    style={{ background: accent.hex, color: accent.on }}
-                  >
-                    {c.number}
+                  <span className="w-6 shrink-0 text-right text-xs font-semibold tabular-nums text-ink-2">
+                    {String(c.number).padStart(2, "0")}
                   </span>
-                  <span className="font-display text-sm font-semibold text-paper">
-                    {c.title}
+                  <span className="font-display text-sm font-semibold text-ink">
+                    {chapterDisplayTitle(c.title)}
                   </span>
                 </Link>
                 {isCurrent && (
-                  <ul className="mb-2 ml-7 mt-1 border-l border-line pl-3">
+                  <ul className="mb-2 ml-[26px] mt-1 border-l border-hairline pl-3">
                     {c.slides.map((s) => (
                       <li key={s.href}>
                         <Link
                           href={s.href}
                           onClick={onClose}
-                          className={`block rounded-md px-2 py-1 text-sm transition-colors hover:text-paper ${
+                          className={`block rounded-lg px-2 py-1 text-sm transition-colors ${
                             s.href === currentHref
-                              ? "font-semibold text-accent"
-                              : "text-muted"
+                              ? "font-semibold text-blue"
+                              : "text-ink-2 hover:text-ink"
                           }`}
-                          style={
-                            s.href === currentHref
-                              ? ({ ["--accent" as string]: accent.hex } as React.CSSProperties)
-                              : undefined
-                          }
                         >
                           {s.sectionIndex === 0 ? "Overview" : s.title}
                         </Link>

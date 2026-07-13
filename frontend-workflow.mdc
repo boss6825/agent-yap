@@ -1,0 +1,32 @@
+---
+description: Enforce skills-first-then-MCP workflow for all frontend/UI work
+globs:
+  - "**/components/**"
+  - "**/app/**"
+  - "**/pages/**"
+  - "**/ui/**"
+  - "**/*.tsx"
+  - "**/*.jsx"
+alwaysApply: false
+---
+
+# Frontend workflow — read AGENTS.md
+
+The full workflow (pre-flight checklist, tool priority, risk-flagged
+skills, MCP server table) lives in `AGENTS.md` at the project root.
+That file is the single source of truth — read it in full before
+building or editing any UI component or page.
+
+Do not duplicate its content here; this file exists only so Cursor
+auto-attaches the rule when a matching file glob is touched. If you
+are editing anything under components/app/pages/ui or any .tsx/.jsx
+file, `AGENTS.md`'s checklist applies to this task.
+
+Minimum enforcement, restated for glob-matching reliability:
+1. shadcn MCP search before writing any component from scratch.
+2. Context7 MCP for current framework/library API docs.
+3. Chrome DevTools MCP to visually verify before calling anything done.
+4. accessibility + impeccable skills before marking the task complete.
+
+If any of these tools/skills are unavailable when needed, state that
+explicitly rather than silently skipping to hand-written code.
