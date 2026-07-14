@@ -1,0 +1,26 @@
+---
+description: Enforce skills → MCP → skills workflow for frontend/UI work
+globs:
+  - "**/components/**"
+  - "**/app/**"
+  - "**/pages/**"
+  - "**/ui/**"
+  - "**/*.tsx"
+  - "**/*.jsx"
+alwaysApply: false
+---
+
+# Frontend workflow — read AGENTS.md
+
+Full checklist, trust order, MCP/skills lists, and done-criteria live in
+`AGENTS.md`. This file only auto-attaches that workflow when frontend globs
+match. Do not duplicate `AGENTS.md` here.
+
+Hard minimums (restated for reliability):
+1. shadcn MCP before inventing a component from scratch
+2. Context7 MCP or `find-docs` when API certainty is low / stale-doc bugs
+3. Chrome DevTools verification before calling user-facing UI done
+4. accessibility + impeccable before marking complete
+
+If a tool/skill is unavailable, say so — do not silently skip to training data.
+Skip the whole flow only when the prompt says to skip the frontend flow.
