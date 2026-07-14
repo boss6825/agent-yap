@@ -56,7 +56,27 @@ export interface Book {
   slides: Slide[];
 }
 
-const CONTENT_ROOT = path.join(process.cwd(), "content");
+/**
+ * Resolve the content directory. `process.cwd()` is correct when Next is
+ * started from the project root, but Turbopack can evaluate this module from
+ * more than one bundled copy — a wrong cwd on the first hit used to cache an
+ * empty book list forever and 404 every slide while `/` still worked.
+ */
+function resolveContentRoot(): string {
+  const fromCwd = path.join(process.cwd(), "content");
+  if (fs.existsSync(fromCwd)) return fromCwd;
+
+  // Walk up from cwd in case the process was started from a subdirectory.
+  let dir = process.cwd();
+  for (let i = 0; i < 6; i++) {
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+    const candidate = path.join(dir, "content");
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return fromCwd;
+}
 
 /* ----------------------------- markdown helpers ---------------------------- */
 
@@ -133,22 +153,31 @@ function splitIntoSections(markdown: string, chapterTitle: string): RawSection[]
 
 /* ------------------------------- book loading ------------------------------ */
 
-let cache: Book[] | null = null;
+/** Shared across Turbopack route bundles so one empty miss can't poison slides. */
+const globalForContent = globalThis as typeof globalThis & {
+  __agentYapBooks?: Book[] | null;
+};
 
 function loadBooks(): Book[] {
-  if (cache) return cache;
+  if (globalForContent.__agentYapBooks?.length) {
+    return globalForContent.__agentYapBooks;
+  }
 
+  const contentRoot = resolveContentRoot();
   const books: Book[] = [];
-  if (!fs.existsSync(CONTENT_ROOT)) return (cache = books);
+  if (!fs.existsSync(contentRoot)) {
+    // Do not cache a miss — cwd/root can recover on the next request.
+    return books;
+  }
 
   const bookDirs = fs
-    .readdirSync(CONTENT_ROOT, { withFileTypes: true })
+    .readdirSync(contentRoot, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
     .sort();
 
   for (const bookSlug of bookDirs) {
-    const dir = path.join(CONTENT_ROOT, bookSlug);
+    const dir = path.join(contentRoot, bookSlug);
     const indexPath = path.join(dir, "index.md");
     if (!fs.existsSync(indexPath)) continue;
 
@@ -161,6 +190,10 @@ function loadBooks(): Book[] {
       .readdirSync(dir)
       .filter((f) => /^chapter-\d+.*\.md$/.test(f))
       .sort();
+
+    // index.md alone is not enough — skip folders that aren't reader books yet
+    // (e.g. research papers index without chapter-NN-*.md files).
+    if (chapterFiles.length === 0) continue;
 
     const chapters: Chapter[] = [];
     const bookSlides: Slide[] = [];
@@ -211,7 +244,10 @@ function loadBooks(): Book[] {
     books.push({ slug: bookSlug, title, description, chapters, slides: bookSlides });
   }
 
-  return (cache = books);
+  if (books.length > 0) {
+    globalForContent.__agentYapBooks = books;
+  }
+  return books;
 }
 
 function firstParagraph(markdown: string): string {

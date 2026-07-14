@@ -33,13 +33,28 @@ export const metadata: Metadata = {
   },
 };
 
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.setAttribute("data-theme",d?"dark":"light")}catch(e){}})()`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html
+      lang="en"
+      className="h-full antialiased"
+      data-scroll-behavior="smooth"
+      data-theme="light"
+      suppressHydrationWarning
+    >
+      <head>
+        <script
+          type={typeof window === "undefined" ? "text/javascript" : "text/plain"}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-canvas text-ink">
         {children}
       </body>

@@ -9,6 +9,7 @@ import { chapterDisplayTitle } from "@/lib/display";
 import { setNavDirection } from "@/components/reader/nav-direction";
 import { SearchPanel } from "@/components/SearchPanel";
 import { AskPanel } from "@/components/AskPanel";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function ReaderChrome({
   manifest,
@@ -150,6 +151,7 @@ export function ReaderChrome({
             <span className="min-w-[56px] text-right text-xs tabular-nums text-ink-2">
               {pad(index + 1)} / {pad(total)}
             </span>
+            <ThemeToggle className="ml-1 text-ink-2 hover:bg-canvas-2 hover:text-ink" />
           </div>
         </div>
       </header>
@@ -164,7 +166,7 @@ export function ReaderChrome({
       </main>
 
       {/* bottom chrome */}
-      <footer className="pointer-events-none fixed inset-x-0 bottom-0 z-50 h-[92px] bg-[linear-gradient(to_top,#ffffff_60%,rgba(255,255,255,0))]">
+      <footer className="pointer-events-none fixed inset-x-0 bottom-0 z-50 h-[92px] bg-[linear-gradient(to_top,var(--color-canvas)_60%,transparent)]">
         <div className="pointer-events-auto mx-auto flex h-[92px] max-w-[1200px] items-center justify-between px-6">
           <span className="text-xs text-ink-2">← → arrow keys work too</span>
           <div className="flex gap-3">

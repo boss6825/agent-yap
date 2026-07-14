@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { SearchPanel } from "@/components/SearchPanel";
 import { AskPanel } from "@/components/AskPanel";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { initHomeFx } from "@/components/home/fx";
 
 export interface HomeChapter {
@@ -102,12 +103,17 @@ export function Home({ data }: { data: HomeData }) {
               Ask
             </button>
           </div>
-          <Link
-            href={data.startHref}
-            className="flex h-8 items-center rounded-pill bg-blue px-4 text-xs text-white transition-transform active:scale-95"
-          >
-            Start learning
-          </Link>
+          <div className="flex items-center gap-3">
+            <span data-nav-text="1" className="text-snow transition-colors duration-500">
+              <ThemeToggle className="hover:bg-white/10" />
+            </span>
+            <Link
+              href={data.startHref}
+              className="flex h-8 items-center rounded-pill bg-blue px-4 text-xs text-white transition-transform active:scale-95"
+            >
+              Start learning
+            </Link>
+          </div>
         </div>
       </nav>
 

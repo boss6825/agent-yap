@@ -29,6 +29,24 @@
   --radius-pill: 980px;
 }
 
+/* ============================================================= dark theme
+   Same token set, re-pointed at an Apple-style dark palette. Everything
+   built on bg-canvas/text-ink/etc. picks this up automatically — no
+   component changes needed. Toggled via [data-theme="dark"] on <html>. */
+[data-theme="dark"] {
+  --color-canvas: #000000;
+  --color-canvas-2: #1c1c1e;
+  --color-canvas-3: #2c2c2e;
+  --color-ink: #f5f5f7;
+  --color-ink-2: #98989d;
+  --color-hairline: rgba(255, 255, 255, 0.1);
+  --color-blue: #2997ff;
+  --color-blue-deep: #0a84ff;
+  --color-blue-bright: #409cff;
+
+  color-scheme: dark;
+}
+
 /* =================================================================== base */
 html {
   -webkit-text-size-adjust: 100%;
@@ -42,6 +60,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overscroll-behavior-x: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 ::selection {
@@ -69,6 +88,20 @@ html.lenis body {
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+[data-theme="dark"] .glass-light {
+  background: rgba(28, 28, 30, 0.72);
+}
+
+/* ThemeToggle: CSS picks the visible icon, no JS state involved. */
+.theme-icon-moon {
+  display: none;
+}
+[data-theme="dark"] .theme-icon-sun {
+  display: none;
+}
+[data-theme="dark"] .theme-icon-moon {
+  display: block;
 }
 
 /* Slow "drone footage" zoom used on the hero photograph. */
@@ -286,4 +319,45 @@ html.lenis body {
 }
 .hljs-strong {
   font-weight: 700;
+}
+
+/* Xcode-dark-inspired palette for [data-theme="dark"]. */
+[data-theme="dark"] .hljs-comment,
+[data-theme="dark"] .hljs-quote {
+  color: #7f8c98;
+}
+[data-theme="dark"] .hljs-keyword,
+[data-theme="dark"] .hljs-selector-tag,
+[data-theme="dark"] .hljs-literal,
+[data-theme="dark"] .hljs-doctag {
+  color: #fc5fa3;
+}
+[data-theme="dark"] .hljs-string,
+[data-theme="dark"] .hljs-regexp,
+[data-theme="dark"] .hljs-meta .hljs-string {
+  color: #fc6a5d;
+}
+[data-theme="dark"] .hljs-number,
+[data-theme="dark"] .hljs-symbol,
+[data-theme="dark"] .hljs-bullet {
+  color: #d0bf69;
+}
+[data-theme="dark"] .hljs-title,
+[data-theme="dark"] .hljs-title.function_,
+[data-theme="dark"] .hljs-section,
+[data-theme="dark"] .hljs-name {
+  color: #67b7a4;
+}
+[data-theme="dark"] .hljs-attr,
+[data-theme="dark"] .hljs-attribute,
+[data-theme="dark"] .hljs-property,
+[data-theme="dark"] .hljs-variable,
+[data-theme="dark"] .hljs-template-variable {
+  color: #a167e6;
+}
+[data-theme="dark"] .hljs-built_in,
+[data-theme="dark"] .hljs-class .hljs-title,
+[data-theme="dark"] .hljs-type,
+[data-theme="dark"] .hljs-meta {
+  color: #6bdfff;
 }
