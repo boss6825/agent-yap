@@ -1,0 +1,55 @@
+# Advisory CI — NOT a required status check yet.
+#
+# Every step here is advisory (continue-on-error / exit 0). This workflow must
+# prove green on main before any step is promoted to a required check with
+# branch protection. No AI/LLM steps run in CI by design (deterministic only).
+name: compliance (advisory)
+
+on:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+        continue-on-error: true
+
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build (type-check + static prerender — the real gate)
+        run: npm run build
+        continue-on-error: true
+
+      - name: Compliance check (mirrors .githooks/pre-push)
+        continue-on-error: true
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          FILES="$(git diff --name-only "$BASE"..."$HEAD" 2>/dev/null || true)"
+          MSG="$(git log -1 --pretty=%B "$HEAD")"
+          if echo "$MSG" | grep -qiE 'GATE[- ]bypass:'; then
+            echo "GATE bypass present in last commit — compliance gate satisfied (bypass)."
+            exit 0
+          fi
+          if echo "$FILES" | grep -qE '^specs/features/.*/compliance\.md$'; then
+            echo "compliance.md updated — compliance gate satisfied."
+            exit 0
+          fi
+          echo "ADVISORY: no specs/features/**/compliance.md in this PR and no 'GATE bypass: <reason>' in the last commit."
+          echo "This will block once the gate is promoted to required. Exiting 0 (advisory)."
+          exit 0
