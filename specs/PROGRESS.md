@@ -12,7 +12,7 @@
 ## In-flight features
 | Slug | Pipeline stage | Next action | Notes |
 |---|---|---|---|
-| _(none in flight)_ | | | |
+| reader/ide-shell | implement | build slices S1–S5, then /check | RIGOR; spec+plan written 2026-07-19; adversarial G3 review by Codex session recorded in review.md |
 
 ## Retrofit progress (this operating-system adoption)
 | Phase | State |
