@@ -93,6 +93,12 @@ html.lenis body {
   background: rgba(28, 28, 30, 0.72);
 }
 
+/* Slim, token-colored scrollbar for the contents rail. */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-hairline) transparent;
+}
+
 /* ThemeToggle: CSS picks the visible icon, no JS state involved. */
 .theme-icon-moon {
   display: none;
