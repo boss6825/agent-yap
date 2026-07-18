@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# pre-commit — scaffolding sanity + generated-file warning.
+# Validates required scaffolding dirs exist; warns (never blocks) if generated
+# outputs are staged. Enforcement teeth live in pre-push; this is a soft guard.
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
+
+# 1) Required scaffolding: specs/ must exist. (knowledge/ arrives in a later phase.)
+if [ ! -d "$REPO_ROOT/specs" ]; then
+  echo "BLOCKED: required scaffolding dir 'specs/' is missing." >&2
+  echo "The operating-system retrofit expects specs/ at the repo root." >&2
+  exit 1
+fi
+
+# 2) Warn if generated/build outputs are staged (they should be gitignored).
+STAGED="$(git diff --cached --name-only 2>/dev/null || true)"
+GENERATED="$(printf '%s\n' "$STAGED" \
+  | grep -E '(^|/)(\.next|out|build)/|\.tsbuildinfo$|(^|/)next-env\.d\.ts$' || true)"
+
+if [ -n "$GENERATED" ]; then
+  echo "WARNING: generated/build outputs are staged — these are normally gitignored:" >&2
+  printf '  %s\n' "$GENERATED" >&2
+  echo "Fix the source and regenerate with 'npm run build' instead of committing artifacts." >&2
+  # Advisory only — do not block the commit.
+fi
+
+exit 0

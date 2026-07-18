@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# pre-push — the compliance ship gate (C9 / COMPLIANCE.md).
+# Blocks the push unless EITHER the push range updates a
+# specs/features/**/compliance.md OR the last commit message carries
+# 'GATE bypass: <reason>' (or 'GATE-bypass:'). Bypasses are logged locally
+# for the audit job. Bypass is a feature, not a failure.
+set -euo pipefail
+
+UPSTREAM="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || echo origin/main)"
+FILES="$(git diff --name-only "$UPSTREAM"...HEAD 2>/dev/null || true)"
+MSG="$(git log -1 --pretty=%B)"
+
+if echo "$MSG" | grep -qiE 'GATE[- ]bypass:'; then
+  echo "$(date -u +%FT%TZ) bypass $(git config user.email) $(git rev-parse --abbrev-ref HEAD)" \
+    >> "$(git rev-parse --git-dir)/gate-bypass.log"
+  echo "GATE bypassed (logged). Reason recorded in last commit message." >&2
+  exit 0
+fi
+
+if echo "$FILES" | grep -qE '^specs/features/.*/compliance\.md$'; then
+  exit 0
+fi
+
+echo "BLOCKED: no specs/features/**/compliance.md in this push and no 'GATE bypass: <reason>' in the last commit." >&2
+echo "Either append a compliance entry (specs/features/<area>/<slug>/compliance.md)," >&2
+echo "or bypass explicitly: git commit --allow-empty -m 'GATE bypass: <reason>'" >&2
+exit 1
