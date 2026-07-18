@@ -2,6 +2,8 @@
 
 Direction for how Agent YAP should present its markdown knowledge base. Short version: keep the content pipeline and `content.ts`, evolve the reader from "slides" to "interactive lessons".
 
+> Reach, distribution, and GTM direction lives in `docs/growth/` (cited research + master plan). This file stays about content delivery.
+
 ## What similar sites do
 
 - **Josh Comeau (Joy of React, CSS for JS Devs):** long-form prose with interactive widgets, short exercises, and quizzes embedded inline via MDX. Multi-modality is the engagement engine, not gamification. This is the closest model to what we want.
