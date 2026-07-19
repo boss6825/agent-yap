@@ -12,7 +12,7 @@
 ## In-flight features
 | Slug | Pipeline stage | Next action | Notes |
 |---|---|---|---|
-| reader/ide-shell | implement | build slices S1–S5, then /check | RIGOR; spec+plan written 2026-07-19; adversarial G3 review by Codex session recorded in review.md |
+| reader/ide-shell | ship (pre-PR) | owner: verify BYOK with a real key, then push + open PR | RIGOR; S1–S5 committed on feature/reader-ide-shell; build+lint green; compliance.md entry written 2026-07-19 |
 
 ## Retrofit progress (this operating-system adoption)
 | Phase | State |
