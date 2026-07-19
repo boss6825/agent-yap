@@ -19,9 +19,10 @@
 |---|---|---|---|---|
 | Reader & Navigation | 8 | 0 | 0 | 0 |
 | Search & Ask (backend) | 4 | 0 | 0 | 0 |
-| Content & Modules | 1 | 0 | 5 | 1 |
-| Interactivity & Progress | 0 | 0 | 0 | 5 |
+| Content & Modules | 1 | 0 | 6 | 1 |
+| Interactivity & Progress | 0 | 0 | 0 | 6 |
 | Modes (future) | 0 | 0 | 0 | 3 |
+| Discovery & Growth | 0 | 0 | 1 | 3 |
 
 ## Reader & Navigation
 
@@ -58,6 +59,7 @@ Discovery rule: a folder is a live book only with an `index.md` **and** `chapter
 | 17 | Multi-Agent (5 ch) | 〰️ | Content authored; not integrated. |
 | 18 | Building Coding Agents & Harnesses (17 ch in `explained/`) | 〰️ | Chapters + `explained/index.md` exist; missing book-root `index.md`. |
 | 19 | Glossary | ⬜ | Standalone `Glossary.md`; not wired as a book/reference view. |
+| 28 | Research Papers (~20 explainers, 5 categories) | 〰️ | Row added 2026-07-18 (was missing from this board). Deeply nested `explanations/` folders; needs curation into book(s) + attribution decision. See CR-2026-011. |
 
 ## Interactivity & Progress (planned — see `plan.md`)
 
@@ -68,6 +70,7 @@ Discovery rule: a folder is a live book only with an `index.md` **and** `chapter
 | 22 | Callout / typography / rhythm pass | ⬜ | plan.md Phase 1. |
 | 23 | LocalStorage progress + completion rings | ⬜ | plan.md Phase 2. |
 | 24 | Interactive widget (1 per book) | ⬜ | plan.md Phase 3. |
+| 29 | Daily challenge (one quiz question/day, localStorage) | ⬜ | CR-2026-013; depends on #20. Tension with plan.md non-goals recorded in the CR; triage decides. |
 
 ## Modes (future — see `plan.md`)
 
@@ -76,3 +79,12 @@ Discovery rule: a folder is a live book only with an `index.md` **and** `chapter
 | 25 | Roadmap mode + placement quiz | ⬜ | Deterministic prerequisite graph; localStorage only. |
 | 26 | Explore mode (concept cards) | ⬜ | Requires frontmatter tags on chapters. |
 | 27 | Podcast mode (build-time TTS) | ⬜ | Ranked last. |
+
+## Discovery & Growth (see `docs/growth/`)
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 30 | SEO + AI-discovery foundation (sitemap, robots, metadataBase, llms.txt) | 〰️ | Implemented + verified on branch `claude/growth-quick-wins-gx0t42`; flips to ✅ after merge + code audit. CR-2026-009. |
+| 31 | Privacy-friendly analytics (cookieless) | ⬜ | CR-2026-010. Prerequisite for measuring everything else here. |
+| 32 | Slide shareability (share button + OG images) | ⬜ | CR-2026-012. Per-slide OG touches the SSG route (RIGOR). |
+| 33 | Updates feed (RSS/Atom + /changelog) | ⬜ | CR-2026-014. |
