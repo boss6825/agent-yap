@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const SITE = "Agent YAP";
@@ -6,6 +7,7 @@ const TAGLINE =
   "RAG, context engineering, memory, orchestration, and coding agent internals. Taught at the depth practitioners actually need.";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: `${SITE} — Understand agents from the inside`,
     template: `%s · ${SITE}`,
@@ -25,6 +27,8 @@ export const metadata: Metadata = {
     title: `${SITE} — Understand agents from the inside`,
     description: TAGLINE,
     type: "website",
+    url: "/",
+    siteName: SITE,
   },
   twitter: {
     card: "summary_large_image",
