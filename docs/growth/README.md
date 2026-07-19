@@ -1,9 +1,10 @@
-# `docs/growth/` — Reach, Distribution, and GTM
+# `docs/growth/`: Reach, Distribution, and GTM
 
-> Produced in the 2026-07-18 growth research session (deep-research run over
-> ~15 web sources plus a code and content audit of this repo). Goal set by the
-> founder: make Agent YAP one of the most-used sites for studying agentic AI
-> while keeping it simple and minimalist.
+> Produced in the 2026-07-18/19 growth research session: a deep-research
+> workflow plus targeted follow-up searches (12+ cited sources, confidence
+> labels in `01-gtm-research.md`) and a code + content audit of this repo.
+> Goal set by the founder: make Agent YAP one of the most-used sites for
+> studying agentic AI while keeping it simple and minimalist.
 
 ## How this folder relates to the rest of the repo
 

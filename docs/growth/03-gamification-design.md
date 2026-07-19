@@ -28,8 +28,13 @@ the ones that survive our constraints.
 
 Quiz slides (CR-2026-001) and completion rings (CR-2026-004) are the
 foundation. Retrieval practice is the best-evidenced learning technique in
-cognitive science (testing effect); it is also the honest version of
-"gamification": the game IS the learning, not decoration around it. Nothing
+cognitive science: the Adesope et al. 2017 meta-analysis puts practice
+testing at g = 0.61 over restudying, with mixed question formats strongest
+(citations in `docs/growth/01-gtm-research.md`). It is also the honest
+version of "gamification": the game IS the learning, not decoration around
+it. One design consequence from the same research: completion must stay
+reachable (Exercism found that goalpost-moving "un-finishes" users and
+demotivates them), so rings always show a finite, finishable book. Nothing
 in this file makes sense before Layer 1 ships.
 
 ### Layer 2: the daily challenge (CR-2026-013, the genuinely new piece)
@@ -49,7 +54,11 @@ One question a day, LeetCode-daily-challenge shaped, zero backend:
 
 - localStorage counter: "N days" with a **built-in grace rule** (missing one
   day does not zero the counter; two consecutive misses does). Loss-aversion
-  with the cruelty removed.
+  with the cruelty removed. The evidence points this way: Duolingo EASING
+  streak requirements in 2024 raised 7-day streak retention by roughly 40%,
+  and even LeetCode's annual badge needs only 300 of 365 days (details and
+  sources in `docs/growth/01-gtm-research.md`). Gentle beats harsh on the
+  very metric streaks exist for.
 - Quiet presentation: small text on the daily page, not a flame banner on
   every screen. No notifications, no email, no badges for sale.
 - Device-local and honest about it ("streak lives in this browser").
@@ -62,7 +71,9 @@ One question a day, LeetCode-daily-challenge shaped, zero backend:
   need liquidity (enough daily users to feel alive); at our stage they would
   render as empty rooms.
 - **Notification-driven streak pressure:** the well-documented dark side of
-  the Duolingo model. Our brand is calm minimalism; a guilt loop is off-key.
+  the Duolingo model ("the Duolingo Effect": engagement metrics that do not
+  translate into real proficiency; see `01-gtm-research.md`). Our brand is
+  calm minimalism; a guilt loop is off-key.
 - **Timers and speed scoring:** reading comprehension is not a race.
 
 The principle: **progress mechanics yes, pressure mechanics no.** Visible
