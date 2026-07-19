@@ -7,9 +7,11 @@ import type { NavManifest, NavSlide } from "@/lib/content";
 import { chapterDisplayTitle } from "@/lib/display";
 import { setNavDirection } from "@/components/reader/nav-direction";
 import { Rail } from "@/components/reader/Rail";
+import { ResumePill } from "@/components/reader/ResumePill";
 import { SearchPanel } from "@/components/SearchPanel";
 import { AskPanel } from "@/components/AskPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { getLastRead, markSlideRead, useProgress } from "@/lib/progress";
 
 const RAIL_PREF_KEY = "agent-yap:rail-open";
 
@@ -68,6 +70,37 @@ export function ReaderChrome({
   const total = manifest.total;
   const prev = manifest.slides[index - 1];
   const next = manifest.slides[index + 1];
+
+  // Reading progress (localStorage; undefined until mounted — neutral SSR HTML).
+  const progress = useProgress();
+  const readHrefs = useMemo(() => {
+    if (!progress) return undefined;
+    return new Set(Object.keys(progress.read[manifest.bookSlug] ?? {}));
+  }, [progress, manifest.bookSlug]);
+
+  // Mark the slide read after a short dwell (idempotent; StrictMode-safe).
+  useEffect(() => {
+    if (!current) return;
+    const href = current.href;
+    const id = setTimeout(() => markSlideRead(manifest.bookSlug, href), 1200);
+    return () => clearTimeout(id);
+  }, [current, manifest.bookSlug]);
+
+  // Resume pointer captured once on mount, before dwell-marking moves it;
+  // cleared as soon as the reader navigates anywhere (they're oriented).
+  const [resumeHref, setResumeHref] = useState<string | null>(null);
+  const initialPath = useRef(pathname);
+  useEffect(() => {
+    const last = getLastRead();
+    if (last && last.href !== initialPath.current) setResumeHref(last.href);
+  }, []);
+  useEffect(() => {
+    if (pathname !== initialPath.current) setResumeHref(null);
+  }, [pathname]);
+  const resumeTarget =
+    resumeHref && current?.globalIndex === 0 && resumeHref !== pathname
+      ? byHref.get(resumeHref)
+      : undefined;
 
   const anyModal = searchOpen || askOpen;
 
@@ -156,7 +189,7 @@ export function ReaderChrome({
   };
 
   const pad = (n: number) => String(n).padStart(2, "0");
-  const progress = total > 0 ? ((index + 1) / total) * 100 : 100;
+  const progressPct = total > 0 ? ((index + 1) / total) * 100 : 100;
 
   return (
     <div className="flex h-dvh flex-col bg-canvas text-ink">
@@ -164,7 +197,7 @@ export function ReaderChrome({
       <div className="fixed inset-x-0 top-0 z-[60] h-0.5 bg-canvas-2">
         <div
           className="h-0.5 bg-blue transition-[width] duration-[400ms] ease-out"
-          style={{ width: `${progress}%` }}
+          style={{ width: `${progressPct}%` }}
         />
       </div>
 
@@ -267,6 +300,7 @@ export function ReaderChrome({
             mobileOpen={railOpen === true}
             onNavigate={closeRailOverlay}
             onClose={closeRailOverlay}
+            readHrefs={readHrefs}
           />
         </aside>
 
@@ -282,6 +316,17 @@ export function ReaderChrome({
           >
             {children}
           </div>
+
+          {resumeTarget && (
+            <ResumePill
+              href={resumeTarget.href}
+              title={
+                resumeTarget.sectionIndex === 0
+                  ? chapterDisplayTitle(resumeTarget.chapterTitle)
+                  : resumeTarget.title
+              }
+            />
+          )}
 
           {/* floating nav */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between px-5 pb-4 sm:px-7">
