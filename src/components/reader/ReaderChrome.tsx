@@ -1,15 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { NavManifest, NavSlide } from "@/lib/content";
 import { chapterDisplayTitle } from "@/lib/display";
 import { setNavDirection } from "@/components/reader/nav-direction";
+import { AmbientBackdrop } from "@/components/reader/AmbientBackdrop";
+import { ChatPanel } from "@/components/reader/ChatPanel";
 import { Rail } from "@/components/reader/Rail";
 import { ResumePill } from "@/components/reader/ResumePill";
 import { SearchPanel } from "@/components/SearchPanel";
-import { AskPanel } from "@/components/AskPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { getLastRead, markSlideRead, useProgress } from "@/lib/progress";
 
@@ -20,6 +28,26 @@ function isDesktop(): boolean {
     typeof window !== "undefined" &&
     window.matchMedia("(min-width: 1024px)").matches
   );
+}
+
+/** The stored rail preference never notifies — reads happen on re-render. */
+function noopSubscribe(): () => void {
+  return () => {};
+}
+
+/** Desktop-only preference; mobile always starts with the rail closed. */
+function readStoredRailPref(): "0" | "1" | null {
+  try {
+    if (!isDesktop()) return null;
+    const stored = window.localStorage.getItem(RAIL_PREF_KEY);
+    return stored === "0" || stored === "1" ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+function getServerRailPref(): null {
+  return null;
 }
 
 /** True while the user is typing somewhere shortcuts must not fire. */
@@ -45,19 +73,19 @@ export function ReaderChrome({
   // null = "auto": open when docked on desktop, closed as a mobile overlay.
   const [railOpen, setRailOpen] = useState<boolean | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [askOpen, setAskOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const railToggleRef = useRef<HTMLButtonElement>(null);
   const stageScrollRef = useRef<HTMLDivElement>(null);
 
-  // Restore the remembered desktop rail preference after mount.
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(RAIL_PREF_KEY);
-      if (stored !== null && isDesktop()) setRailOpen(stored === "1");
-    } catch {
-      // Storage unavailable — keep the auto behavior.
-    }
-  }, []);
+  // Explicit toggles win; otherwise the stored desktop preference applies;
+  // otherwise "auto" (CSS: open when docked on desktop, closed on mobile).
+  const storedRailPref = useSyncExternalStore(
+    noopSubscribe,
+    readStoredRailPref,
+    getServerRailPref,
+  );
+  const railState =
+    railOpen ?? (storedRailPref === null ? null : storedRailPref === "1");
 
   const byHref = useMemo(() => {
     const m = new Map<string, NavSlide>();
@@ -102,22 +130,20 @@ export function ReaderChrome({
       ? byHref.get(resumeHref)
       : undefined;
 
-  const anyModal = searchOpen || askOpen;
+  const anyModal = searchOpen;
 
   const toggleRail = useCallback(() => {
-    setRailOpen((v) => {
-      const effective = v ?? isDesktop();
-      const nextOpen = !effective;
-      try {
-        if (isDesktop()) {
-          window.localStorage.setItem(RAIL_PREF_KEY, nextOpen ? "1" : "0");
-        }
-      } catch {
-        // Preference just won't persist.
+    const effective = railState ?? isDesktop();
+    const nextOpen = !effective;
+    try {
+      if (isDesktop()) {
+        window.localStorage.setItem(RAIL_PREF_KEY, nextOpen ? "1" : "0");
       }
-      return nextOpen;
-    });
-  }, []);
+    } catch {
+      // Preference just won't persist.
+    }
+    setRailOpen(nextOpen);
+  }, [railState]);
 
   const closeRailOverlay = useCallback(() => {
     if (!isDesktop()) {
@@ -155,8 +181,8 @@ export function ReaderChrome({
         toggleRail();
         return;
       }
-      // Modals and the mobile rail overlay own the remaining keys.
-      if (anyModal || (railOpen === true && !isDesktop())) return;
+      // Modals and mobile overlays own the remaining keys.
+      if (anyModal || ((railState === true || chatOpen) && !isDesktop())) return;
 
       if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
         e.preventDefault();
@@ -168,7 +194,7 @@ export function ReaderChrome({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [next, prev, go, anyModal, railOpen, toggleRail]);
+  }, [next, prev, go, anyModal, railState, chatOpen, toggleRail]);
 
   // Touch swipe.
   const touch = useRef<{ x: number; y: number } | null>(null);
@@ -177,7 +203,12 @@ export function ReaderChrome({
     touch.current = { x: t.clientX, y: t.clientY };
   };
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (!touch.current || anyModal || (railOpen === true && !isDesktop())) return;
+    if (
+      !touch.current ||
+      anyModal ||
+      ((railState === true || chatOpen) && !isDesktop())
+    )
+      return;
     const t = e.changedTouches[0];
     const dx = t.clientX - touch.current.x;
     const dy = t.clientY - touch.current.y;
@@ -211,7 +242,7 @@ export function ReaderChrome({
               onClick={toggleRail}
               title="Contents (t)"
               aria-label="Toggle contents"
-              aria-expanded={railOpen ?? undefined}
+              aria-expanded={railState ?? undefined}
               className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-ink-2 transition-colors hover:bg-canvas-2 hover:text-ink"
             >
               <svg viewBox="0 0 20 20" aria-hidden className="h-[18px] w-[18px]">
@@ -259,11 +290,14 @@ export function ReaderChrome({
             </button>
             <button
               type="button"
-              onClick={() => setAskOpen(true)}
-              title="Ask the docs"
-              className="flex h-11 cursor-pointer items-center px-2.5 text-xs text-ink-2 transition-colors hover:text-ink"
+              onClick={() => setChatOpen((v) => !v)}
+              title="Chat with this page"
+              aria-expanded={chatOpen}
+              className={`flex h-11 cursor-pointer items-center px-2.5 text-xs transition-colors hover:text-ink ${
+                chatOpen ? "text-ink" : "text-ink-2"
+              }`}
             >
-              Ask
+              Chat
             </button>
             <span className="min-w-[56px] text-right text-xs tabular-nums text-ink-2">
               {pad(index + 1)} / {pad(total)}
@@ -273,10 +307,12 @@ export function ReaderChrome({
         </div>
       </header>
 
-      {/* body: rail | stage */}
+      {/* body: rail | stage over the ambient shader layer */}
       <div className="relative flex min-h-0 flex-1">
+        <AmbientBackdrop />
+
         {/* mobile scrim */}
-        {railOpen === true && (
+        {railState === true && (
           <div
             onClick={closeRailOverlay}
             aria-hidden
@@ -286,10 +322,10 @@ export function ReaderChrome({
 
         <aside
           aria-label="Contents rail"
-          className={`glass-light fixed inset-y-0 left-0 z-50 overflow-hidden transition-transform duration-300 ease-out lg:static lg:z-auto lg:translate-x-0 lg:transition-[width] ${
-            railOpen === true ? "translate-x-0" : "-translate-x-full"
+          className={`glass-light fixed inset-y-0 left-0 z-50 overflow-hidden transition-transform duration-300 ease-out lg:relative lg:z-10 lg:translate-x-0 lg:transition-[width] ${
+            railState === true ? "translate-x-0" : "-translate-x-full"
           } ${
-            railOpen === false
+            railState === false
               ? "lg:w-0 lg:border-r-0"
               : "lg:w-[300px] lg:border-r lg:border-hairline"
           } border-r border-hairline`}
@@ -297,39 +333,40 @@ export function ReaderChrome({
           <Rail
             manifest={manifest}
             currentHref={pathname}
-            mobileOpen={railOpen === true}
+            mobileOpen={railState === true}
             onNavigate={closeRailOverlay}
             onClose={closeRailOverlay}
             readHrefs={readHrefs}
           />
         </aside>
 
-        {/* slide stage */}
+        {/* slide stage: a glass card over the shader */}
         <main
-          className="relative min-w-0 flex-1"
+          className="relative z-10 min-w-0 flex-1 p-2.5 sm:p-4"
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
-          <div
-            ref={stageScrollRef}
-            className="h-full overflow-y-auto overflow-x-hidden"
-          >
-            {children}
-          </div>
+          <div className="glass-card relative h-full overflow-hidden rounded-[24px] border border-hairline">
+            <div
+              ref={stageScrollRef}
+              className="h-full overflow-y-auto overflow-x-hidden"
+            >
+              {children}
+            </div>
 
-          {resumeTarget && (
-            <ResumePill
-              href={resumeTarget.href}
-              title={
-                resumeTarget.sectionIndex === 0
-                  ? chapterDisplayTitle(resumeTarget.chapterTitle)
-                  : resumeTarget.title
-              }
-            />
-          )}
+            {resumeTarget && (
+              <ResumePill
+                href={resumeTarget.href}
+                title={
+                  resumeTarget.sectionIndex === 0
+                    ? chapterDisplayTitle(resumeTarget.chapterTitle)
+                    : resumeTarget.title
+                }
+              />
+            )}
 
-          {/* floating nav */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between px-5 pb-4 sm:px-7">
+            {/* floating nav */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between px-5 pb-4 sm:px-7">
             <span className="hidden text-xs text-ink-2 sm:block">
               ← → arrow keys work too
             </span>
@@ -353,12 +390,14 @@ export function ReaderChrome({
                 ›
               </button>
             </div>
+            </div>
           </div>
         </main>
+
+        <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
       </div>
 
       <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <AskPanel open={askOpen} onClose={() => setAskOpen(false)} />
     </div>
   );
 }
