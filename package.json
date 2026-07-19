@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
+    "@paper-design/shaders-react": "0.0.77",
     "framer-motion": "^12.40.0",
     "gsap": "^3.15.0",
     "highlight.js": "^11.11.1",

@@ -1,15 +1,64 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
 import type { NavManifest, NavSlide } from "@/lib/content";
 import { chapterDisplayTitle } from "@/lib/display";
 import { setNavDirection } from "@/components/reader/nav-direction";
+import { AmbientBackdrop } from "@/components/reader/AmbientBackdrop";
+import { ChatPanel } from "@/components/reader/ChatPanel";
+import { Rail } from "@/components/reader/Rail";
+import { ResumePill } from "@/components/reader/ResumePill";
 import { SearchPanel } from "@/components/SearchPanel";
-import { AskPanel } from "@/components/AskPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { getLastRead, markSlideRead, useProgress } from "@/lib/progress";
+
+const RAIL_PREF_KEY = "agent-yap:rail-open";
+
+function isDesktop(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(min-width: 1024px)").matches
+  );
+}
+
+/** The stored rail preference never notifies — reads happen on re-render. */
+function noopSubscribe(): () => void {
+  return () => {};
+}
+
+/** Desktop-only preference; mobile always starts with the rail closed. */
+function readStoredRailPref(): "0" | "1" | null {
+  try {
+    if (!isDesktop()) return null;
+    const stored = window.localStorage.getItem(RAIL_PREF_KEY);
+    return stored === "0" || stored === "1" ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+function getServerRailPref(): null {
+  return null;
+}
+
+/** True while the user is typing somewhere shortcuts must not fire. */
+function isTypingTarget(el: Element | null): boolean {
+  return (
+    el instanceof HTMLInputElement ||
+    el instanceof HTMLTextAreaElement ||
+    el instanceof HTMLSelectElement ||
+    (el instanceof HTMLElement && el.isContentEditable)
+  );
+}
 
 export function ReaderChrome({
   manifest,
@@ -20,9 +69,23 @@ export function ReaderChrome({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [tocOpen, setTocOpen] = useState(false);
+
+  // null = "auto": open when docked on desktop, closed as a mobile overlay.
+  const [railOpen, setRailOpen] = useState<boolean | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [askOpen, setAskOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const railToggleRef = useRef<HTMLButtonElement>(null);
+  const stageScrollRef = useRef<HTMLDivElement>(null);
+
+  // Explicit toggles win; otherwise the stored desktop preference applies;
+  // otherwise "auto" (CSS: open when docked on desktop, closed on mobile).
+  const storedRailPref = useSyncExternalStore(
+    noopSubscribe,
+    readStoredRailPref,
+    getServerRailPref,
+  );
+  const railState =
+    railOpen ?? (storedRailPref === null ? null : storedRailPref === "1");
 
   const byHref = useMemo(() => {
     const m = new Map<string, NavSlide>();
@@ -36,7 +99,58 @@ export function ReaderChrome({
   const prev = manifest.slides[index - 1];
   const next = manifest.slides[index + 1];
 
-  const anyOverlay = tocOpen || searchOpen || askOpen;
+  // Reading progress (localStorage; undefined until mounted — neutral SSR HTML).
+  const progress = useProgress();
+  const readHrefs = useMemo(() => {
+    if (!progress) return undefined;
+    return new Set(Object.keys(progress.read[manifest.bookSlug] ?? {}));
+  }, [progress, manifest.bookSlug]);
+
+  // Mark the slide read after a short dwell (idempotent; StrictMode-safe).
+  useEffect(() => {
+    if (!current) return;
+    const href = current.href;
+    const id = setTimeout(() => markSlideRead(manifest.bookSlug, href), 1200);
+    return () => clearTimeout(id);
+  }, [current, manifest.bookSlug]);
+
+  // Resume pointer captured once on mount, before dwell-marking moves it;
+  // cleared as soon as the reader navigates anywhere (they're oriented).
+  const [resumeHref, setResumeHref] = useState<string | null>(null);
+  const initialPath = useRef(pathname);
+  useEffect(() => {
+    const last = getLastRead();
+    if (last && last.href !== initialPath.current) setResumeHref(last.href);
+  }, []);
+  useEffect(() => {
+    if (pathname !== initialPath.current) setResumeHref(null);
+  }, [pathname]);
+  const resumeTarget =
+    resumeHref && current?.globalIndex === 0 && resumeHref !== pathname
+      ? byHref.get(resumeHref)
+      : undefined;
+
+  const anyModal = searchOpen;
+
+  const toggleRail = useCallback(() => {
+    const effective = railState ?? isDesktop();
+    const nextOpen = !effective;
+    try {
+      if (isDesktop()) {
+        window.localStorage.setItem(RAIL_PREF_KEY, nextOpen ? "1" : "0");
+      }
+    } catch {
+      // Preference just won't persist.
+    }
+    setRailOpen(nextOpen);
+  }, [railState]);
+
+  const closeRailOverlay = useCallback(() => {
+    if (!isDesktop()) {
+      setRailOpen(false);
+      railToggleRef.current?.focus();
+    }
+  }, []);
 
   const go = useCallback(
     (target: NavSlide | undefined, dir: 1 | -1) => {
@@ -47,25 +161,28 @@ export function ReaderChrome({
     [router],
   );
 
+  // Reset the stage scroll position on every slide change.
+  useEffect(() => {
+    stageScrollRef.current?.scrollTo({ top: 0 });
+  }, [pathname]);
+
   // Keyboard navigation.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      const el = document.activeElement;
-      const typing =
-        el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement;
-      if (typing) return;
+      if (e.isComposing || isTypingTarget(document.activeElement)) return;
 
-      if (e.key === "/" && !anyOverlay) {
+      if (e.key === "/" && !anyModal) {
         e.preventDefault();
         setSearchOpen(true);
         return;
       }
-      if ((e.key === "t" || e.key === "T") && !anyOverlay) {
+      if ((e.key === "t" || e.key === "T") && !anyModal) {
         e.preventDefault();
-        setTocOpen((v) => !v);
+        toggleRail();
         return;
       }
-      if (anyOverlay) return; // overlays handle their own keys / Escape
+      // Modals and mobile overlays own the remaining keys.
+      if (anyModal || ((railState === true || chatOpen) && !isDesktop())) return;
 
       if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
         e.preventDefault();
@@ -77,7 +194,7 @@ export function ReaderChrome({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [next, prev, go, anyOverlay]);
+  }, [next, prev, go, anyModal, railState, chatOpen, toggleRail]);
 
   // Touch swipe.
   const touch = useRef<{ x: number; y: number } | null>(null);
@@ -86,7 +203,12 @@ export function ReaderChrome({
     touch.current = { x: t.clientX, y: t.clientY };
   };
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (!touch.current || anyOverlay) return;
+    if (
+      !touch.current ||
+      anyModal ||
+      ((railState === true || chatOpen) && !isDesktop())
+    )
+      return;
     const t = e.changedTouches[0];
     const dx = t.clientX - touch.current.x;
     const dy = t.clientY - touch.current.y;
@@ -98,32 +220,66 @@ export function ReaderChrome({
   };
 
   const pad = (n: number) => String(n).padStart(2, "0");
-  const progress = total > 0 ? ((index + 1) / total) * 100 : 100;
+  const progressPct = total > 0 ? ((index + 1) / total) * 100 : 100;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-canvas text-ink">
+    <div className="flex h-dvh flex-col bg-canvas text-ink">
       {/* progress bar */}
       <div className="fixed inset-x-0 top-0 z-[60] h-0.5 bg-canvas-2">
         <div
           className="h-0.5 bg-blue transition-[width] duration-[400ms] ease-out"
-          style={{ width: `${progress}%` }}
+          style={{ width: `${progressPct}%` }}
         />
       </div>
 
       {/* top chrome */}
-      <header className="glass-light fixed inset-x-0 top-0.5 z-50 h-[52px]">
-        <div className="mx-auto flex h-[52px] max-w-[1200px] items-center justify-between gap-6 px-6">
-          <Link
-            href="/"
-            className="flex h-11 items-center font-display text-[17px] font-semibold tracking-[-0.2px] text-ink"
-          >
-            Agent YAP
-          </Link>
-          <span className="hidden truncate text-xs text-ink-2 sm:block">
-            {manifest.bookTitle} · Chapter {current?.chapterNumber ?? 1} ·{" "}
+      <header className="glass-light z-40 h-[52px] shrink-0 border-b border-hairline">
+        <div className="flex h-full items-center justify-between gap-4 px-3 sm:px-5">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <button
+              ref={railToggleRef}
+              type="button"
+              onClick={toggleRail}
+              title="Contents (t)"
+              aria-label="Toggle contents"
+              aria-expanded={railState ?? undefined}
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-ink-2 transition-colors hover:bg-canvas-2 hover:text-ink"
+            >
+              <svg viewBox="0 0 20 20" aria-hidden className="h-[18px] w-[18px]">
+                <rect
+                  x="2.5"
+                  y="3.5"
+                  width="15"
+                  height="13"
+                  rx="2.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+                <line
+                  x1="7.5"
+                  y1="3.5"
+                  x2="7.5"
+                  y2="16.5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+              </svg>
+            </button>
+            <Link
+              href="/"
+              className="flex h-11 shrink-0 items-center font-display text-[17px] font-semibold tracking-[-0.2px] text-ink"
+            >
+              Agent YAP
+            </Link>
+          </div>
+
+          <span className="hidden min-w-0 truncate text-xs text-ink-2 md:block">
+            Chapter {current?.chapterNumber ?? 1} ·{" "}
             {chapterDisplayTitle(current?.chapterTitle ?? "")}
           </span>
-          <div className="flex items-center gap-1">
+
+          <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
@@ -134,19 +290,14 @@ export function ReaderChrome({
             </button>
             <button
               type="button"
-              onClick={() => setAskOpen(true)}
-              title="Ask the docs"
-              className="flex h-11 cursor-pointer items-center px-2.5 text-xs text-ink-2 transition-colors hover:text-ink"
+              onClick={() => setChatOpen((v) => !v)}
+              title="Chat with this page"
+              aria-expanded={chatOpen}
+              className={`flex h-11 cursor-pointer items-center px-2.5 text-xs transition-colors hover:text-ink ${
+                chatOpen ? "text-ink" : "text-ink-2"
+              }`}
             >
-              Ask
-            </button>
-            <button
-              type="button"
-              onClick={() => setTocOpen(true)}
-              title="Contents (t)"
-              className="flex h-11 cursor-pointer items-center px-2.5 text-xs text-ink-2 transition-colors hover:text-ink"
-            >
-              Contents
+              Chat
             </button>
             <span className="min-w-[56px] text-right text-xs tabular-nums text-ink-2">
               {pad(index + 1)} / {pad(total)}
@@ -156,152 +307,97 @@ export function ReaderChrome({
         </div>
       </header>
 
-      {/* slide stage */}
-      <main
-        className="relative flex-1 overflow-y-auto overflow-x-hidden"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-      >
-        {children}
-      </main>
+      {/* body: rail | stage over the ambient shader layer */}
+      <div className="relative flex min-h-0 flex-1">
+        <AmbientBackdrop />
 
-      {/* bottom chrome */}
-      <footer className="pointer-events-none fixed inset-x-0 bottom-0 z-50 h-[92px] bg-[linear-gradient(to_top,var(--color-canvas)_60%,transparent)]">
-        <div className="pointer-events-auto mx-auto flex h-[92px] max-w-[1200px] items-center justify-between px-6">
-          <span className="text-xs text-ink-2">← → arrow keys work too</span>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => go(prev, -1)}
-              disabled={!prev}
-              aria-label="Previous slide"
-              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-pill bg-canvas-2 text-[19px] text-ink transition-[opacity,transform] duration-300 hover:bg-canvas-3 active:scale-95 disabled:pointer-events-none disabled:opacity-35"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              onClick={() => go(next, 1)}
-              disabled={!next}
-              aria-label="Next slide"
-              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-pill bg-canvas-2 text-[19px] text-ink transition-[opacity,transform] duration-300 hover:bg-canvas-3 active:scale-95 disabled:pointer-events-none disabled:opacity-35"
-            >
-              ›
-            </button>
-          </div>
-        </div>
-      </footer>
-
-      {/* contents drawer */}
-      <AnimatePresence>
-        {tocOpen && (
-          <TableOfContents
-            manifest={manifest}
-            currentHref={pathname}
-            onClose={() => setTocOpen(false)}
+        {/* mobile scrim */}
+        {railState === true && (
+          <div
+            onClick={closeRailOverlay}
+            aria-hidden
+            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden"
           />
         )}
-      </AnimatePresence>
+
+        <aside
+          aria-label="Contents rail"
+          className={`glass-light fixed inset-y-0 left-0 z-50 overflow-hidden transition-transform duration-300 ease-out lg:relative lg:z-10 lg:translate-x-0 lg:transition-[width] ${
+            railState === true ? "translate-x-0" : "-translate-x-full"
+          } ${
+            railState === false
+              ? "lg:w-0 lg:border-r-0"
+              : "lg:w-[300px] lg:border-r lg:border-hairline"
+          } border-r border-hairline`}
+        >
+          <Rail
+            manifest={manifest}
+            currentHref={pathname}
+            mobileOpen={railState === true}
+            onNavigate={closeRailOverlay}
+            onClose={closeRailOverlay}
+            readHrefs={readHrefs}
+          />
+        </aside>
+
+        {/* slide stage: a glass card over the shader */}
+        <main
+          className="relative z-10 min-w-0 flex-1 p-2.5 sm:p-4"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
+          <div className="glass-card relative h-full overflow-hidden rounded-[24px] border border-hairline">
+            <div
+              ref={stageScrollRef}
+              className="h-full overflow-y-auto overflow-x-hidden"
+            >
+              {children}
+            </div>
+
+            {resumeTarget && (
+              <ResumePill
+                href={resumeTarget.href}
+                title={
+                  resumeTarget.sectionIndex === 0
+                    ? chapterDisplayTitle(resumeTarget.chapterTitle)
+                    : resumeTarget.title
+                }
+              />
+            )}
+
+            {/* floating nav */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between px-5 pb-4 sm:px-7">
+            <span className="hidden text-xs text-ink-2 sm:block">
+              ← → arrow keys work too
+            </span>
+            <div className="pointer-events-auto flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => go(prev, -1)}
+                disabled={!prev}
+                aria-label="Previous slide"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-pill border border-hairline bg-canvas-2 text-[19px] text-ink shadow-sm transition-[opacity,transform] duration-300 hover:bg-canvas-3 active:scale-95 disabled:pointer-events-none disabled:opacity-35"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={() => go(next, 1)}
+                disabled={!next}
+                aria-label="Next slide"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-pill border border-hairline bg-canvas-2 text-[19px] text-ink shadow-sm transition-[opacity,transform] duration-300 hover:bg-canvas-3 active:scale-95 disabled:pointer-events-none disabled:opacity-35"
+              >
+                ›
+              </button>
+            </div>
+            </div>
+          </div>
+        </main>
+
+        <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+      </div>
 
       <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <AskPanel open={askOpen} onClose={() => setAskOpen(false)} />
     </div>
-  );
-}
-
-function TableOfContents({
-  manifest,
-  currentHref,
-  onClose,
-}: {
-  manifest: NavManifest;
-  currentHref: string;
-  onClose: () => void;
-}) {
-  const currentChapter = manifest.slides.find(
-    (s) => s.href === currentHref,
-  )?.chapterSlug;
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 z-[70] bg-black/30 backdrop-blur-sm"
-      />
-      <motion.aside
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", stiffness: 320, damping: 34 }}
-        className="glass-light fixed inset-y-0 right-0 z-[70] flex w-[min(420px,90vw)] flex-col border-l border-hairline"
-      >
-        <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
-          <span className="font-display text-[17px] font-semibold text-ink">
-            Contents
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close contents"
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-pill text-ink-2 transition-colors hover:bg-canvas-2 hover:text-ink"
-          >
-            ✕
-          </button>
-        </div>
-        <nav className="flex-1 overflow-y-auto px-3 py-3">
-          {manifest.chapters.map((c) => {
-            const isCurrent = c.slug === currentChapter;
-            return (
-              <div key={c.slug} className="mb-1">
-                <Link
-                  href={c.slides[0].href}
-                  onClick={onClose}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-canvas-2 ${
-                    isCurrent ? "bg-canvas-2" : ""
-                  }`}
-                >
-                  <span className="w-6 shrink-0 text-right text-xs font-semibold tabular-nums text-ink-2">
-                    {String(c.number).padStart(2, "0")}
-                  </span>
-                  <span className="font-display text-sm font-semibold text-ink">
-                    {chapterDisplayTitle(c.title)}
-                  </span>
-                </Link>
-                {isCurrent && (
-                  <ul className="mb-2 ml-[26px] mt-1 border-l border-hairline pl-3">
-                    {c.slides.map((s) => (
-                      <li key={s.href}>
-                        <Link
-                          href={s.href}
-                          onClick={onClose}
-                          className={`block rounded-lg px-2 py-1 text-sm transition-colors ${
-                            s.href === currentHref
-                              ? "font-semibold text-blue"
-                              : "text-ink-2 hover:text-ink"
-                          }`}
-                        >
-                          {s.sectionIndex === 0 ? "Overview" : s.title}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-      </motion.aside>
-    </>
   );
 }

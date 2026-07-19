@@ -12,7 +12,7 @@
 ## In-flight features
 | Slug | Pipeline stage | Next action | Notes |
 |---|---|---|---|
-| _(none in flight)_ | | | |
+| reader/ide-shell | ship (pre-PR) | owner: verify BYOK with a real key, then push + open PR | RIGOR; S1–S5 committed on feature/reader-ide-shell; build+lint green; compliance.md entry written 2026-07-19 |
 
 ## Retrofit progress (this operating-system adoption)
 | Phase | State |

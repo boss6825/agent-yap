@@ -17,10 +17,10 @@
 
 | Section | ✅ | 🔄 | 〰️ | ⬜ |
 |---|---|---|---|---|
-| Reader & Navigation | 8 | 0 | 0 | 0 |
+| Reader & Navigation | 11 | 0 | 0 | 0 |
 | Search & Ask (backend) | 4 | 0 | 0 | 0 |
 | Content & Modules | 1 | 0 | 6 | 1 |
-| Interactivity & Progress | 0 | 0 | 0 | 6 |
+| Interactivity & Progress | 1 | 0 | 0 | 5 |
 | Modes (future) | 0 | 0 | 0 | 3 |
 | Discovery & Growth | 0 | 0 | 1 | 3 |
 
@@ -30,12 +30,15 @@
 |---|---|---|---|---|
 | 1 | Slide reader (SSG; intro + one slide per `##`) | ✅ | `src/app/read/[book]/[chapter]/[slide]/page.tsx`, `src/lib/content.ts` | — |
 | 2 | Keyboard / arrow / swipe navigation | ✅ | `src/components/reader/ReaderChrome.tsx`, `nav-direction.ts` | — |
-| 3 | Contents drawer + progress rail | ✅ | `src/components/reader/ReaderChrome.tsx` | — |
+| 3 | IDE-shell contents rail (docked chapter/slide tree; mobile overlay) | ✅ | `src/components/reader/Rail.tsx`, `ReaderChrome.tsx` | `specs/features/reader/ide-shell/spec.md` |
 | 4 | Chapter title display helper (strips embedded "Chapter N:" prefix) | ✅ | `src/lib/display.ts` (`chapterDisplayTitle`) | — |
 | 5 | Slide transitions | ✅ | `src/app/read/[book]/[chapter]/[slide]/template.tsx` | — |
 | 6 | Dark theme + theme toggle | ✅ | `src/components/ThemeToggle.tsx`, `src/app/globals.css` | — |
 | 7 | Landing page | ✅ | `src/app/page.tsx`, `src/components/Home.tsx` | — |
 | 8 | Book TOC + not-found handling | ✅ | `src/app/read/[book]/page.tsx`, `src/app/not-found.tsx` | — |
+| 28 | Ambient shader layer + glass reading card (theme-aware, reduced-motion + WebGL fallback) | ✅ | `src/components/reader/AmbientBackdrop.tsx`, `src/app/globals.css` | `specs/features/reader/ide-shell/spec.md` |
+| 29 | BYOK Gemini chat panel grounded in current slide (`/api/ask` fallback, key never leaves browser) | ✅ | `src/components/reader/ChatPanel.tsx`, `src/lib/chat/gemini.ts`, `slide-context.ts` | `specs/features/reader/ide-shell/spec.md` |
+| 30 | Per-chapter public-domain artwork in the rail (The Met, CC0; build-time fetch script) | ✅ | `scripts/fetch-art.mjs`, `src/lib/art.ts`, `public/art/` | `specs/features/reader/ide-shell/spec.md` |
 
 ## Search & Ask (backend — Codex lane)
 
@@ -68,7 +71,7 @@ Discovery rule: a folder is a live book only with an `index.md` **and** `chapter
 | 20 | Quiz / MCQ slide block (fenced ```quiz convention) | ⬜ | plan.md Phase 1. `Markdown.tsx` renders plain markdown only today. |
 | 21 | Recap slide per chapter | ⬜ | plan.md Phase 1. |
 | 22 | Callout / typography / rhythm pass | ⬜ | plan.md Phase 1. |
-| 23 | LocalStorage progress + completion rings | ⬜ | plan.md Phase 2. |
+| 23 | LocalStorage progress + completion rings | ✅ | Built + code-audited 2026-07-19 (`src/lib/progress.ts`, rail checkmarks/rings, resume pill, landing "Continue reading"). Spec: `specs/features/reader/ide-shell/spec.md`. |
 | 24 | Interactive widget (1 per book) | ⬜ | plan.md Phase 3. |
 | 29 | Daily challenge (one quiz question/day, localStorage) | ⬜ | CR-2026-013; depends on #20. Tension with plan.md non-goals recorded in the CR; triage decides. |
 

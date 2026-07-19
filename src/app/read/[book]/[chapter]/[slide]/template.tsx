@@ -19,7 +19,7 @@ export default function SlideTemplate({
       initial={{ opacity: 0, y: 16, x: dir * 24 }}
       animate={{ opacity: 1, y: 0, x: 0 }}
       transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-      className="flex min-h-full items-center justify-center px-6 pb-[132px] pt-24"
+      className="flex min-h-full items-center justify-center px-6 pb-24 pt-10 sm:px-10"
     >
       {children}
     </motion.div>

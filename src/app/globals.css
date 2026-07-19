@@ -78,19 +78,37 @@ html.lenis body {
 
 /* ============================================================== utilities */
 
-/* Apple frosted glass for fixed chrome. */
+/* Apple frosted glass for fixed chrome.
+   NOTE: no hand-written -webkit-backdrop-filter here — LightningCSS (Tailwind
+   v4's minifier) drops the standard property when the prefixed one is present,
+   and it auto-prefixes on its own. */
 .glass-light {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 .glass-dark {
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 [data-theme="dark"] .glass-light {
   background: rgba(28, 28, 30, 0.72);
+}
+
+/* The reader's main reading surface: a glass card floating over the ambient
+   shader layer. Slightly more opaque than the chrome glass so prose keeps
+   comfortable contrast against whatever animates underneath. */
+.glass-card {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: saturate(160%) blur(26px);
+}
+[data-theme="dark"] .glass-card {
+  background: rgba(10, 10, 12, 0.72);
+}
+
+/* Slim, token-colored scrollbar for the contents rail. */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-hairline) transparent;
 }
 
 /* ThemeToggle: CSS picks the visible icon, no JS state involved. */

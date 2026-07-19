@@ -7,6 +7,7 @@ import { SearchPanel } from "@/components/SearchPanel";
 import { AskPanel } from "@/components/AskPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { initHomeFx } from "@/components/home/fx";
+import { useProgress } from "@/lib/progress";
 
 export interface HomeChapter {
   number: number;
@@ -48,6 +49,15 @@ export function Home({ data }: { data: HomeData }) {
   }, []);
 
   const firstChapter = data.chapters[0];
+
+  // Resume where the reader left off (localStorage; neutral until mounted).
+  const progress = useProgress();
+  const resumeHref =
+    progress?.lastHref && progress.lastHref !== data.startHref
+      ? progress.lastHref
+      : null;
+  const ctaHref = resumeHref ?? data.startHref;
+  const ctaLabel = resumeHref ? "Continue reading" : "Start learning";
 
   return (
     <div ref={rootRef} className="w-full bg-canvas text-ink">
@@ -108,10 +118,10 @@ export function Home({ data }: { data: HomeData }) {
               <ThemeToggle className="hover:bg-white/10" />
             </span>
             <Link
-              href={data.startHref}
+              href={ctaHref}
               className="flex h-8 items-center rounded-pill bg-blue px-4 text-xs text-white transition-transform active:scale-95"
             >
-              Start learning
+              {ctaLabel}
             </Link>
           </div>
         </div>
@@ -153,10 +163,10 @@ export function Home({ data }: { data: HomeData }) {
           </p>
           <Link
             id="hero-cta"
-            href={data.startHref}
+            href={ctaHref}
             className="mt-9 inline-flex min-h-11 items-center rounded-pill bg-blue px-7 py-[13px] text-[17px] text-white transition-transform active:scale-95"
           >
-            Start learning
+            {ctaLabel}
           </Link>
         </div>
       </section>
