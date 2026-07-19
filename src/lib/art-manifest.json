@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "chapters": {
+    "01-anatomy": {
+      "chapterNumber": 1,
+      "artworkId": 438821,
+      "title": "Ia Orana Maria (Hail Mary)",
+      "artist": "Paul Gauguin",
+      "date": "1891",
+      "file": "/art/01-anatomy.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/438821"
+    },
+    "02-agent-loop-pattern": {
+      "chapterNumber": 2,
+      "artworkId": 436529,
+      "title": "L'Arlésienne: Madame Joseph-Michel Ginoux (Marie Julien, 1848–1911)",
+      "artist": "Vincent van Gogh",
+      "date": "1888–89",
+      "file": "/art/02-agent-loop-pattern.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/436529"
+    },
+    "03-tool-design": {
+      "chapterNumber": 3,
+      "artworkId": 451725,
+      "title": "\"The Concourse of the Birds\", Folio 11r from a Mantiq al-Tayr (Language of the Birds)",
+      "artist": "Habiballah of Sava",
+      "date": "ca. 1600",
+      "file": "/art/03-tool-design.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/451725"
+    },
+    "04-provider-abstraction": {
+      "chapterNumber": 4,
+      "artworkId": 200854,
+      "title": "Vase (vase hollandois nouveau ovale) (one of a pair) (part of a set)",
+      "artist": "Sèvres Manufactory",
+      "date": "1763",
+      "file": "/art/04-provider-abstraction.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/200854"
+    },
+    "05-context-engineering": {
+      "chapterNumber": 5,
+      "artworkId": 816189,
+      "title": "”Abiding nowhere, the awakened mind arises”",
+      "artist": "Musō Soseki",
+      "date": "early to mid-14th century",
+      "file": "/art/05-context-engineering.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/816189"
+    },
+    "06-prompt-architecture": {
+      "chapterNumber": 6,
+      "artworkId": 49068,
+      "title": "Bamboo in Snow",
+      "artist": "Dapeng Zhengkun (Taihō Shōkon)",
+      "date": "1774",
+      "file": "/art/06-prompt-architecture.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/49068"
+    },
+    "07-retrieval-strategies": {
+      "chapterNumber": 7,
+      "artworkId": 7874,
+      "title": "Jubal and Miriam",
+      "artist": "William Jay Bolton",
+      "date": "1843–48",
+      "file": "/art/07-retrieval-strategies.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/7874"
+    },
+    "08-streaming-ux": {
+      "chapterNumber": 8,
+      "artworkId": 435997,
+      "title": "The Storm",
+      "artist": "Pierre-Auguste Cot",
+      "date": "1880",
+      "file": "/art/08-streaming-ux.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/435997"
+    },
+    "09-data-modeling": {
+      "chapterNumber": 9,
+      "artworkId": 451287,
+      "title": "\"Page of Calligraphy Illuminated with Animals and Plants in a Field of Flowers\", Folio from the Shah Jahan Album",
+      "artist": "Nanha",
+      "date": "verso: ca. 1610–15; recto: ca.1535–45",
+      "file": "/art/09-data-modeling.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/451287"
+    },
+    "10-document-pipelines": {
+      "chapterNumber": 10,
+      "artworkId": 53449,
+      "title": "Six Jewel Rivers from Various Provinces",
+      "artist": "Utagawa Hiroshige",
+      "date": "1857",
+      "file": "/art/10-document-pipelines.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/53449"
+    },
+    "11-security-multitenancy": {
+      "chapterNumber": 11,
+      "artworkId": 471868,
+      "title": "Architectural Drawing",
+      "artist": "",
+      "date": "1450–1500",
+      "file": "/art/11-security-multitenancy.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/471868"
+    },
+    "12-secrets-byok": {
+      "chapterNumber": 12,
+      "artworkId": 39895,
+      "title": "The Classic of Filial Piety",
+      "artist": "Li Gonglin",
+      "date": "ca. 1085",
+      "file": "/art/12-secrets-byok.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/39895"
+    },
+    "13-reliability": {
+      "chapterNumber": 13,
+      "artworkId": 544320,
+      "title": "Stela of the Steward Mentuwoser",
+      "artist": "",
+      "date": "ca. 1944 B.C.",
+      "file": "/art/13-reliability.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/544320"
+    },
+    "14-cost-latency": {
+      "chapterNumber": 14,
+      "artworkId": 466191,
+      "title": "Leaf from a Beatus Manuscript: at the Clarion of the Fifth Angel's Trumpet, a Star Falls from the Sky; the Bottomless Pit is Opened with a Key; Emerging from the Smoke, Locusts Come Upon the Earth and Torment the Deathless",
+      "artist": "",
+      "date": "ca. 1180",
+      "file": "/art/14-cost-latency.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/466191"
+    },
+    "15-observability-eval": {
+      "chapterNumber": 15,
+      "artworkId": 453385,
+      "title": "Anthology of Persian Poetry in Oblong Format (Safina)",
+      "artist": "Sultan Muhammad Nur",
+      "date": "dated 905 AH/1499–1500 CE",
+      "file": "/art/15-observability-eval.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/453385"
+    },
+    "16-scaling-infra": {
+      "chapterNumber": 16,
+      "artworkId": 448280,
+      "title": "\"Bizhan Slaughters the Wild Boars of Irman\", Folio from a Shahnama (Book of Kings)",
+      "artist": "Abu'l Qasim Firdausi",
+      "date": "dated 741 AH/1341 CE",
+      "file": "/art/16-scaling-infra.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/448280"
+    },
+    "17-domain-and-compliance": {
+      "chapterNumber": 17,
+      "artworkId": 437202,
+      "title": "Christ Bearing the Cross",
+      "artist": "North Netherlandish (Bruges) Painter",
+      "date": "",
+      "file": "/art/17-domain-and-compliance.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/437202"
+    },
+    "18-reference-architecture": {
+      "chapterNumber": 18,
+      "artworkId": 436102,
+      "title": "Virgin and Child with Four Angels",
+      "artist": "Gerard David",
+      "date": "ca. 1510–15",
+      "file": "/art/18-reference-architecture.jpg",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/436102"
+    }
+  }
+}

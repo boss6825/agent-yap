@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import type { NavManifest } from "@/lib/content";
 import { chapterDisplayTitle } from "@/lib/display";
+import { getChapterArt } from "@/lib/art";
 
 /**
  * Left contents rail — the IDE-style file tree of the reader.
@@ -40,15 +42,17 @@ export function Rail({
   );
 
   // Keep the chapter being read expanded as the reader pages across chapters.
-  useEffect(() => {
-    if (!currentChapter) return;
-    setExpanded((prev) => {
-      if (prev.has(currentChapter)) return prev;
-      const next = new Set(prev);
+  // State is adjusted during render (React's documented previous-render
+  // pattern) instead of in an effect.
+  const [lastChapter, setLastChapter] = useState(currentChapter);
+  if (currentChapter !== lastChapter) {
+    setLastChapter(currentChapter);
+    if (currentChapter && !expanded.has(currentChapter)) {
+      const next = new Set(expanded);
       next.add(currentChapter);
-      return next;
-    });
-  }, [currentChapter]);
+      setExpanded(next);
+    }
+  }
 
   // Keep the active slide visible as navigation moves it out of view.
   const activeRef = useRef<HTMLAnchorElement>(null);
@@ -82,6 +86,8 @@ export function Rail({
     });
   };
 
+  const art = currentChapter ? getChapterArt(currentChapter) : undefined;
+
   return (
     <div className="flex h-full w-[min(320px,85vw)] flex-col lg:w-[300px]">
       <div className="flex items-center justify-between gap-3 border-b border-hairline px-5 py-4">
@@ -103,6 +109,33 @@ export function Rail({
           ✕
         </button>
       </div>
+
+      {art && (
+        <a
+          href={art.sourceUrl}
+          target="_blank"
+          rel="noreferrer"
+          title={`${art.title} — ${art.artist || "Unknown artist"} (The Met, public domain)`}
+          className="group relative mx-4 mt-3 block h-[132px] shrink-0 overflow-hidden rounded-xl border border-hairline"
+        >
+          <Image
+            src={art.file}
+            alt={art.title}
+            fill
+            sizes="272px"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent px-2.5 pb-1.5 pt-5">
+            <span className="block truncate text-[11px] font-medium text-white">
+              {art.title}
+            </span>
+            <span className="block truncate text-[10px] text-white/75">
+              {art.artist || "Unknown artist"}
+              {art.date ? ` · ${art.date}` : ""}
+            </span>
+          </span>
+        </a>
+      )}
 
       <nav
         aria-label="Book contents"
