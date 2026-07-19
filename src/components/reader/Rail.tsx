@@ -89,8 +89,24 @@ export function Rail({
   const art = currentChapter ? getChapterArt(currentChapter) : undefined;
 
   return (
-    <div className="flex h-full w-[min(320px,85vw)] flex-col lg:w-[300px]">
-      <div className="flex items-center justify-between gap-3 border-b border-hairline px-5 py-4">
+    <div className="relative flex h-full w-[min(320px,85vw)] flex-col lg:w-[300px]">
+      {/* Chapter art fills the whole rail; the scrim keeps the tree readable
+          in both themes while letting the artwork show through. */}
+      {art && (
+        <div aria-hidden className="absolute inset-0">
+          <Image
+            key={art.file}
+            src={art.file}
+            alt=""
+            fill
+            sizes="320px"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-canvas/70" />
+        </div>
+      )}
+
+      <div className="relative flex items-center justify-between gap-3 border-b border-hairline px-5 py-4">
         <span className="min-w-0">
           <span className="block truncate font-display text-[15px] font-semibold text-ink">
             {manifest.bookTitle}
@@ -110,36 +126,9 @@ export function Rail({
         </button>
       </div>
 
-      {art && (
-        <a
-          href={art.sourceUrl}
-          target="_blank"
-          rel="noreferrer"
-          title={`${art.title} — ${art.artist || "Unknown artist"} (The Met, public domain)`}
-          className="group relative mx-4 mt-3 block h-[132px] shrink-0 overflow-hidden rounded-xl border border-hairline"
-        >
-          <Image
-            src={art.file}
-            alt={art.title}
-            fill
-            sizes="272px"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-          <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent px-2.5 pb-1.5 pt-5">
-            <span className="block truncate text-[11px] font-medium text-white">
-              {art.title}
-            </span>
-            <span className="block truncate text-[10px] text-white/75">
-              {art.artist || "Unknown artist"}
-              {art.date ? ` · ${art.date}` : ""}
-            </span>
-          </span>
-        </a>
-      )}
-
       <nav
         aria-label="Book contents"
-        className="scrollbar-thin flex-1 overflow-y-auto px-2.5 py-3"
+        className="scrollbar-thin relative flex-1 overflow-y-auto px-2.5 py-3"
       >
         {manifest.chapters.map((c) => {
           const isOpen = expanded.has(c.slug);
