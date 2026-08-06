@@ -6,7 +6,7 @@
 
 ## Metadata
 - status: active
-- owner: @vivek.d
+- owner: @boss6825
 - last-verified: 2026-07-18
 
 ## Change tiers (route by trigger, not judgment)

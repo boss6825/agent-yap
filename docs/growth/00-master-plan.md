@@ -2,9 +2,27 @@
 
 > The "how we are going to do this" file. Written 2026-07-19 from the research
 > in `01-gtm-research.md`, the audits in `02`/`04`, and the designs in
-> `03`/`05`. Owner: @vivek.d. Review cadence: monthly, against the phase gates
-> below. This is a plan, not a spec: every initiative still flows
-> CR → PRD → spec per `specs/WORKFLOW.md`.
+> `03`/`05`. Owner: @boss6825. Review cadence (how often it's revisited): monthly,
+> against the phase gates below. This is a plan, not a spec: every initiative
+> still flows CR → PRD → spec per `specs/WORKFLOW.md`.
+
+## Plain-English glossary
+
+Read this first if the terms below feel like alphabet soup — everything here
+is used later in the doc.
+
+| Term | Plain-English meaning |
+|---|---|
+| **Gate** | The exit criteria for a phase — what has to be true before we call it done and move to the next one. |
+| **Cadence** | How often something happens (e.g. "carousel cadence 2-3/week" = we post 2-3 times a week). |
+| **Changelog + RSS** | A "what's new" page listing recent content updates (like software release notes), plus a feed so readers/tools can detect new content without manually re-checking. |
+| **Completion rings** | A circular progress indicator per chapter/book — think Apple Watch activity rings or Duolingo's progress ring — that fills in as you read. |
+| **Carousel** | A multi-slide/multi-image social post (the standard LinkedIn/X format), made by exporting our existing reader slides — not new content, just repackaged. |
+| **Show HN** | The "Show HN" (Hacker News) category for posting "I built this" — a well-known one-time traffic spike, done once we're ready for it, not an ongoing channel. |
+| **OG image/card** | The preview image and title that show up when a link is shared on social media or Slack/iMessage (the "Open Graph" tag standard). |
+| **SEO / GEO** | SEO = ranking in Google search. GEO = the same idea for AI answer engines (ChatGPT, Perplexity) — getting cited as their source instead of/alongside a Google ranking. |
+| **CR-2026-XXX / "board row N"** | Internal ticket IDs and their row on the tracking board — just a reference so you can look up the full spec; not something you need to decode to follow this plan. |
+| **RIGOR dial** | How much process rigor a piece of work goes through before shipping (spec'd in `specs/WORKFLOW.md`) — not relevant to reading this plan. |
 
 ## North star and guardrails
 
@@ -56,7 +74,7 @@ Gates are outcomes, not dates. A phase is done when its gate holds.
 |---|---|
 | Merge `claude/growth-quick-wins-gx0t42`; set `NEXT_PUBLIC_SITE_URL`; deploy; submit sitemap | CR-2026-009, board row 30 |
 | Analytics, cookieless | CR-2026-010, board row 31 |
-| Static OG image (per-chapter version can wait) | CR-2026-012 slice 1 |
+| Static OG image (the link-preview image; per-chapter version can wait) | CR-2026-012 slice 1 |
 | Human decisions: production domain; repo public or not | open questions below |
 
 **Gate A:** a live URL where every slide is crawlable, social links unfurl
@@ -67,7 +85,7 @@ with a card, and a dashboard shows real traffic numbers.
 | Work | Where it is tracked |
 |---|---|
 | Integrate dormant books, one PR per book, harnesses book first | CR-2026-011, board rows 14-18, 28 |
-| Changelog page + RSS | CR-2026-014, board row 33 |
+| Changelog page ("what's new" page) + RSS feed | CR-2026-014, board row 33 |
 | Quiz blocks into the live book (already-planned Tier-4 work) | CR-2026-001, board row 20 |
 | Soft launches per newly live book (Reddit/X/LinkedIn value posts) | `05-distribution-and-seo.md` |
 
@@ -79,10 +97,10 @@ which book resonates.
 
 | Work | Where it is tracked |
 |---|---|
-| Completion rings + continue-where-you-left-off | CR-2026-004, board row 23 |
-| Share button; per-chapter OG if capacity allows | CR-2026-012 |
-| Show HN (playbook conditions met: books, cards, analytics, ideally public repo) | `05-distribution-and-seo.md` |
-| Carousel cadence 2-3/week sustained | `05-distribution-and-seo.md` |
+| Completion rings (progress ring per chapter/book) + continue-where-you-left-off | CR-2026-004, board row 23 |
+| Share button; per-chapter OG (link-preview image) if capacity allows | CR-2026-012 |
+| Show HN post (once conditions met: books, cards, analytics, ideally public repo) | `05-distribution-and-seo.md` |
+| Carousel posts (multi-slide social posts) 2-3/week sustained | `05-distribution-and-seo.md` |
 
 **Gate C:** the launch spike happened and was measured; post-launch weekly
 visitors settle above pre-launch baseline; return-visitor share is visible.
@@ -137,8 +155,8 @@ click-through; GitHub stars if public. Guardrail metric: reader NPS proxy
 ## Open questions (human decisions, not agent calls)
 
 - **Q1:** Production domain (blocks `NEXT_PUBLIC_SITE_URL`, Search Console,
-  everything in Phase A). Owner: @vivek.d.
-- **Q2:** Repo public (opens Channel 3) or content-repo split? Owner: @vivek.d.
+  everything in Phase A). Owner: @boss6825.
+- **Q2:** Repo public (opens Channel 3) or content-repo split? Owner: @boss6825.
 - **Q3:** CR-2026-013 tension with plan.md non-goals: accept the moderated
   daily challenge and amend the non-goals line, or reject at triage.
 - **Q4:** Who runs the social cadence (founder, agent-drafted queue with human
