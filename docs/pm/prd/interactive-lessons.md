@@ -1,7 +1,7 @@
 ---
 prd_id: PRD-interactive-lessons
 status: draft
-author: "@vivek"
+author: "@boss6825"
 date: 2026-07-18
 # after conversion add:  spec: specs/features/reader/interactive-lessons/spec.md
 ---
