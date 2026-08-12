@@ -138,3 +138,4 @@ Lanes are defined in `AGENTS.md`; the coordination rules:
 - The checklist in `AGENTS.md` is mandatory for every component/page task.
   Trigger is the type of work, not special phrasing from the user.
 - Skip the frontend workflow only when the prompt explicitly says to.
+- Git: commit each logical unit as you go (feat/fix/refactor/docs/chore/test prefix). Don't push unless asked.

@@ -1,0 +1,9 @@
+---
+description: Commit per logical unit, conventional prefixes, no auto-push
+alwaysApply: true
+---
+
+# Git workflow
+
+Commit each logical unit as you go (feat/fix/refactor/docs/chore/test prefix).
+Don't push unless asked.
