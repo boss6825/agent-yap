@@ -76,6 +76,148 @@ A small but high-impact detail: when the user attaches or references something, 
 
 Teams obsess over model choice and prompt wording, but in practice the biggest quality wins come from context engineering: giving the model short stable handles, sweeping the right artifacts into reach, injecting a prior-turn summary, distilling tool outputs, and forcing fresh reads of mutable data. None of it is glamorous. All of it is where "it just works" actually comes from. Spend your effort here.
 
+## Review
+
+**Quick Check**
+
+1. How does the chapter distinguish "context" from "memory"?
+   - A) Memory is your database; context is the curated subset loaded into a given call
+   - B) Context is durable storage; memory is rebuilt per call
+   - C) They are two names for the same thing
+   - D) Context persists across sessions; memory does not
+   <details><summary>Answer</summary>A) Memory is your database; context is the curated subset loaded into a given call - the skill is in choosing that subset.</details>
+
+2. The "reference, don't embed" pattern hands the model:
+   - A) The full text of every document inline
+   - B) Short stable handles plus a tool to read content on demand
+   - C) A larger context window
+   - D) A fresh summary of all documents on every call
+   <details><summary>Answer</summary>B) Short stable handles plus a tool to read content on demand - the model reads only what the task actually requires.</details>
+
+3. Your agent edits a document, then reasons about a version it read three turns ago. Which discipline fixes this?
+   - A) Increase the context window
+   - B) Cache the old version for reuse
+   - C) Require re-fetching content each turn and tell the model it does not retain content between turns
+   - D) Embed every version in the prompt
+   <details><summary>Answer</summary>C) Require re-fetching content each turn and tell the model it does not retain content between turns - fresh-every-turn beats remembered-and-wrong for mutable data.</details>
+
+4. A conversation has grown past the token budget, but you want to bound tokens while preserving the gist. Which strategy fits?
+   - A) Send the full history on every call
+   - B) Summarise older turns and prepend them, keeping recent turns verbatim
+   - C) Drop the system prompt
+   - D) Stop responding
+   <details><summary>Answer</summary>B) Summarise older turns and prepend them, keeping recent turns verbatim - this compresses the gist while bounding tokens.</details>
+
+5. Why does the chapter discourage "give the model everything just in case"?
+   - A) It is always cheaper
+   - B) It improves quality by adding detail
+   - C) It costs more, is slower, and can degrade quality through the lost-in-the-middle effect
+   - D) Providers forbid large prompts
+   <details><summary>Answer</summary>C) It costs more, is slower, and can degrade quality through the lost-in-the-middle effect - important details get diluted among irrelevant ones.</details>
+
+**More Questions**
+
+6. What is the "prior-turn memory" technique the chapter describes?
+   - A) Re-sending the full previous turn verbatim
+   - B) Summarising each turn's actions into a short note and injecting it into the next call
+   - C) Storing turns in a vector database and always retrieving the top ten
+   - D) Asking the model to restate what it did at the start of every reply
+   <details><summary>Answer</summary>B) Summarising each turn's actions into a short note and injecting it into the next call - for example "generated draft.docx → doc-1; read source.docx → doc-0". A tiny amount of context for a large coherence gain, so the model knows its handles and won't redo work.</details>
+
+7. Of the five context layers, which one does the chapter say should be loaded on demand rather than baked into the system prompt?
+   - A) Standing instructions
+   - B) Task instructions
+   - C) The current user message
+   - D) History
+   <details><summary>Answer</summary>B) Task instructions - loading a selected workflow or template on demand keeps the system prompt about universal behaviour, and task-specific detail arrives only when relevant.</details>
+
+8. The user attaches contract.pdf to their message. What high-impact detail does the chapter recommend?
+   - A) Paste the document's full text into the message
+   - B) Annotate the message with the handle, e.g. "the user attached: doc-2 (contract.pdf)"
+   - C) Ask the model which document the user probably means
+   - D) Rename the file to something the model will recognise
+   <details><summary>Answer</summary>B) Annotate the message with the handle - hand the model the same handle it would use to act on the file, so "the contract the user just mentioned" resolves to doc-2 directly instead of being guessed at.</details>
+
+9. A conversation has run for months and you want only the past turns relevant to the current message. Which strategy is that, and what is the trade-off?
+   - A) Recent-window; simple but may miss older relevant turns
+   - B) Selective recall via semantic search over history; more complex, useful for very long-lived conversations
+   - C) Summarise-and-prepend; lossy but cheap
+   - D) Full history; accurate but expensive
+   <details><summary>Answer</summary>B) Selective recall - store all history in the database and retrieve only the turns relevant to the current message. The chapter ranks it below recent-window and summarise-and-prepend in preference because of the added complexity.</details>
+
+10. A user has accumulated hundreds of saved templates and generated documents. How should that memory reach the model?
+    - A) Concatenated into the system prompt so nothing is missed
+    - B) As durable state you selectively surface - saved templates appear as available tools/workflows, documents as referenceable handles
+    - C) Re-embedded in full on every call to guarantee freshness
+    - D) Discarded at the end of each conversation
+    <details><summary>Answer</summary>B) As durable state you selectively surface - memory beyond the conversation lives in your data model and is loaded into context only when relevant, never as an ever-growing prompt.</details>
+
+**Coding Challenge**
+
+**Build a recent-window context within a token budget**
+
+Write `build_context(system_prompt, history, budget)` that always keeps the system prompt and then adds the most recent turns (newest first) until the next turn would exceed the budget. Return the kept turns in chronological order. Use a simple word count as the token estimate.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+def build_context(system_prompt, history, budget):
+    """Keep the system prompt plus the most recent turns within a token budget."""
+    tokens = lambda s: len(s.split())
+    used, kept = tokens(system_prompt), []
+    for turn in reversed(history):             # newest first
+        if used + tokens(turn) > budget:
+            break
+        kept.append(turn)
+        used += tokens(turn)
+    return [system_prompt] + list(reversed(kept))   # restore chronological order
+
+
+history = ["turn one", "turn two", "turn three", "turn four"]
+print(build_context("system", history, budget=5))
+# ['system', 'turn three', 'turn four']
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+function buildContext(systemPrompt, history, budget) {
+  const tokens = (s) => s.split(/\s+/).length;
+  const kept = [];
+  let used = tokens(systemPrompt);
+  for (let i = history.length - 1; i >= 0; i--) {  // newest first
+    if (used + tokens(history[i]) > budget) break;
+    kept.unshift(history[i]);                       // restore chronological order
+    used += tokens(history[i]);
+  }
+  return [systemPrompt, ...kept];
+}
+
+const history = ["turn one", "turn two", "turn three", "turn four"];
+console.log(buildContext("system", history, 5));
+// ['system', 'turn three', 'turn four']
+```
+
+</details>
+
+**Think About It**
+
+1. Context windows keep getting bigger, which should make context engineering less important every year. Why does filling that window often make your agent measurably dumber?
+   <details><summary>Show answer</summary>Because attention is a finite resource even when the window isn't. The instinct to give the model everything just in case fails on three counts at once: every token costs money, every token costs latency, and - the counterintuitive one - important details get diluted among irrelevant ones, the "lost in the middle" effect. So a bigger window doesn't remove the problem, it just raises the ceiling on how badly you can shoot yourself in the foot. The reframing that helps is to treat the window as a budget to allocate rather than a bucket to fill, and to curate ruthlessly regardless of how much room you technically have.</details>
+
+2. A well-designed agent may read the same document again on every single turn. That looks like textbook waste. Why is it the right call?
+   <details><summary>Show answer</summary>Because the alternative is being confidently wrong. If the model is allowed to "remember" content it read a few turns ago, and that content has since been edited - possibly by the agent itself - it will reason carefully about a version that no longer exists. The discipline is to require a re-fetch each turn the content is needed, and to tell the model explicitly that it does not retain content between turns, reinforcing that rule in both the system prompt and the tool descriptions. Yes, you pay for the re-read. For anything where correctness matters, and especially for data that can change, fresh-every-turn beats remembered-and-wrong.</details>
+
+3. Handing the model a meaningless label like "doc-1" instead of the document's actual text sounds like giving it less to work with. Why does it usually make the agent more accurate?
+   <details><summary>Show answer</summary>Three reasons stack up. Prompts get smaller, because you pay for content only when it's actually used rather than pasting five documents in on the chance one matters. Grounding gets forced: the model has to explicitly fetch the text, which makes it engage with the real words instead of a half-remembered impression from training data. And freshness comes free, because a reference always resolves to the current version. The handles should be short, stable, and assigned deterministically - which has a nice side effect: the model can only reference things that actually exist.</details>
+
+4. Teams spend enormous energy on model choice and prompt wording. The chapter says the biggest quality wins come from somewhere else entirely. Where, and why does that work go unnoticed?
+   <details><summary>Show answer</summary>The wins come from context engineering: short stable handles, sweeping the right artifacts into reach, injecting a prior-turn summary, distilling tool outputs instead of dumping them, forcing fresh reads of mutable data. It goes unnoticed because none of it is glamorous - there's no announcement in "we now cap long API fields and add a one-line summary of what happened last turn," and it doesn't look like intelligence. But it's the difference between an agent that feels sharp and one that feels scattered, because the model can only reason about what's in its context window; everything else may as well not exist. That's where the "it just works" feeling actually comes from.</details>
+
 ---
 
 Next: [Chapter 6: Prompt architecture](chapter-06-prompt-architecture.md)
