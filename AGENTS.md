@@ -1,6 +1,6 @@
 
 
-
+Git commits: author/committer `boss6825 <arpitsolanki6825@gmail.com>` (Solanki). Never agent names.
 
 # This is NOT the Next.js you know
 
