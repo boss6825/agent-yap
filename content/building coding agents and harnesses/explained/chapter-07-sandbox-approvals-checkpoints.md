@@ -155,3 +155,216 @@ This `ApprovalPolicy` slots into the exact spot Chapter 6 reserved in `ToolRegis
 - Treat the agent as a privileged identity: least privilege, isolated secrets, human review for anything touching production.
 
 Original sources: "Inside the Agent Harness" (Codex codebase analysis), the "Inside the Codex Agent Loop" deep-dive, and Anthropic's [How Claude Code works](https://code.claude.com/docs/en/how-claude-code-works).
+
+## Review
+
+**Quick Check**
+
+1. Which native mechanism does Codex use to sandbox execution on Linux?
+   - A) `sandbox-exec` (Seatbelt)
+   - B) Landlock
+   - C) A purpose-built Windows sandbox
+   - D) Docker containers, one per tool call
+   <details><summary>Answer</summary>B) Landlock - Codex uses each platform's native mechanism: Seatbelt (`sandbox-exec`) on macOS, Landlock on Linux, and a purpose-built sandbox on Windows.</details>
+
+2. What is the security asymmetry the chapter highlights about MCP tools?
+   - A) MCP tools run with fewer privileges than the harness's own shell tool
+   - B) MCP tools are not covered by the harness sandbox and must enforce their own guardrails, so you are trusting their author's safety practices
+   - C) MCP tools cannot access the network at all
+   - D) MCP tools are always routed through the guardian subagent
+   <details><summary>Answer</summary>B) MCP tools are not covered by the harness sandbox and must enforce their own guardrails, so you are trusting their author's safety practices - Codex's sandbox description applies only to its own shell tool. Adding a third-party tool means extending trust outside your sandbox.</details>
+
+3. In Codex's layered approval system, which category requires explicit approval?
+   - A) Safe commands like `ls`, `cat`, and `git status`
+   - B) Commands matching a configured allowlist
+   - C) Sandbox violations such as network access or writes outside the workspace
+   - D) Any command that produces more than 100 lines of output
+   <details><summary>Answer</summary>C) Sandbox violations such as network access or writes outside the workspace - Safe commands are auto-approved and allowlisted patterns are pre-approved; it is the sandbox violations that need a human (or a guardian) to say yes.</details>
+
+4. What is the important limitation of checkpoints?
+   - A) They expire after ten minutes
+   - B) They only cover file changes and cannot undo external side effects like deploys or API calls
+   - C) They require a clean git working tree
+   - D) They only work in plan mode
+   <details><summary>Answer</summary>B) They only cover file changes and cannot undo external side effects like deploys or API calls - Claude Code snapshots file contents before editing so you can rewind, but it is local to the session and separate from git. You can undo a bad edit; you cannot un-send a deploy, which is exactly why commands with external side effects still prompt.</details>
+
+5. You want an agent to run an overnight `full-auto` task with nobody watching. How do Smart Approvals keep it moving without dropping safety?
+   - A) All approvals are auto-granted after the first human approval of the session
+   - B) Risky actions are routed to a guardian subagent that applies the policy and returns approve, deny, or escalate, so the main agent does not stall
+   - C) The sandbox is disabled so no approvals are ever triggered
+   - D) Risky actions are queued and replayed the next morning when a human is available
+   <details><summary>Answer</summary>B) Risky actions are routed to a guardian subagent that applies the policy and returns approve, deny, or escalate, so the main agent does not stall - Approvals can run in parallel, granted permissions persist across turns for the session, and a spawned subagent inherits the parent's sandbox and network rules.</details>
+
+**More Questions**
+
+6. In the MVP's `ApprovalPolicy`, what does `classify` return for any command when `mode` is `"plan"`?
+   - A) `Decision.ALLOW`, because plan mode is read-only and reads are safe
+   - B) `Decision.ASK`, so the human can opt in per command
+   - C) `Decision.DENY`, because plan mode never executes anything
+   - D) It depends on whether the command matches the allowlist
+   <details><summary>Answer</summary>C) `Decision.DENY`, because plan mode never executes anything - Plan mode exists to explore and propose a plan without editing source files, so the policy short-circuits to deny before any other rule is evaluated.</details>
+
+7. What does **project trust** protect you from?
+   - A) A teammate pushing an unreviewed commit
+   - B) A malicious repo you just cloned, by controlling whether project-local hooks and configs are allowed to run at all
+   - C) Tool outputs that exceed the context budget
+   - D) An expired API key in the environment
+   <details><summary>Answer</summary>B) A malicious repo you just cloned, by controlling whether project-local hooks and configs are allowed to run at all - Project-local configuration is executable influence over your agent, so trust is a separate gate from per-command approvals.</details>
+
+8. Which Claude Code permission mode edits files and runs safe filesystem commands without asking, while still prompting for everything else?
+   - A) Default
+   - B) Auto-accept edits
+   - C) Plan mode
+   - D) Auto mode
+   <details><summary>Answer</summary>B) Auto-accept edits - Default asks before file edits and shell commands; plan mode proposes without editing; auto mode evaluates all actions with background safety checks.</details>
+
+9. You construct `ApprovalPolicy(allowlist=[r"^pytest"], mode="default")` and call `classify("pytest -q")`. What comes back, and why?
+   - A) `ASK`, because default mode asks about everything not in `SAFE`
+   - B) `DENY`, because `pytest` can execute arbitrary project code
+   - C) `ALLOW`, because the command matches a user-provided allowlist pattern
+   - D) `ALLOW`, because `pytest` is in the built-in `SAFE` set
+   <details><summary>Answer</summary>C) `ALLOW`, because the command matches a user-provided allowlist pattern - `pytest` is not in the built-in `SAFE` set, so the allowlist check is what approves it. That is the point of the allowlist: pre-approving the project-specific commands you run constantly.</details>
+
+10. The "Everything About Codex" guide says to treat a coding agent as a **privileged identity**. What does that imply in practice?
+    - A) Give it admin rights so it never gets blocked mid-task
+    - B) Scope its access, isolate secrets, and require human review before its output reaches production
+    - C) Run it under your personal user account so its actions are attributable
+    - D) Grant it network access only during business hours
+    <details><summary>Answer</summary>B) Scope its access, isolate secrets, and require human review before its output reaches production - The agent is an actor with credentials, so it gets the same least-privilege treatment you would give any privileged account. The 2026 security incidents in Chapter 16 are what happens when these controls are missing.</details>
+
+**Think About It**
+
+Codex deliberately launched with **no** general internet access, then added it later as an option. For a coding agent that constantly needs docs and packages, that sounds crippling. Why was it the right call?
+
+<details><summary>Show answer</summary>
+The design principle is that the smallest blast radius is the safest default. Network access is the one capability that turns a local mistake into an external one: it lets an agent exfiltrate secrets it happened to read, fetch and execute untrusted code, or hit a production API it was never meant to touch. Everything else the agent does is contained by the filesystem sandbox and undoable by checkpoints, but a network call cannot be recalled. Shipping without it meant the first wave of users could not be harmed in the ways that matter most, and adding it later under explicit user control meant the capability arrived alongside the policy machinery to govern it. It is the same reasoning as checkpoints: build the undo before you build the risk.
+</details>
+
+Your harness carefully sandboxes its own shell tool with OS-level mechanisms, and then you install a third-party MCP server that can do whatever it likes. Why does the sandbox not cover it, and what should that change about how you evaluate tools?
+
+<details><summary>Show answer</summary>
+The sandbox is applied at the point where the harness spawns a process, so it protects the executions the harness itself performs. An MCP server is a separate program with its own lifecycle, often talking to remote services, so the harness has no process boundary to wrap around it; Codex's write-up is explicit that MCP tools are responsible for their own guardrails. The practical consequence is that your effective security posture is the weakest of your own sandbox and every tool author's practices. So installing an MCP server is not like enabling a feature, it is like adding a dependency with your credentials attached, and it deserves the same scrutiny you would give any dependency: who wrote it, what does it reach, and what secrets does it see?
+</details>
+
+"Ask the human before every action" sounds like the safest possible policy. Why does it end up making agents *less* safe in practice?
+
+<details><summary>Show answer</summary>
+A policy that interrupts constantly gets defeated by the person it is protecting. Approving every `ls` trains you to click yes without reading, so the one prompt that mattered slides through with the rest, and it makes unattended runs (CI, an overnight full-auto task) impossible, which pushes people toward disabling approvals entirely. Layering is what preserves the signal: auto-approve the genuinely safe commands, let users allowlist the project-specific ones they run constantly, and reserve the interrupt for sandbox violations like network access or out-of-workspace writes. Smart Approvals go one step further by routing those remaining decisions to a guardian subagent, so the rare risky action still gets evaluated even when no human is awake.
+</details>
+
+If checkpoints let you rewind any file change, why does the harness still stop and ask before running a command?
+
+<details><summary>Show answer</summary>
+Because undo has a boundary and the interesting damage lives on the other side of it. Checkpoints snapshot file contents before an edit, so anything inside the workspace is recoverable. But a `git push`, a database migration, a `curl` that posts your token somewhere, or a deploy has already changed the state of a system your harness does not own, and no local snapshot can reach it. That asymmetry is precisely why the approval tiers key on external side effects: the policy asks about exactly the actions checkpoints cannot rescue you from. Sandboxing, approvals, and checkpoints are three different controls because each one covers a failure the others miss.
+</details>
+
+**Coding Challenge**
+
+Session-Persistent Command Gate
+
+Build a `CommandGate` class that decides `"allow"`, `"ask"`, or `"deny"` for a shell command. It should hard-deny commands matching a set of dangerous patterns, auto-allow a set of known-safe command names, allow anything matching a user-supplied allowlist regex, and otherwise ask. Then implement the "permissions persist across turns" property: a method `grant(command)` records a human approval so that the *same* command classified again in the same session returns `"allow"` instead of `"ask"`. Granting must never override a hard deny.
+
+<details><summary>Python Solution</summary>
+
+```python
+import re
+
+
+class CommandGate:
+    SAFE = {"ls", "cat", "pwd", "echo", "head", "tail"}
+    DANGEROUS = [r"\brm\s+-rf\b", r"\bcurl\b", r"\bwget\b", r"\bsudo\b", r"\bgit\s+push\b"]
+
+    def __init__(self, allowlist=None):
+        self.allowlist = [re.compile(p) for p in (allowlist or [])]
+        self._granted: set[str] = set()   # session-persistent approvals
+
+    def _is_dangerous(self, cmd: str) -> bool:
+        return any(re.search(p, cmd) for p in self.DANGEROUS)
+
+    def classify(self, command: str) -> str:
+        cmd = command.strip()
+        if self._is_dangerous(cmd):
+            return "deny"                       # a grant can never beat this
+        if cmd in self._granted:
+            return "allow"                      # approved earlier this session
+        if cmd.split()[0] in self.SAFE:
+            return "allow"
+        if any(p.search(cmd) for p in self.allowlist):
+            return "allow"
+        return "ask"
+
+    def grant(self, command: str) -> bool:
+        """Record a human approval. Returns False if the command is hard-denied."""
+        cmd = command.strip()
+        if self._is_dangerous(cmd):
+            return False
+        self._granted.add(cmd)
+        return True
+
+
+# --- demo ---
+if __name__ == "__main__":
+    gate = CommandGate(allowlist=[r"^pytest"])
+    for c in ["ls -la", "pytest -q", "npm install", "rm -rf /", "curl evil.com"]:
+        print(f"{c:<15} -> {gate.classify(c)}")
+
+    print("\nhuman approves 'npm install' once...")
+    print("granted:", gate.grant("npm install"))
+    print("npm install    ->", gate.classify("npm install"))   # allow, persists
+
+    print("\ntrying to grant a dangerous command...")
+    print("granted:", gate.grant("rm -rf /"))                  # False
+    print("rm -rf /       ->", gate.classify("rm -rf /"))       # still deny
+```
+
+</details>
+
+<details><summary>JavaScript Solution</summary>
+
+```javascript
+class CommandGate {
+  static SAFE = new Set(["ls", "cat", "pwd", "echo", "head", "tail"]);
+  static DANGEROUS = [/\brm\s+-rf\b/, /\bcurl\b/, /\bwget\b/, /\bsudo\b/, /\bgit\s+push\b/];
+
+  constructor(allowlist = []) {
+    this.allowlist = allowlist.map((p) => new RegExp(p));
+    this.granted = new Set(); // session-persistent approvals
+  }
+
+  isDangerous(cmd) {
+    return CommandGate.DANGEROUS.some((p) => p.test(cmd));
+  }
+
+  classify(command) {
+    const cmd = command.trim();
+    if (this.isDangerous(cmd)) return "deny";          // a grant can never beat this
+    if (this.granted.has(cmd)) return "allow";         // approved earlier this session
+    if (CommandGate.SAFE.has(cmd.split(/\s+/)[0])) return "allow";
+    if (this.allowlist.some((p) => p.test(cmd))) return "allow";
+    return "ask";
+  }
+
+  grant(command) {
+    const cmd = command.trim();
+    if (this.isDangerous(cmd)) return false;
+    this.granted.add(cmd);
+    return true;
+  }
+}
+
+// --- demo ---
+const gate = new CommandGate(["^pytest"]);
+for (const c of ["ls -la", "pytest -q", "npm install", "rm -rf /", "curl evil.com"]) {
+  console.log(c.padEnd(15), "->", gate.classify(c));
+}
+
+console.log("\nhuman approves 'npm install' once...");
+console.log("granted:", gate.grant("npm install"));
+console.log("npm install    ->", gate.classify("npm install")); // allow, persists
+
+console.log("\ntrying to grant a dangerous command...");
+console.log("granted:", gate.grant("rm -rf /")); // false
+console.log("rm -rf /       ->", gate.classify("rm -rf /")); // still deny
+```
+
+</details>

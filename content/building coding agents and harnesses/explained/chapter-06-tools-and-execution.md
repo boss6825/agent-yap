@@ -153,3 +153,177 @@ This registry is the same one Chapter 3's `PromptBuilder` reads schemas from (`r
 - Keep the tool list small and context-appropriate; it helps the model choose and protects your prompt cache.
 
 Original source: Jonathan Fulton's "Inside the Agent Harness" analysis of the Codex codebase, plus Anthropic's [How Claude Code works](https://code.claude.com/docs/en/how-claude-code-works).
+
+## Review
+
+**Quick Check**
+
+1. In the six-step tool execution pipeline, what happens immediately after the harness parses the model's JSON arguments?
+   - A) It executes the command, since parsing implies the arguments are already correct
+   - B) It validates the arguments against the tool's schema, rejecting or repairing bad input
+   - C) It truncates the arguments so they fit the context budget
+   - D) It captures stdout, stderr, and the exit code
+   <details><summary>Answer</summary>B) It validates the arguments against the tool's schema, rejecting or repairing bad input - The pipeline is parse, validate, check permissions, execute, capture output, then truncate and format. Validation comes second so malformed model output produces a clean error instead of a crash or a wrong command.</details>
+
+2. Why is forwarding raw stdout to the model not good enough?
+   - A) stdout is usually too short for the model to reason about
+   - B) The model cannot parse plain text, only JSON
+   - C) A command that prints nothing and exits 0 succeeded while one that prints nothing and exits 1 failed, and stdout alone cannot distinguish them
+   - D) stdout is not cacheable, so it busts the prompt cache
+   <details><summary>Answer</summary>C) A command that prints nothing and exits 0 succeeded while one that prints nothing and exits 1 failed, and stdout alone cannot distinguish them - The model needs to understand what happened, not just see text. Structured results carry the exit code, timing, and a truncation indicator so success and failure are unambiguous.</details>
+
+3. Token-aware truncation keeps the head and the tail of a long output. Why those two ends?
+   - A) They are the cheapest lines to tokenize
+   - B) The start usually shows what was attempted and the end usually shows the result or error, while the middle is repetitive noise
+   - C) The model reads text from both ends inward
+   - D) Providers only cache the first and last lines of a tool result
+   <details><summary>Answer</summary>B) The start usually shows what was attempted and the end usually shows the result or error, while the middle is repetitive noise - The chapter's voice-memo analogy makes the point: you want the first sentence ("here's what I tried") and the last ("here's what broke"). The 38 minutes in between rarely change your reply.</details>
+
+4. Codex only exposes its `view_image` tool when an image is actually in play. What general principle does this illustrate?
+   - A) Image tools are more expensive to run than text tools
+   - B) The available tool list is not fixed; the harness adds and removes tools based on permissions, sandbox mode, and what is present
+   - C) Multimodal tools must be registered separately from text tools
+   - D) Tools with binary input cannot be described by a JSON schema
+   <details><summary>Answer</summary>B) The available tool list is not fixed; the harness adds and removes tools based on permissions, sandbox mode, and what is present - Keeping the tool list small and context-appropriate helps the model choose well and keeps the prompt lean.</details>
+
+5. You are adding twelve new MCP tools to your harness so the model "has more options." Based on this chapter, what are the two costs you should weigh?
+   - A) Slower JSON parsing and a larger binary size
+   - B) The model has a harder time choosing well, and changing the tool list mid-session busts the prompt cache
+   - C) More tools require more sandboxes, and each sandbox needs its own approval policy
+   - D) Tool schemas cannot be validated once there are more than ten tools
+   <details><summary>Answer</summary>B) The model has a harder time choosing well, and changing the tool list mid-session busts the prompt cache - The chapter's takeaway is to keep the tool list as small and relevant as you can, for both decision quality and cache stability (Chapter 5).</details>
+
+**More Questions**
+
+6. Who actually runs a tool when the model emits a tool call?
+   - A) The model, using its own sandboxed interpreter
+   - B) The harness, which executes the function the model asked for
+   - C) The provider's API, which returns the tool result inline
+   - D) The MCP server, in every case
+   <details><summary>Answer</summary>B) The harness, which executes the function the model asked for - A tool is just a function the model can *ask* the harness to run, described by a JSON schema. The model never executes anything itself; it only requests.</details>
+
+7. Which steps of the six-step pipeline does this chapter defer to Chapter 7?
+   - A) Parsing and validating
+   - B) Capturing output and formatting
+   - C) Checking permissions, and the safety half of execution (sandboxing)
+   - D) Registering tools and emitting their schemas
+   <details><summary>Answer</summary>C) Checking permissions, and the safety half of execution (sandboxing) - Chapter 6 covers steps 1, 2, 5, and 6. Step 3 and the sandbox aspect of step 4 belong to the safety chapter, which slots a policy check into the spot `ToolRegistry.call` leaves marked.</details>
+
+8. In the MVP, what does `ToolRegistry.call` return when a required argument is missing?
+   - A) It raises a `TypeError` from the handler
+   - B) It returns `None` and logs a warning
+   - C) It returns a structured error string beginning with `Exit code: 1`
+   - D) It retries the call with default arguments filled in
+   <details><summary>Answer</summary>C) It returns a structured error string beginning with `Exit code: 1` - Validation happens before dispatch, so a bad call produces a clean, model-readable error rather than a crash. That robustness is the whole point of routing everything through the registry.</details>
+
+9. Which fields appear in the structured result shape the chapter shows for a long command?
+   - A) Exit code, wall time, total output lines, and the truncated output
+   - B) Only stdout and stderr, concatenated
+   - C) A JSON schema plus the raw argument payload
+   - D) Token count, cache hit rate, and the model's confidence
+   <details><summary>Answer</summary>A) Exit code, wall time, total output lines, and the truncated output - The total-lines field doubles as the truncation indicator: the model can see that 5,000 lines existed even though it only received 200 of them.</details>
+
+10. Your harness connects to four MCP servers, but a session usually touches only one of them. Which technique from the chapter addresses the context cost?
+    - A) Truncating each tool's description to one sentence
+    - B) Deferring MCP tool schemas and loading them on demand, so idle servers do not eat context
+    - C) Registering all four servers under a single tool name
+    - D) Running each server in its own sandbox
+    <details><summary>Answer</summary>B) Deferring MCP tool schemas and loading them on demand, so idle servers do not eat context - This is what Claude Code does, and it is the same "keep the tool list small and relevant" principle applied to schemas rather than to tools themselves.</details>
+
+**Think About It**
+
+Imagine an agent that runs `pytest -q`, gets back an empty string, and confidently reports "all tests pass." What went wrong, and why is this failure mode almost inevitable if you forward raw stdout?
+
+<details><summary>Show answer</summary>
+Quiet-on-success is a Unix convention, so an empty result genuinely can mean "everything worked." But a crashed test runner, a missing binary, or a syntax error can also produce nothing on stdout while writing to stderr or simply exiting non-zero. If your tool result is just stdout, both cases arrive at the model as the identical empty string, and the model has no evidence to distinguish them, so it picks the optimistic reading. The fix is not a smarter model but a better message: attach the exit code, the wall time, and the line count so the two situations look different. This is why the chapter insists that structured results, not raw text, are what make an agent look smarter.
+</details>
+
+You throw away 96% of a 5,000-line log before showing it to the model, and the agent gets *better* at diagnosing failures. Why does deleting most of the evidence help?
+
+<details><summary>Show answer</summary>
+Context is a fixed budget (Chapter 4), so a giant log does not just cost money, it crowds out the conversation, the instructions, and the model's own reasoning space. The middle of a log is also where the least information lives: it is usually repetition, progress ticks, or the same warning a thousand times. The head tells you what was attempted and the tail tells you how it ended, which is nearly all of the diagnostic signal. Keeping head and tail while marking how many lines were omitted preserves the signal, preserves the model's awareness that something was cut, and returns the budget to the work that needs it.
+</details>
+
+More tools should mean a more capable agent, yet the chapter tells you to keep the tool list small. Why would adding a useful tool ever make your agent worse?
+
+<details><summary>Show answer</summary>
+Two costs compete with capability. First, every tool's schema sits in the prompt, so an unused tool is a permanent tax on context and on the choice the model has to make each turn; more near-duplicate options mean more chances to pick the wrong one. Second, the tool list lives in the cached prefix, so adding or removing a tool mid-session invalidates the cache and makes the next turn dramatically more expensive (Chapter 5). That is why harnesses do something cleverer than "register everything": Codex exposes `view_image` only when an image exists, and Claude Code defers MCP schemas until a server is actually used. The goal is not fewer capabilities but fewer capabilities *loaded at once*.
+</details>
+
+**Coding Challenge**
+
+Structured Tool Result
+
+Build a function `truncate_middle(text, head, tail)` that keeps the first `head` and last `tail` lines of a multi-line string and replaces the middle with a marker naming how many lines were omitted (returning the text unchanged when it is short enough). Then build `format_tool_result(exit_code, stdout, stderr, seconds)` that returns a structured, model-readable string containing the exit code, a `status` line of `success` or `failure` derived from the exit code, the wall time, the total line count of the combined output, and the truncated output. The point is that an empty output with a non-zero exit code must still read unambiguously as a failure.
+
+<details><summary>Python Solution</summary>
+
+```python
+def truncate_middle(text: str, head: int = 3, tail: int = 3) -> str:
+    lines = text.splitlines()
+    if len(lines) <= head + tail:
+        return text
+    omitted = len(lines) - head - tail
+    return "\n".join(lines[:head] + [f"... ({omitted} lines omitted) ..."] + lines[-tail:])
+
+
+def format_tool_result(exit_code: int, stdout: str, stderr: str, seconds: float) -> str:
+    combined = (stdout or "") + (stderr or "")
+    total_lines = len(combined.splitlines())
+    status = "success" if exit_code == 0 else "failure"
+    body = truncate_middle(combined) if combined else "(no output)"
+    return (f"Exit code: {exit_code}\n"
+            f"Status: {status}\n"
+            f"Wall time: {seconds:.2f} seconds\n"
+            f"Total output lines: {total_lines}\n"
+            f"Output:\n{body}")
+
+
+# --- demo ---
+if __name__ == "__main__":
+    long_log = "\n".join(f"line {i}" for i in range(1, 21))
+    print(format_tool_result(0, long_log, "", 1.234))
+    print("---")
+    # The dangerous case: nothing printed, but it failed.
+    print(format_tool_result(1, "", "", 0.02))
+```
+
+</details>
+
+<details><summary>JavaScript Solution</summary>
+
+```javascript
+function truncateMiddle(text, head = 3, tail = 3) {
+  const lines = text.split("\n");
+  if (lines.length <= head + tail) return text;
+  const omitted = lines.length - head - tail;
+  return [
+    ...lines.slice(0, head),
+    `... (${omitted} lines omitted) ...`,
+    ...lines.slice(-tail),
+  ].join("\n");
+}
+
+function formatToolResult(exitCode, stdout, stderr, seconds) {
+  const combined = (stdout || "") + (stderr || "");
+  const totalLines = combined ? combined.split("\n").length : 0;
+  const status = exitCode === 0 ? "success" : "failure";
+  const body = combined ? truncateMiddle(combined) : "(no output)";
+  return [
+    `Exit code: ${exitCode}`,
+    `Status: ${status}`,
+    `Wall time: ${seconds.toFixed(2)} seconds`,
+    `Total output lines: ${totalLines}`,
+    `Output:\n${body}`,
+  ].join("\n");
+}
+
+// --- demo ---
+const longLog = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join("\n");
+console.log(formatToolResult(0, longLog, "", 1.234));
+console.log("---");
+// The dangerous case: nothing printed, but it failed.
+console.log(formatToolResult(1, "", "", 0.02));
+```
+
+</details>

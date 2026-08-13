@@ -127,3 +127,229 @@ This chapter applies the whole harness to a real job: the loop (Chapter 2), a fo
 - The components an agent depends on (MCP servers, skills, templates) are a new **agentic supply chain** and a real attack surface.
 
 Original sources: Cursor's [Bugbot docs](https://docs.cursor.com/) and Snyk's analysis "I Read Cursor's Security Agent Prompts, So You Don't Have To."
+
+---
+
+## Review
+
+**Quick Check**
+
+1. How does Bugbot get triggered on a pull request?
+   - A) Only manually, by a maintainer clicking "review" in the Cursor dashboard
+   - B) Automatically on every PR update, or on demand when someone comments `cursor review`
+   - C) On a nightly schedule that sweeps all open PRs
+   - D) Only when the PR touches files listed in `.cursor/BUGBOT.md`
+   <details><summary>Answer</summary>B) Automatically on every PR update, or on demand when someone comments `cursor review` - It is a clean example of an agent living inside an existing workflow rather than a chat window. It also publishes a CI status so it can gate merges through branch protection.</details>
+
+2. How many lines is the prompt driving Cursor's flagship security reviewer, and what does it contain?
+   - A) About 500 lines, with extensive chain-of-thought scaffolding and worked examples
+   - B) About 150 lines, mostly an output schema for structured findings
+   - C) Fifteen lines: a role, a goal, a four-step methodology, and a priority list of vulnerability classes
+   - D) Three lines, relying entirely on a fine-tuned model for the rest
+   <details><summary>Answer</summary>C) Fifteen lines: a role, a goal, a four-step methodology, and a priority list of vulnerability classes - No elaborate scaffolding, no pages of examples, no complex output schema. The model already knows what SQL injection and auth bypass look like; it just needs a framework to apply that knowledge systematically.</details>
+
+3. What is the reliability law this chapter exists to deliver?
+   - A) Never let an agent read code it did not write
+   - B) An agent cannot mark its own homework
+   - C) Every agent finding must be reproduced by a second model
+   - D) Security review must happen before implementation, not after
+   <details><summary>Answer</summary>B) An agent cannot mark its own homework - Snyk's principle. You need an independent validation layer, because when your detection layer is entirely probabilistic you accept both false positives and false negatives with nothing to catch them.</details>
+
+4. What are the two tiers in the recommended review architecture?
+   - A) A fast model for triage and a slow model for deep analysis
+   - B) A pre-merge check and a post-merge audit
+   - C) The LLM agent as the researcher and a deterministic engine (static analysis, SAST) as the peer reviewer
+   - D) An automated tier for known CVEs and a human tier for everything else
+   <details><summary>Answer</summary>C) The LLM agent as the researcher and a deterministic engine (static analysis, SAST) as the peer reviewer - The LLM is creative and finds novel cross-file logic bugs that rule-based tools miss; the deterministic engine catches known patterns with mechanical precision and confirms the LLM's findings are real. You want both, because each catches what the other misses.</details>
+
+5. Bugbot reads `.cursor/BUGBOT.md` files, including nested ones traversed up from changed files. Which earlier chapter's pattern is this?
+   - A) Chapter 5's caching, because nested files are cached separately
+   - B) Chapter 9's memory, specifically the "more specific wins" hierarchy
+   - C) Chapter 7's approval policy, because rules gate what the agent may do
+   - D) Chapter 11's contracts, because each file is a subagent's input
+   <details><summary>Answer</summary>B) Chapter 9's memory, specifically the "more specific wins" hierarchy - Bugbot also has learned rules generated from your team's activity, and you can teach it inline by commenting `@cursor remember [fact]` on a PR. That is auto-memory aimed at a review agent.</details>
+
+**More Questions**
+
+6. What did the BaxBench benchmark find, and why does the chapter cite it?
+   - A) That 62% of solutions from even the best models are incorrect or contain vulnerabilities, which is why layered independent validation is essential rather than optional
+   - B) That agents catch 62% of the vulnerabilities a human reviewer would catch
+   - C) That 62% of agent-flagged findings are false positives
+   - D) That models improve 62% when given a longer security prompt
+   <details><summary>Answer</summary>A) That 62% of solutions from even the best models are incorrect or contain vulnerabilities, which is why layered independent validation is essential rather than optional - It is the empirical backing for the chapter's argument that a green result from an agent is necessary, not sufficient.</details>
+
+7. Which of Cursor's four security agents scans the existing codebase rather than only new diffs?
+   - A) Agentic Security Review
+   - B) Anybump
+   - C) Invariant Sentinel
+   - D) Vuln Hunter
+   <details><summary>Answer</summary>D) Vuln Hunter - It works through the existing codebase segment by segment. Agentic Security Review handles PRs, Anybump does automated dependency patching, and Invariant Sentinel does daily drift detection against security and compliance properties using memory to compare across runs.</details>
+
+8. Snyk writes that "the prompt is simple *because* the surrounding infrastructure is not." What sits underneath those fifteen lines?
+   - A) A larger hidden prompt injected at runtime by the platform
+   - B) A custom MCP server for state and deduplication, Terraform-managed deployment, webhook orchestration, and cross-run state
+   - C) A fine-tuned security model trained on Cursor's own vulnerability corpus
+   - D) A rules engine that rewrites the prompt per repository
+   <details><summary>Answer</summary>B) A custom MCP server for state and deduplication, Terraform-managed deployment, webhook orchestration, and cross-run state - This is Chapter 1's thesis proven in the field: the harness is the product, the prompt is the tip of the iceberg.</details>
+
+9. What is the "agentic supply chain" risk?
+   - A) Delays in getting model provider capacity during peak hours
+   - B) That agents can be tricked into installing packages from untrusted registries
+   - C) That the components agents depend on (MCP servers, skills, automation templates, plugins) are privileged and largely unsecured
+   - D) That a compromised agent can propagate its context to other agents in a team
+   <details><summary>Answer</summary>C) That the components agents depend on (MCP servers, skills, automation templates, plugins) are privileged and largely unsecured - In January 2026 Snyk found hundreds of malicious skills on a public skills hub, and the automation templates Cursor open-sourced run with access to your codebase, CI, Slack, and GitHub. These deserve the same scrutiny as any npm dependency.</details>
+
+10. Your review agent flags a parameterized query (`cursor.execute("SELECT * FROM t WHERE id = ?", (uid,))`) as critical SQL injection. Which failure mode is this, and what stops it reaching the developer?
+    - A) A false negative; only a human reviewer can stop it
+    - B) A false positive; the deterministic tier independently checks the flagged line and dismisses it because the injectable pattern is not present
+    - C) A false positive; raising the effort level would have prevented it
+    - D) A false negative; the incremental review setting would have caught it on the next pass
+    <details><summary>Answer</summary>B) A false positive; the deterministic tier independently checks the flagged line and dismisses it because the injectable pattern is not present - The chapter's MVP shows exactly this: the LLM flags two candidates, the line-aware deterministic check confirms only the string-formatted query, and the parameterized one is suppressed as a likely false positive.</details>
+
+**Think About It**
+
+1. A fifteen-line prompt catches over two hundred real vulnerabilities a week across three thousand pull requests. The obvious lesson is "write better prompts." Why is that the wrong takeaway?
+   <details><summary>Show answer</summary> Because the fifteen lines are not doing the heavy lifting; they are the only part small enough to read. Underneath sit a custom MCP server holding state and deduplicating findings, Terraform-managed deployment, webhook orchestration deciding which agent fires on which event, and cross-run state that lets the agent compare today's findings to last week's. Snyk's phrasing is the key: the prompt is simple because the surrounding infrastructure is not. If you copied those fifteen lines into a chat window you would get scattered, duplicated, unactionable output, because what makes the system work is everything that decides when it runs, what it sees, and what happens to what it says. This is Chapter 1's thesis showing up in a production system: the harness is the product.</details>
+
+2. Cursor's security team wrote their review agent's prompt to end with "do not push changes or open fix PRs from this workflow." They built it, they trust it, and they still will not let it fix anything. Why?
+   <details><summary>Show answer</summary> Because finding and fixing have wildly different blast radii. A wrong finding costs a developer two minutes of reading; a wrong fix, merged automatically into a security-sensitive codebase, is a vulnerability you introduced yourself while believing you were closing one. The team closest to the tool is also the team most familiar with its false-positive rate, and that familiarity is what produces the caution rather than undermining it. There is something worth sitting with here: the strongest evidence about where to put the human gate came from the people with the most reason to remove it. The pattern generalizes as verification proportional to risk, and it is why the chapter says a green result from an agent is necessary, not sufficient.</details>
+
+3. BaxBench found that 62% of solutions from even the best models are incorrect or contain vulnerabilities. If that is true, how are these agents useful at all?
+   <details><summary>Show answer</summary> Because the number measures unassisted generation, not the output of a system with verification in it, and the two are very different products. A 62% failure rate is disqualifying for anything auto-merged and perfectly workable for a system where a deterministic engine confirms findings, a CI status gates the merge, and a human makes the call. The benchmark is really an argument about architecture rather than about capability: it tells you how much verification you need to bolt on, not whether to use the model. That is why the chapter cites it right next to the two-tier design, and why "layered independent validation is essential rather than optional" is the conclusion drawn from it.</details>
+
+4. A model that can write an essay on SQL injection will confidently flag a safe parameterized query as critical, while a crude regex gets it right. What is going on?
+   <details><summary>Show answer</summary> The model is pattern-matching on surface features, and a line containing `SELECT`, a variable, and `execute` looks like injection whether or not the parameterization is actually doing its job. It is reasoning about resemblance rather than tracing data flow, and under attention pressure across a large diff that resemblance is often all it has. A regex that specifically matches string-formatted SQL and not the placeholder form has no understanding at all but does have exactness, which is the one thing the model lacks. That asymmetry is the entire argument for the two-tier design: the LLM's creativity finds novel cross-file logic bugs a rule could never encode, and the rule's precision catches the cases where the LLM's intuition misfires. Neither is a replacement for the other.</details>
+
+5. You have built a review agent to protect your codebase. Snyk points out that the agent itself is now a dependency. What does that change?
+   <details><summary>Show answer</summary> It moves the attack surface from your code to your tooling, which is a place most teams do not yet look. The MCP servers, skills, and automation templates an agent depends on run with access to your codebase, CI, Slack, and GitHub, which is roughly the level of privilege you would scrutinize very carefully in a production service. Snyk found hundreds of malicious skills on a public skills hub in January 2026, so this is not hypothetical. The practical shift is to treat every agent component like an npm dependency: know where it came from, know what it can reach, and remember that a security agent with a compromised skill is a very well-positioned attacker. Building the review agent is good; remembering that the review agent is itself a dependency is better.</details>
+
+**Coding Challenge**
+
+Nested Rule Store with Analytics
+
+Build a `RuleStore` that models Bugbot's configuration behavior. `add_rule(path_prefix, rule_id, text)` registers a rule scoped to a directory prefix. `rules_for(file_path)` returns all rules whose prefix matches the file, ordered from least to most specific so that more specific rules win (the last one applies). Then add analytics: `record(rule_id, accepted: bool)` logs whether a finding from that rule was accepted, `acceptance_rate(rule_id)` returns the ratio, and `noisy_rules(threshold, min_samples)` returns rule IDs whose acceptance rate falls below the threshold once they have enough samples, so they can be pruned.
+
+<details><summary>Python Solution</summary>
+
+```python
+from collections import defaultdict
+
+
+class RuleStore:
+    def __init__(self):
+        self.rules = []                       # (prefix, rule_id, text)
+        self.stats = defaultdict(lambda: {"accepted": 0, "total": 0})
+
+    def add_rule(self, path_prefix: str, rule_id: str, text: str) -> None:
+        self.rules.append((path_prefix, rule_id, text))
+
+    def rules_for(self, file_path: str) -> list[tuple[str, str]]:
+        """Nested config: every matching prefix applies, most specific last."""
+        matches = [(p, rid, t) for p, rid, t in self.rules if file_path.startswith(p)]
+        matches.sort(key=lambda m: len(m[0]))      # least -> most specific
+        return [(rid, t) for _, rid, t in matches]
+
+    def record(self, rule_id: str, accepted: bool) -> None:
+        self.stats[rule_id]["total"] += 1
+        if accepted:
+            self.stats[rule_id]["accepted"] += 1
+
+    def acceptance_rate(self, rule_id: str) -> float:
+        s = self.stats[rule_id]
+        return s["accepted"] / s["total"] if s["total"] else 0.0
+
+    def noisy_rules(self, threshold: float = 0.3, min_samples: int = 5) -> list[str]:
+        """Rules whose findings keep getting dismissed - candidates for pruning."""
+        return sorted(
+            rid for rid, s in self.stats.items()
+            if s["total"] >= min_samples and self.acceptance_rate(rid) < threshold
+        )
+
+
+# --- demo ---
+if __name__ == "__main__":
+    store = RuleStore()
+    store.add_rule("src/", "R1", "Prefer explicit error types")
+    store.add_rule("src/api/", "R2", "All handlers must validate input")
+    store.add_rule("src/api/admin/", "R3", "Admin routes require an auth check")
+    store.add_rule("tests/", "R4", "No network calls in tests")
+
+    for rid, text in store.rules_for("src/api/admin/users.py"):
+        print(f"{rid}: {text}")
+
+    # R2 is useful, R1 keeps getting dismissed.
+    for accepted in [True, True, True, False, True, True]:
+        store.record("R2", accepted)
+    for accepted in [False, False, False, True, False, False]:
+        store.record("R1", accepted)
+
+    print("\nR2 acceptance:", round(store.acceptance_rate("R2"), 2))
+    print("R1 acceptance:", round(store.acceptance_rate("R1"), 2))
+    print("prune these:  ", store.noisy_rules())
+```
+
+</details>
+
+<details><summary>JavaScript Solution</summary>
+
+```javascript
+class RuleStore {
+  constructor() {
+    this.rules = []; // { prefix, ruleId, text }
+    this.stats = new Map(); // ruleId -> { accepted, total }
+  }
+
+  addRule(pathPrefix, ruleId, text) {
+    this.rules.push({ prefix: pathPrefix, ruleId, text });
+  }
+
+  rulesFor(filePath) {
+    // Nested config: every matching prefix applies, most specific last.
+    return this.rules
+      .filter((r) => filePath.startsWith(r.prefix))
+      .sort((a, b) => a.prefix.length - b.prefix.length)
+      .map((r) => [r.ruleId, r.text]);
+  }
+
+  record(ruleId, accepted) {
+    const s = this.stats.get(ruleId) ?? { accepted: 0, total: 0 };
+    s.total += 1;
+    if (accepted) s.accepted += 1;
+    this.stats.set(ruleId, s);
+  }
+
+  acceptanceRate(ruleId) {
+    const s = this.stats.get(ruleId);
+    return s && s.total ? s.accepted / s.total : 0;
+  }
+
+  noisyRules(threshold = 0.3, minSamples = 5) {
+    // Rules whose findings keep getting dismissed - candidates for pruning.
+    return [...this.stats.entries()]
+      .filter(([id, s]) => s.total >= minSamples && this.acceptanceRate(id) < threshold)
+      .map(([id]) => id)
+      .sort();
+  }
+}
+
+// --- demo ---
+const store = new RuleStore();
+store.addRule("src/", "R1", "Prefer explicit error types");
+store.addRule("src/api/", "R2", "All handlers must validate input");
+store.addRule("src/api/admin/", "R3", "Admin routes require an auth check");
+store.addRule("tests/", "R4", "No network calls in tests");
+
+for (const [ruleId, text] of store.rulesFor("src/api/admin/users.py")) {
+  console.log(`${ruleId}: ${text}`);
+}
+
+// R2 is useful, R1 keeps getting dismissed.
+[true, true, true, false, true, true].forEach((a) => store.record("R2", a));
+[false, false, false, true, false, false].forEach((a) => store.record("R1", a));
+
+console.log("\nR2 acceptance:", store.acceptanceRate("R2").toFixed(2));
+console.log("R1 acceptance:", store.acceptanceRate("R1").toFixed(2));
+console.log("prune these:  ", store.noisyRules());
+```
+
+</details>
