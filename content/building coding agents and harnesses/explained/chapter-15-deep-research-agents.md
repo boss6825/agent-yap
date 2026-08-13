@@ -123,3 +123,203 @@ Deep research agents are the multi-agent orchestration of Chapter 11 (MasterAgen
 - Today's DR agents show **jagged intelligence** and operate mostly in digital environments; the surveys conclude that building a reliable **harness** often matters more than the underlying LLM.
 
 Original sources: "Deep Research Agents: A Systematic Examination and Roadmap" ([arXiv:2506.18096](https://arxiv.org/abs/2506.18096)) and "Deep Research of Deep Research: from transformer to agent."
+
+## Review
+
+**Quick Check**
+
+1. In the deep research architecture described by the survey, what is the ReviewAgent's job?
+   - A) Summarize the SubAgents' findings into a single narrative before the MasterAgent sees them
+   - B) Check that every claim is properly attributed to a source before the cited report goes back to the user
+   - C) Decide whether the original query was clear enough to research
+   - D) Rank sources by credibility so the MasterAgent can weight them
+   <details><summary>Answer</summary>B) Check that every claim is properly attributed to a source before the cited report goes back to the user - The ReviewAgent is the verifier from Chapter 11 specialized for research. It is the structural expression of "an agent cannot mark its own homework."</details>
+
+2. What distinguishes a dynamic workflow from a static one?
+   - A) A dynamic workflow runs its steps in parallel; a static workflow runs them in sequence
+   - B) A dynamic workflow uses a larger model; a static workflow uses a cheaper one
+   - C) A static workflow runs a predefined pipeline and is predictable but generalizes poorly; a dynamic workflow lets the agent reconfigure its plan on the fly based on what it learns
+   - D) A static workflow cannot call tools; a dynamic workflow can
+   <details><summary>Answer</summary>C) A static workflow runs a predefined pipeline and is predictable but generalizes poorly; a dynamic workflow lets the agent reconfigure its plan on the fly based on what it learns - This is the same workflow-versus-agent tradeoff Anthropic's guidance raises: a fixed workflow when the steps are known, a full agent loop when exploration is needed.</details>
+
+3. Which planning strategy drafts a plan and then asks the user to confirm or edit it?
+   - A) Planning-only
+   - B) Intent-to-planning
+   - C) Unified intent-planning
+   - D) Reason-in-Documents
+   <details><summary>Answer</summary>C) Unified intent-planning - The survey's taxonomy has three: planning-only plans straight from the prompt with no clarification (Grok, Manus), intent-to-planning asks clarifying questions first then plans (OpenAI DR), and unified intent-planning drafts a plan then asks the user to confirm or edit it (Gemini DR).</details>
+
+4. You need to improve an agent's research quality but cannot retrain the model. Which of the survey's three training families still applies?
+   - A) Supervised fine-tuning, because curated examples can be added without a training run
+   - B) Reinforcement learning with GRPO, because it drops the separate value network
+   - C) Non-parametric continual learning, because the agent improves at runtime by optimizing external memory, workflows, and tools rather than updating weights
+   - D) None; without weight updates an agent's capability is fixed
+   <details><summary>Answer</summary>C) Non-parametric continual learning, because the agent improves at runtime by optimizing external memory, workflows, and tools rather than updating weights - Its main technique is case-based reasoning: retrieve, adapt, and reuse past problem-solving trajectories from a case bank. This is genuine self-improvement without retraining.</details>
+
+5. A colleague says: "Multi-agent is obviously the better design, so we should always split research across specialists." What does the survey's tradeoff say?
+   - A) Multi-agent systems produce lower-quality output because each specialist sees less context
+   - B) Multi-agent scales to parallel, complex tasks but is much harder to optimize end to end, whereas a single agent folds everything into one loop and is easy to train end to end with RL
+   - C) Multi-agent is always cheaper because each subagent uses a smaller context window
+   - D) Single-agent designs cannot use tools, so multi-agent is required for research
+   <details><summary>Answer</summary>B) Multi-agent scales to parallel, complex tasks but is much harder to optimize end to end, whereas a single agent folds everything into one loop and is easy to train end to end with RL - That training difficulty is a recurring theme in the survey: multi-agent systems are powerful but hard to optimize as a whole.</details>
+
+**More Questions**
+
+6. According to the survey, what is the key difference between GRPO and the older PPO?
+   - A) GRPO uses a larger batch size, which stabilizes training on long trajectories
+   - B) GRPO drops PPO's separate value network and computes advantages relative to a group of responses, giving richer gradient signal, faster convergence, and fewer conflicting objectives
+   - C) GRPO trains on offline curated data while PPO trains on live rollouts
+   - D) GRPO optimizes retrieval quality only; PPO optimizes the final answer
+   <details><summary>Answer</summary>B) GRPO drops PPO's separate value network and computes advantages relative to a group of responses, giving richer gradient signal, faster convergence, and fewer conflicting objectives - You do not need the math to take the lesson: RL is how you teach an agent to search and use tools well, and GRPO is the currently favored recipe.</details>
+
+7. How does case-based reasoning (CBR) differ from retrieval-augmented generation (RAG)?
+   - A) CBR retrieves from a vector database while RAG retrieves from the open web
+   - B) CBR retrieves whole reasoning trajectories and adapts them to the new task, while RAG retrieves static text
+   - C) CBR updates model weights after each case; RAG does not
+   - D) CBR only works for single-agent systems; RAG works for both
+   <details><summary>Answer</summary>B) CBR retrieves whole reasoning trajectories and adapts them to the new task, while RAG retrieves static text - The agent retrieves, adapts, and reuses past problem-solving trajectories from a case bank. It is the training-side cousin of Chapter 9's auto-memory and shared rules: the agent gets better by accumulating and reusing experience stored outside the weights.</details>
+
+8. The survey names **jagged intelligence** as a failure mode of current DR agents. What is it?
+   - A) Output quality that degrades steadily as a research session gets longer
+   - B) The tendency to produce well-cited but shallow reports on unfamiliar topics
+   - C) The way these systems do some hard things brilliantly while failing at simpler, closely related ones
+   - D) Uneven performance across languages, with English far ahead of everything else
+   <details><summary>Answer</summary>C) The way these systems do some hard things brilliantly while failing at simpler, closely related ones - That unevenness is exactly why the verification habits from Chapter 13 matter so much: you cannot infer from one impressive result that the adjacent easy case is safe.</details>
+
+9. A DR agent has drafted an answer and is confident in it. Following the chapter's fact-checking practice, what should happen next?
+   - A) Deliver it immediately, since additional searching wastes tokens once the agent is confident
+   - B) Cross-check by looking for independent sources that confirm each fact and searching for contradictions before finalizing
+   - C) Hand it to a second model to rewrite it more persuasively
+   - D) Store it in the case bank so future queries can reuse it directly
+   <details><summary>Answer</summary>B) Cross-check by looking for independent sources that confirm each fact and searching for contradictions before finalizing - Grok DeepSearch rates the credibility of every source and verifies key claims across multiple origins, and Zhipu's Rumination model pauses after concluding and keeps searching to test whether the conclusion holds. Multi-source cross-validation plus self-reflection is how DR agents drive down hallucination.</details>
+
+10. The "Deep Research of Deep Research" survey maps three environments: the IDE, the SEE, and the REE. Where do today's agents mostly operate, and what is missing to go further?
+    - A) They operate in the REE; what is missing is faster inference
+    - B) They operate in the SEE; what is missing is larger context windows
+    - C) They operate mostly in the IDE (internet/digital environment); reaching the REE (real experimental environment) needs better physical perception, more tools, and sometimes embodiment
+    - D) They operate across all three already; what is missing is standardized benchmarks
+    <details><summary>Answer</summary>C) They operate mostly in the IDE (internet/digital environment); reaching the REE (real experimental environment) needs better physical perception, more tools, and sometimes embodiment - The survey places current DR agents at roughly level three of automation: they search and review well, but genuine research capability is still comparatively weak.</details>
+
+**Coding Challenge**
+
+Cross-Validating ReviewAgent
+
+Implement the review pass that decides what a research agent is allowed to say. Write `review(findings, min_sources=2)` where `findings` is a list of `(claim, source)` pairs. It must group by claim, count *distinct* sources, and return a dict with three buckets: `verified` (claims backed by at least `min_sources` distinct sources, each mapped to its sorted source list), `unverified` (claims below the threshold), and `contradicted` (any pair of claims that share a `topic` prefix before a colon but differ after it, e.g. `"train time: 21:13"` versus `"train time: 22:40"`). A contradicted topic must never appear in `verified`, no matter how many sources back one side.
+
+<details><summary>Python Solution</summary>
+
+```python
+from collections import defaultdict
+
+
+def review(findings: list[tuple[str, str]], min_sources: int = 2) -> dict:
+    """Cross-validate claims: distinct sources confirm, disagreement vetoes."""
+    by_claim: dict[str, set[str]] = defaultdict(set)
+    for claim, source in findings:
+        by_claim[claim].add(source)
+
+    # Group claims by topic so we can spot direct disagreement.
+    by_topic: dict[str, set[str]] = defaultdict(set)
+    for claim in by_claim:
+        topic = claim.split(":", 1)[0].strip() if ":" in claim else claim
+        by_topic[topic].add(claim)
+
+    contradicted = {t: sorted(cs) for t, cs in by_topic.items() if len(cs) > 1}
+    conflicted_claims = {c for cs in contradicted.values() for c in cs}
+
+    verified, unverified = {}, {}
+    for claim, sources in by_claim.items():
+        if claim in conflicted_claims:
+            continue                                  # disagreement vetoes both sides
+        bucket = verified if len(sources) >= min_sources else unverified
+        bucket[claim] = sorted(sources)
+
+    return {"verified": verified, "unverified": unverified,
+            "contradicted": contradicted}
+
+
+# --- demo ---
+if __name__ == "__main__":
+    findings = [
+        ("final time: 21:50", "olympics.com"),
+        ("final time: 21:50", "bbc.com"),          # two distinct sources agree
+        ("eurostar: 21:13", "eurostar.com"),        # single source only
+        ("show time: 19:30", "lwtheatres.co.uk"),
+        ("show time: 20:00", "westend.com"),        # direct disagreement
+    ]
+    result = review(findings)
+    print("verified:   ", result["verified"])
+    print("unverified: ", result["unverified"])
+    print("contradicted:", result["contradicted"])
+```
+
+</details>
+
+<details><summary>JavaScript Solution</summary>
+
+```javascript
+function review(findings, minSources = 2) {
+  // Cross-validate claims: distinct sources confirm, disagreement vetoes.
+  const byClaim = new Map();
+  for (const [claim, source] of findings) {
+    if (!byClaim.has(claim)) byClaim.set(claim, new Set());
+    byClaim.get(claim).add(source);
+  }
+
+  // Group claims by topic so we can spot direct disagreement.
+  const byTopic = new Map();
+  for (const claim of byClaim.keys()) {
+    const topic = claim.includes(":") ? claim.split(":")[0].trim() : claim;
+    if (!byTopic.has(topic)) byTopic.set(topic, new Set());
+    byTopic.get(topic).add(claim);
+  }
+
+  const contradicted = {};
+  const conflicted = new Set();
+  for (const [topic, claims] of byTopic) {
+    if (claims.size > 1) {
+      contradicted[topic] = [...claims].sort();
+      for (const c of claims) conflicted.add(c);
+    }
+  }
+
+  const verified = {};
+  const unverified = {};
+  for (const [claim, sources] of byClaim) {
+    if (conflicted.has(claim)) continue; // disagreement vetoes both sides
+    const target = sources.size >= minSources ? verified : unverified;
+    target[claim] = [...sources].sort();
+  }
+
+  return { verified, unverified, contradicted };
+}
+
+// --- demo ---
+const findings = [
+  ["final time: 21:50", "olympics.com"],
+  ["final time: 21:50", "bbc.com"], // two distinct sources agree
+  ["eurostar: 21:13", "eurostar.com"], // single source only
+  ["show time: 19:30", "lwtheatres.co.uk"],
+  ["show time: 20:00", "westend.com"], // direct disagreement
+];
+const result = review(findings);
+console.log("verified:   ", result.verified);
+console.log("unverified: ", result.unverified);
+console.log("contradicted:", result.contradicted);
+```
+
+</details>
+
+**Think About It**
+
+1. After fifteen chapters of harness engineering, the survey lands on a line the chapter calls a homecoming: "Building reliable harnesses for DR sometimes matters more than the LLMs." That is an odd conclusion for a research literature obsessed with model capability. Why would people who train models end up saying the scaffolding matters more?
+   <details><summary>Show answer</summary>Because they kept running the experiment that separates the two. Swap in a stronger model behind a weak harness and the failures barely move: the agent still loops, still loses the thread on a long task, still delivers a fluent claim with no source behind it. Fix the harness - give it a planner, isolate each subagent's context, add a review pass that refuses unattributed claims - and the same model starts producing work you can hand to someone. The survey's own architecture is almost entirely harness: MasterAgent, SubAgents, ReviewAgent, memory mechanisms, and not one of those is a model property. Model capability sets a ceiling, but most deployed agents are nowhere near their model's ceiling; they are limited by how the work around the model is organized. That is the whole thesis of this guide, arrived at independently by people whose day job is making the models better.</details>
+
+2. Fixing hallucination sounds like it should be a model problem - the model made something up, so make the model more truthful. Yet the DR agents that reduce it most do so with an architectural move instead: a separate ReviewAgent that inspects the draft before anyone sees it. Why does splitting the work across two agents beat asking one agent to be more careful?
+   <details><summary>Show answer</summary>Because a model checking its own output is not really checking anything - it is re-reading text it already found plausible, in the same context that produced it, with every reason to agree with itself. The failure is not carelessness; it is that a fabricated claim looks identical from the inside to a remembered one. A separate ReviewAgent breaks that loop by changing the question. It is not asked "is this right?" but "which source says this?" - a mechanical check with a mechanical answer, run by an agent that has no attachment to the draft. Grok DeepSearch goes further and rates each source's credibility and verifies key claims across multiple origins, so agreement has to come from independent places rather than one page quoted twice. The general shape recurs throughout the guide: when self-assessment is unreliable, restructure the work so something other than the author does the assessing.</details>
+
+3. Zhipu's Rumination model does something that looks like a bug: it reaches a conclusion, and then keeps searching anyway. Every instinct in engineering says stop when you have the answer. Why is refusing to stop the right behavior here?
+   <details><summary>Show answer</summary>Because of how an agent arrives at confidence. It searches, finds sources that fit, and builds an answer out of them - which means the evidence it has seen is, by construction, the evidence that supports the conclusion it reached. Contradicting evidence does not announce itself; it sits in the pages the agent never opened because it stopped looking. Rumination attacks exactly that: after concluding, it keeps searching specifically to test whether the conclusion survives, so the retrieval that could break the answer happens *after* the answer exists rather than never. It costs real tokens and real time to look for something you hope not to find, which is why most systems skip it - but on research output, where a confident wrong answer is worse than a slow one, that is a good trade.</details>
+
+4. Non-parametric continual learning is the strange one of the three training families: the model's weights never change, and yet the agent measurably gets better at its job. Where does that improvement actually live?
+   <details><summary>Show answer</summary>In the case bank, and in what the agent does with it. Case-based reasoning stores whole problem-solving trajectories - not facts, but the shape of how a task was worked through - and when a similar task arrives the agent retrieves that trajectory and adapts it. So the capability being reused is procedural rather than factual, which is what makes it different from RAG's static text retrieval. The model is exactly as smart as it was; what changed is that it no longer has to rediscover an approach it has already found once. That is why the survey calls it well-suited to complex agents: parameter updates are slow and expensive, but appending a solved trajectory to a case bank costs almost nothing and pays off immediately. It is Chapter 9's memory idea pushed one level up - from remembering facts about a project to remembering how a problem was solved.</details>

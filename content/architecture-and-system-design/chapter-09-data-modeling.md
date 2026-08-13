@@ -69,6 +69,145 @@ Most agents are well served by a **relational database (Postgres)** for structur
 
 A well-designed agent data model, read on its own, tells you what the product does: artifacts are versioned and audited (there's a versions table with a source enum); work is shareable (explicit share fields); conversations are rich event logs (JSON content, not text); async work has status fields; usage is metered; external calls are cached. The schema *is* the product, expressed in tables, so design it as deliberately as you design the agent loop.
 
+## Review
+
+**Quick Check**
+
+1. Why is `{role, text}` insufficient for modelling an agent's assistant turn?
+   - A) Because roles change mid-turn
+   - B) Because a turn also read documents, generated files, proposed edits, and cited sources — all lost if you store only final text
+   - C) Because text columns have length limits
+   - D) Because the model needs its own role
+   <details><summary>Answer</summary>B) A reloaded conversation couldn't show the chips, cards, and citations the user saw live. Model assistant messages as ordered arrays of typed events instead.</details>
+
+2. What is the "persist at the edges of the turn" pattern?
+   - A) Write to the database only when the stream completes successfully
+   - B) Save the user's message before the model runs and the assistant's outcome after
+   - C) Persist every token as it arrives
+   - D) Store conversations in the edge cache rather than the primary database
+   <details><summary>Answer</summary>B) Writing the user message immediately makes the conversation durable regardless of what happens during generation; the orchestrator stays a stateless function between the two writes.</details>
+
+3. In the recommended artifact-versioning model, where does the content location live?
+   - A) On the artifact identity record
+   - B) On each version row, with the artifact holding a `current_version_id` pointer
+   - C) In a separate storage-index table keyed by owner
+   - D) Inline in the conversation event log
+   <details><summary>Answer</summary>B) Separating content location from identity is the key move: the artifact knows its current version, the version knows where its bytes are.</details>
+
+4. What does the `source` field on a version row (e.g. `upload`, `generated`, `agent_edit`, `user_accept`) give you?
+   - A) A hint for the storage tier to use
+   - B) A way to deduplicate identical versions
+   - C) An audit trail of who or what produced each version
+   - D) The permission level required to read it
+   <details><summary>Answer</summary>C) It doubles as an audit trail, recording how each version came to be alongside the complete, immutable history.</details>
+
+5. The chapter lists three benefits of explicit status fields. Which is NOT one of them?
+   - A) The UI can render the right state directly from the field
+   - B) Work becomes resumable — you can find everything still `pending`
+   - C) It's a natural seam for making a synchronous flow asynchronous later
+   - D) It removes the need for database-level constraints
+   <details><summary>Answer</summary>D) The opposite — constrain status fields to their valid values with a check constraint or enum so an invalid state can't be written.</details>
+
+**More Questions**
+
+6. A conversation message recorded an edit as `pending`, but the user later accepted it. Which approach does the chapter prefer?
+   - A) Update every historical snapshot when the underlying fact changes
+   - B) Reconcile on read: store the snapshot as-is, then patch it against current state when loading
+   - C) Forbid mutable facts from appearing in messages
+   - D) Re-run the agent turn to regenerate the message
+   <details><summary>Answer</summary>B) Reconcile on read. It keeps writes cheap and localised, at the cost of a small read-time join to present current truth.</details>
+
+7. How does the chapter suggest modelling agent-proposed changes a user can individually accept or reject?
+   - A) As markup embedded in the document text
+   - B) As one row per change: what it changes, where (anchored), the agent's reason, and a status with a resolution timestamp
+   - C) As a diff string stored on the version row
+   - D) As separate artifact versions, one per change
+   <details><summary>Answer</summary>B) A change is data, not text inside a document. First-class rows are what let the UI offer granular accept/reject controls and let the system track resolution.</details>
+
+8. What does the chapter recommend baking into the data model early even if you won't enforce it on day one?
+   - A) A vector store for semantic search
+   - B) Metering scaffolding: per-user counters, reset dates, and a tier/plan field
+   - C) Row-level encryption on every table
+   - D) A full event-sourcing log for all tables
+   <details><summary>Answer</summary>B) Having the metering fields means you can turn enforcement on later without a migration scramble.</details>
+
+9. Your agent calls a slow, rate-limited external API, and the same lookups repeat constantly. What data-modeling move does the chapter suggest?
+   - A) Move the calls into a background worker
+   - B) A cache table keyed by a deterministic request key, storing the response payload and an expiry (indexed for cleanup)
+   - C) Store the responses in the conversation event log
+   - D) Batch the calls into a nightly job
+   <details><summary>Answer</summary>B) A simple cache table turns repeated identical calls into instant lookups and shields you from upstream limits — data modeling in service of reliability and cost.</details>
+
+10. What default storage combination does the chapter recommend for most agents?
+    - A) A document database plus a vector store
+    - B) A relational database (Postgres) for structured state plus object storage for large binary content
+    - C) Object storage alone, with metadata in filenames
+    - D) A specialised store per concern from the outset
+    <details><summary>Answer</summary>B) Postgres for conversations, artifacts, versions, users, and sharing, with object storage holding the bytes and the database holding only pointers. Add a vector store or cache/queue only as need arises.</details>
+
+**Coding Challenge**
+
+*Immutable versions with a current pointer*
+
+Implement an `Artifact` class holding a list of immutable version dicts and a `current_version_id`. `add_version(path, source)` appends a new version with an incrementing `version_number` and updates the pointer; `current()` returns the live version; `rollback_to(version_id)` moves the pointer without deleting or mutating anything.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+class Artifact:
+    def __init__(self, name):
+        self.name = name
+        self.versions = []              # immutable: never mutated, only appended
+        self.current_version_id = None
+
+    def add_version(self, path, source):
+        version = {
+            "id": len(self.versions) + 1,
+            "version_number": len(self.versions) + 1,
+            "path": path,               # location lives on the version, not the artifact
+            "source": source,           # upload | generated | agent_edit | user_accept ...
+        }
+        self.versions.append(version)
+        self.current_version_id = version["id"]
+        return version
+
+    def current(self):
+        return next(
+            (v for v in self.versions if v["id"] == self.current_version_id), None
+        )
+
+    def rollback_to(self, version_id):
+        if not any(v["id"] == version_id for v in self.versions):
+            raise ValueError(f"no such version: {version_id}")
+        self.current_version_id = version_id   # pointer move; history is preserved
+        return self.current()
+
+
+a = Artifact("nda.docx")
+a.add_version("s3://docs/nda-v1.docx", "upload")
+a.add_version("s3://docs/nda-v2.docx", "agent_edit")
+print(a.current())        # version 2, source agent_edit
+print(a.rollback_to(1))   # version 1, source upload
+print(len(a.versions))    # 2 - nothing was destroyed
+```
+
+</details>
+
+**Think About It**
+
+1. The chapter says a well-designed agent schema, read on its own, "tells you what the product does." Try reading one backwards: if you opened a database and found a versions table with a `source` enum, JSON conversation content, status fields, and a shares table — what would you already know about the product before seeing a single line of code, and why is that a design goal rather than a coincidence?
+   <details><summary>Show answer</summary>You'd know artifacts are versioned and audited, that conversations are rich event logs rather than transcripts, that some work is asynchronous and resumable, and that users can share things — which is most of the product's behaviour. That legibility isn't accidental: each of those columns exists because a product capability demanded it, so the schema is the capability set written down. The practical upshot is that vague schemas signal vague products; if you can't tell from the tables whether history is recoverable or work is resumable, the answer is usually "no." That's why the chapter says to design the schema as deliberately as the agent loop.</details>
+
+2. "Reconcile on read" looks like the lazier of the two options — you're leaving stale data lying around and patching it at query time. Why does the chapter call the diligent-sounding alternative, updating every historical snapshot, the error-prone one?
+   <details><summary>Show answer</summary>Because updating snapshots means every mutation must find and rewrite every past message that mentioned the changed fact — a fan-out that grows with conversation length and multiplies with every new referencing message type. Miss one path and you get silently inconsistent history, which is worse than obviously stale history because nothing signals the error. Reconcile-on-read inverts this: writes stay cheap and local, and the read path does one join to present current truth in a single place you can reason about and test. The general pattern — store what happened, derive what's true now — keeps correctness concentrated instead of scattered.</details>
+
+3. The advice to save the user's message *before* the model runs sounds like a reliability tip, but the chapter files it under data modeling. What does that placement reveal about the relationship between where you write and how failures feel to a user?
+   <details><summary>Show answer</summary>Where you place your writes determines what survives a crash, which means the durability boundary is a schema decision as much as an error-handling one. Persist only at the end and an interrupted turn takes the user's typed message with it — the most infuriating possible failure, since they did the work and lost it. Writing at the edges means the worst case degrades to "the assistant failed to respond," with the input intact and a retry available. It also keeps the orchestrator a clean stateless function between two known writes, which is exactly why the reliability property and the model design are the same decision.</details>
+
+4. Immutable versions never overwrite anything, so a heavily edited document accumulates rows forever. Why does the chapter treat that growth as acceptable — even desirable — when most of the versions will never be read again?
+   <details><summary>Show answer</summary>Because the value of the history isn't in routine reads, it's in the questions you can only answer if you kept it: how did this clause get here, what did the agent change versus the user, can we roll back a bad edit, what did the document look like when it was signed. Those questions arrive unpredictably and are unanswerable retroactively if you overwrote. The cost is cheap — rows and object storage — while the alternative risks the one scenario where you truly need the past. And because versions are immutable and the artifact just holds a pointer, rollback is a pointer move rather than a destructive restore, so keeping everything actually makes the operation simpler, not harder.</details>
+
 ---
 
 Next: [Chapter 10: Document and file processing pipelines](chapter-10-document-pipelines.md)

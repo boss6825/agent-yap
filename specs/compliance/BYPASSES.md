@@ -12,4 +12,4 @@
 
 | Date (UTC) | PR / commit | Author | Reason | State | Closed by |
 |---|---|---|---|---|---|
-| _(none)_ | | | | | |
+| 2026-08-14 | `feature/learning-platform-v2` merge (8e3ef2d..c286a32) | @boss6825 | Content/docs-only backfill of the already-reviewed redesign plan (`0db3386`): Review/MCQ sections, doc-ownership fixes, and planning specs. No `src/` behavior changed; Tier 0/1 doc-and-content chore, no feature spec applicable. | OPEN | |

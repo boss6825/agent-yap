@@ -161,3 +161,251 @@ This chapter closes Part III by adding the control plane around everything you b
 - Hooks plus budgets are what make an agent safe to run unattended; observability is what lets you debug and audit it.
 
 Original sources: the Claude Code six-layers architecture breakdown and Anthropic's [How Claude Code works](https://code.claude.com/docs/en/how-claude-code-works).
+
+---
+
+## Review
+
+**Quick Check**
+
+1. What is the defining difference between a hook and a skill?
+   - A) A hook is written in Python; a skill is written in markdown
+   - B) A hook fires every time its event occurs regardless of what the model wants; a skill is invoked only when the model decides it is relevant
+   - C) A hook runs after the turn completes; a skill runs before it begins
+   - D) A hook can be disabled by the model; a skill cannot
+   <details><summary>Answer</summary>B) A hook fires every time its event occurs regardless of what the model wants; a skill is invoked only when the model decides it is relevant - Skills are suggestions the model may take; hooks are rules the harness enforces. That determinism is the whole reason the observability layer exists.</details>
+
+2. Which hook event fires before a tool runs and can block it?
+   - A) `PreCompact`
+   - B) `Stop`
+   - C) `PreToolUse`
+   - D) `SubagentStop`
+   <details><summary>Answer</summary>C) `PreToolUse` - It is the standard place to block destructive commands and enforce policy. A `PreToolUse` handler can veto the call outright, for example by returning a block result with a reason.</details>
+
+3. Why is a hook described as costing no model context?
+   - A) Because hook output is compressed before being added to the prompt
+   - B) Because hooks run in your process, not in the model's prompt
+   - C) Because hook results are cached at the provider and billed at one-tenth rate
+   - D) Because hooks only fire once per session
+   <details><summary>Answer</summary>B) Because hooks run in your process, not in the model's prompt - A hook is free in tokens, unlike an instruction you would otherwise stuff into the prompt and pay for on every turn. It is also deterministic, so it blocks something always rather than usually.</details>
+
+4. Where does Claude Code write its session log, and what does that log enable?
+   - A) An encrypted SQLite database; it enables cost reporting
+   - B) A plaintext JSONL file under `~/.claude/projects/`; it enables rewinding, resuming, and forking sessions
+   - C) The provider's servers; it enables cross-device sync
+   - D) An in-memory ring buffer; it enables undo within the current turn
+   <details><summary>Answer</summary>B) A plaintext JSONL file under `~/.claude/projects/`; it enables rewinding, resuming, and forking sessions - Every message, tool use, and result is recorded. That log is both the audit trail and the debugger: when an agent does something surprising, the JSONL is where you see the exact sequence of tool calls and results.</details>
+
+5. Which Agent SDK option turns "what if it runs forever?" into configuration?
+   - A) `effort`
+   - B) `setting_sources`
+   - C) `allowed_tools`
+   - D) `max_turns` and `max_budget_usd`
+   <details><summary>Answer</summary>D) `max_turns` and `max_budget_usd` - `max_turns` caps the number of laps and `max_budget_usd` is a hard spending cap. As the architecture breakdown puts it, this makes "budget-aware agents an engineering task, not a hope."</details>
+
+**More Questions**
+
+6. What does the `subtype` on the SDK's result message tell you?
+   - A) Which model tier served the request
+   - B) How the run ended, for example `success`, `error_max_turns`, or `error_max_budget_usd`
+   - C) Which hooks fired during the run
+   - D) Whether the session was resumed or started fresh
+   <details><summary>Answer</summary>B) How the run ended, for example `success`, `error_max_turns`, or `error_max_budget_usd` - The result also carries the per-session cost, so a caller can branch on why the agent stopped rather than guessing from an empty output.</details>
+
+7. Which of these is a valid hook handler type according to the chapter?
+   - A) Only shell commands
+   - B) Only in-process Python functions
+   - C) Shell commands, HTTP webhooks, MCP tools, prompt judges, and experimentally agent-based verifiers
+   - D) Only handlers registered through the Agent SDK
+   <details><summary>Answer</summary>C) Shell commands, HTTP webhooks, MCP tools, prompt judges, and experimentally agent-based verifiers - The range matters: a hook can be as simple as a formatter shell command or as involved as another agent checking the work, while still firing deterministically on its event.</details>
+
+8. How does a `PreToolUse` hook relate to Chapter 7's approval policy?
+   - A) The hook replaces the approval policy entirely
+   - B) Both can block a tool before it runs; the approval policy is a built-in classifier and the hook is your custom code, and in practice you use both
+   - C) The approval policy runs only in sandboxed mode; hooks run only outside it
+   - D) The hook fires first and, if it passes, the approval policy is skipped
+   <details><summary>Answer</summary>B) Both can block a tool before it runs; the approval policy is a built-in classifier and the hook is your custom code, and in practice you use both - The policy covers the common safety tiers and hooks cover project-specific rules.</details>
+
+9. What is `PreCompact` typically used for?
+   - A) Estimating whether compaction is necessary this turn
+   - B) Choosing which compaction strategy the harness should apply
+   - C) Archiving the full transcript before it is summarized
+   - D) Warning the user that context is nearly full
+   <details><summary>Answer</summary>C) Archiving the full transcript before it is summarized - Compaction is lossy, so `PreCompact` is the last moment at which the complete history still exists. Archiving there preserves what the summary will drop.</details>
+
+10. You want to run an agent unattended in CI on every pull request, and you are worried it might push to main or run up a surprise bill. Which pair of controls addresses both risks?
+    - A) A lower `effort` setting and a smaller model
+    - B) A `PreToolUse` hook that blocks pushes, plus `max_budget_usd`
+    - C) A `Stop` hook that notifies you, plus the session JSONL log
+    - D) `setting_sources` loading the project `CLAUDE.md`, plus `allowed_tools`
+    <details><summary>Answer</summary>B) A `PreToolUse` hook that blocks pushes, plus `max_budget_usd` - The hook is deterministic, so the push is blocked always rather than usually, and the budget cap stops the run with an `error_max_budget_usd` result instead of quietly spending. Together they are what make unattended runs safe.</details>
+
+**Think About It**
+
+1. You could write "never run `git push`" in the system prompt, or you could write a five-line `PreToolUse` hook. Both express the same rule. Why is the second one a completely different kind of thing?
+   <details><summary>Show answer</summary> The prompt version is a request to a probabilistic system that will comply most of the time, and "most of the time" is not a security property when the action is irreversible. The hook is code in your process that runs on every tool call and returns a block, so the push does not happen even if the model is confused, adversarially prompted, or in the middle of a plausible-sounding chain of reasoning that ends in a push. There is a cost dimension too: the prompt instruction is tokens you pay for on every single turn for the whole session, while the hook costs nothing in context at all. The general shape is that anything you can enforce deterministically should not be delegated to the model's judgment, and the harness is where that enforcement lives.</details>
+
+2. The architecture breakdown says the SDK makes budget-aware agents "an engineering task, not a hope." What were people doing before, and why was hoping the default?
+   <details><summary>Show answer</summary> Before explicit caps, the only stopping conditions were the model deciding it was finished and whatever crude turn limit the loop happened to have, like the arbitrary counter in Chapter 2's toy loop. An agent stuck in a retry cycle, re-reading the same file, or looping on a failing test would keep spending until someone noticed, and because each individual turn is cheap the bill only becomes visible in aggregate. Hoping was the default because cost was an emergent property of the loop rather than an input to it. `max_turns` and `max_budget_usd` invert that: you declare the ceiling up front, the run halts with a named reason like `error_max_budget_usd`, and your code can branch on it. The shift is from observing cost after the fact to specifying it before.</details>
+
+3. Rewind, resume, and fork sound like features that would need a database and careful state management. They come out of a plaintext JSONL file. How does that work?
+   <details><summary>Show answer</summary> An agent session has no hidden state worth preserving: it is a prompt built from an ordered list of messages, tool calls, and results. If you have that list on disk in order, you can reconstruct any point in the session by replaying a prefix of it, which is exactly what rewinding is. Resume is replaying the whole file and continuing; fork is replaying a prefix and appending different events after it. The append-only log is doing all the work because the conversation itself is the state. It is also why the same file doubles as your audit trail, and why Chapter 16's security stories are partly about organizations that could not answer "what did the agent actually touch?"</details>
+
+4. Skills and hooks can encode the same rule, and the chapter treats that as a critical distinction rather than redundancy. When does the difference actually bite?
+   <details><summary>Show answer</summary> It bites in exactly the cases you built the rule for. A skill that says "always run the formatter after editing" gets used when the model judges it relevant, which means it gets skipped on the turn where the model is distracted by a failing test, which is the turn where you most wanted it. A `PostToolUse` hook runs then too. The difference shows up as a reliability floor: hooks give you a guarantee you can reason about, while skills give you a behavior you can usually expect. The practical rule is to encode judgment in skills and invariants in hooks, and to be honest with yourself about which category a given rule belongs to.</details>
+
+5. The people who build agent harnesses advise defaulting to workflows and using full agent loops only when exploration is needed. Coming from them, isn't that an odd thing to recommend?
+   <details><summary>Show answer</summary> It is only odd if you think the agent loop is the product. The loop's value is handling situations where the steps are not known in advance, and it pays for that flexibility with nondeterminism, variable cost, and a much larger surface for things to go wrong. If you already know the sequence, encoding it as a workflow gives you the same outcome with predictable cost and behavior you can test. The recommendation is really about matching the tool to the uncertainty in the task, and it pairs with the other advice in the chapter, to measure turns and dollars from the start, because you cannot tell whether a loop is earning its nondeterminism until you are watching what it costs.</details>
+
+**Coding Challenge**
+
+Session Log with Rewind and Fork
+
+Build a `SessionLog` that appends typed events (`{"type": ..., "content": ...}`) to an in-memory JSONL-style list, with `append(event)`, `replay()` returning all events, `rewind(n)` truncating to the first `n` events, and `fork(at)` returning a new independent `SessionLog` containing the first `at` events. Then add a `HookManager` with a single `PreToolUse` deny-list handler: given a set of forbidden substrings, `check(command)` returns `{"block": True, "reason": ...}` when any appears, otherwise `{"block": False}`. Wire them together so blocked calls are still recorded in the log.
+
+<details><summary>Python Solution</summary>
+
+```python
+import copy
+
+
+class SessionLog:
+    def __init__(self, events=None):
+        self.events = list(events or [])
+
+    def append(self, event: dict) -> None:
+        self.events.append(copy.deepcopy(event))
+
+    def replay(self) -> list[dict]:
+        return list(self.events)
+
+    def rewind(self, n: int) -> None:
+        """Truncate to the first n events - the conversation IS the state."""
+        self.events = self.events[:n]
+
+    def fork(self, at: int) -> "SessionLog":
+        """A new independent session sharing the first `at` events."""
+        return SessionLog(copy.deepcopy(self.events[:at]))
+
+
+class HookManager:
+    def __init__(self, forbidden: set[str]):
+        self.forbidden = forbidden
+
+    def check(self, command: str) -> dict:
+        for bad in self.forbidden:
+            if bad in command:
+                return {"block": True, "reason": f"'{bad}' blocked by PreToolUse hook"}
+        return {"block": False}
+
+
+def run_tool(log: SessionLog, hooks: HookManager, command: str) -> str:
+    verdict = hooks.check(command)
+    if verdict["block"]:
+        log.append({"type": "tool_blocked", "content": command, "reason": verdict["reason"]})
+        return f"BLOCKED: {verdict['reason']}"
+    log.append({"type": "tool_use", "content": command})
+    log.append({"type": "tool_result", "content": f"ran: {command}"})
+    return f"ok: {command}"
+
+
+# --- demo ---
+if __name__ == "__main__":
+    log = SessionLog()
+    hooks = HookManager({"git push", "rm -rf"})
+
+    log.append({"type": "user", "content": "clean up the branch"})
+    print(run_tool(log, hooks, "ls -la"))
+    print(run_tool(log, hooks, "git push origin main"))
+    print(run_tool(log, hooks, "git status"))
+
+    print("\nevents:", len(log.replay()))
+    for e in log.replay():
+        print(" ", e["type"], "-", e["content"])
+
+    branch = log.fork(at=3)
+    branch.append({"type": "user", "content": "actually, try a different approach"})
+    print("\nforked session events:", len(branch.replay()))
+    print("original still has:    ", len(log.replay()))
+
+    log.rewind(1)
+    print("after rewind(1):       ", log.replay())
+```
+
+</details>
+
+<details><summary>JavaScript Solution</summary>
+
+```javascript
+class SessionLog {
+  constructor(events = []) {
+    this.events = structuredClone(events);
+  }
+
+  append(event) {
+    this.events.push(structuredClone(event));
+  }
+
+  replay() {
+    return [...this.events];
+  }
+
+  rewind(n) {
+    // Truncate to the first n events - the conversation IS the state.
+    this.events = this.events.slice(0, n);
+  }
+
+  fork(at) {
+    // A new independent session sharing the first `at` events.
+    return new SessionLog(this.events.slice(0, at));
+  }
+}
+
+class HookManager {
+  constructor(forbidden) {
+    this.forbidden = forbidden;
+  }
+
+  check(command) {
+    for (const bad of this.forbidden) {
+      if (command.includes(bad)) {
+        return { block: true, reason: `'${bad}' blocked by PreToolUse hook` };
+      }
+    }
+    return { block: false };
+  }
+}
+
+function runTool(log, hooks, command) {
+  const verdict = hooks.check(command);
+  if (verdict.block) {
+    log.append({ type: "tool_blocked", content: command, reason: verdict.reason });
+    return `BLOCKED: ${verdict.reason}`;
+  }
+  log.append({ type: "tool_use", content: command });
+  log.append({ type: "tool_result", content: `ran: ${command}` });
+  return `ok: ${command}`;
+}
+
+// --- demo ---
+const log = new SessionLog();
+const hooks = new HookManager(new Set(["git push", "rm -rf"]));
+
+log.append({ type: "user", content: "clean up the branch" });
+console.log(runTool(log, hooks, "ls -la"));
+console.log(runTool(log, hooks, "git push origin main"));
+console.log(runTool(log, hooks, "git status"));
+
+console.log("\nevents:", log.replay().length);
+for (const e of log.replay()) console.log(" ", e.type, "-", e.content);
+
+const branch = log.fork(3);
+branch.append({ type: "user", content: "actually, try a different approach" });
+console.log("\nforked session events:", branch.replay().length);
+console.log("original still has:    ", log.replay().length);
+
+log.rewind(1);
+console.log("after rewind(1):       ", log.replay());
+```
+
+</details>

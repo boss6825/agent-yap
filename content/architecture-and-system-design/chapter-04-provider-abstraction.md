@@ -77,6 +77,161 @@ With a provider abstraction and a tiering strategy in place:
 
 This layer is among the highest-leverage abstractions in any agent. Build it early; retrofitting it after provider quirks have spread through your code is far more painful than building it up front.
 
+## Review
+
+**Quick Check**
+
+1. The adapter layer's job is to translate between:
+   - A) The user and the database
+   - B) A neutral interface your system speaks and each provider's native API
+   - C) Tools and memory
+   - D) Streaming and persistence
+   <details><summary>Answer</summary>B) A neutral interface your system speaks and each provider's native API - one thin adapter per provider converts to and from the native wire format.</details>
+
+2. In the three-tier model strategy, generating a chat title should be routed to:
+   - A) The top tier
+   - B) The mid tier
+   - C) The low tier
+   - D) Whichever model has the largest context window
+   <details><summary>Answer</summary>C) The low tier - title generation is a trivial background task best served by the cheapest, fastest model.</details>
+
+3. A client sends a model id you do not recognize. What does the chapter say to do?
+   - A) Validate against the registry allow-list and fall back to a safe default
+   - B) Pass it straight through to the provider
+   - C) Reject the entire request
+   - D) Pick a random registered model
+   <details><summary>Answer</summary>A) Validate against the registry allow-list and fall back to a safe default - never hand an unvalidated, client-supplied model id to an API.</details>
+
+4. You run bulk extraction across a thousand documents. The chapter's tiering and reasoning guidance suggests:
+   - A) Top tier with reasoning on
+   - B) Mid tier with reasoning off
+   - C) Low tier with reasoning on
+   - D) Top tier with reasoning off
+   <details><summary>Answer</summary>B) Mid tier with reasoning off - high-volume structured work wants throughput and lower cost, and the reasoning stream would just burn tokens.</details>
+
+5. What should a well-designed adapter know about your domain (for example "documents" or "citations")?
+   - A) Everything, so it can format the final answer
+   - B) Only the tool names
+   - C) Nothing; domain logic is reconstructed above the adapter
+   - D) Just the citation format
+   <details><summary>Answer</summary>C) Nothing; domain logic is reconstructed above the adapter - keeping adapters domain-free keeps them small and interchangeable.</details>
+
+**More Questions**
+
+6. Which is one of the three forces the chapter gives for decoupling even if you launch with a single model?
+   - A) Providers require abstraction layers in their terms of service
+   - B) Models change constantly, so if switching means rewriting your agent you're stuck on yesterday's model
+   - C) Abstraction makes each individual call faster
+   - D) It removes the need for a system prompt
+   <details><summary>Answer</summary>B) Models change constantly - new versions ship monthly, prices fall, capabilities shift. The other two forces are that different tasks want different models, and risk/economics including outages, price hikes, and BYOK.</details>
+
+7. Where does the tool-call replay loop (append model turn, append results, repeat) belong?
+   - A) In the agent loop, above the adapter
+   - B) Inside the adapter, so provider-specific replay rules are encapsulated
+   - C) In the model registry
+   - D) In each tool's executor
+   <details><summary>Answer</summary>B) Inside the adapter - the replay rules differ per provider (some require replaying the prior turn verbatim, including opaque signatures echoed exactly), so encapsulating them keeps the agent loop free of provider branches.</details>
+
+8. How should reasoning/thinking mode be treated?
+   - A) As a global setting chosen at deploy time
+   - B) As a per-call toggle carried by your neutral interface and translated by each adapter
+   - C) As a property of the tool being called
+   - D) As always-on, since reasoning improves every task
+   <details><summary>Answer</summary>B) As a per-call toggle - on for interactive or genuinely hard tasks, off for bulk and one-shot jobs. When off, adapters should explicitly zero the thinking budget where the provider allows, to actually save the tokens.</details>
+
+9. Users bring their own provider keys. What refinement does the chapter suggest for background tasks?
+   - A) Always use your own key for background work
+   - B) Route background tasks to whichever provider the user has a key for, picking that provider's cheapest model
+   - C) Disable background tasks for BYOK users
+   - D) Ask the user to choose a model for each background task
+   <details><summary>Answer</summary>B) Route to whichever provider they actually have a key for and pick its cheapest model - the tiering becomes "cheapest available model of an available provider".</details>
+
+10. When does the chapter say to build the provider abstraction?
+    - A) Only once you actually add a second provider
+    - B) Early, because retrofitting it after provider quirks have spread through your code is far more painful
+    - C) After you have finished tool design and context engineering
+    - D) Never; call each provider SDK directly for clarity
+    <details><summary>Answer</summary>B) Early - it's among the highest-leverage abstractions in any agent, and retrofitting it once provider quirks are load-bearing throughout your code is far more painful than building it up front.</details>
+
+**Coding Challenge**
+
+**Resolve and validate a model id**
+
+Write `resolve_model(requested)` backed by a registry. Validate the requested id against an allow-list, fall back to a safe default for anything unknown, and infer the provider from the id prefix. Return the resolved model and its provider.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+REGISTRY = {"gpt-4o", "gpt-4o-mini", "claude-sonnet", "gemini-pro"}
+DEFAULT_MODEL = "gpt-4o-mini"
+PREFIXES = {"gpt": "openai", "claude": "anthropic", "gemini": "google"}
+
+
+def infer_provider(model_id):
+    for prefix, provider in PREFIXES.items():
+        if model_id.startswith(prefix):
+            return provider
+    return None
+
+
+def resolve_model(requested):
+    """Validate against the allow-list, fall back to default, infer provider."""
+    model = requested if requested in REGISTRY else DEFAULT_MODEL
+    provider = infer_provider(model)
+    if provider is None:
+        raise ValueError(f"no provider for {model}")
+    return model, provider
+
+
+print(resolve_model("claude-sonnet"))  # ('claude-sonnet', 'anthropic')
+print(resolve_model("evil-model"))     # ('gpt-4o-mini', 'openai')
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+const REGISTRY = new Set(["gpt-4o", "gpt-4o-mini", "claude-sonnet", "gemini-pro"]);
+const DEFAULT_MODEL = "gpt-4o-mini";
+const PREFIXES = { gpt: "openai", claude: "anthropic", gemini: "google" };
+
+function inferProvider(modelId) {
+  for (const [prefix, provider] of Object.entries(PREFIXES)) {
+    if (modelId.startsWith(prefix)) return provider;
+  }
+  return null;
+}
+
+function resolveModel(requested) {
+  const model = REGISTRY.has(requested) ? requested : DEFAULT_MODEL;
+  const provider = inferProvider(model);
+  if (!provider) throw new Error(`no provider for ${model}`);
+  return [model, provider];
+}
+
+console.log(resolveModel("claude-sonnet")); // ['claude-sonnet', 'anthropic']
+console.log(resolveModel("evil-model"));    // ['gpt-4o-mini', 'openai']
+```
+
+</details>
+
+**Think About It**
+
+1. "Don't build an abstraction until you have a second implementation" is one of the most reliable rules in software. This chapter tells you to build the provider abstraction before you have a second provider. Why is it an exception?
+   <details><summary>Show answer</summary>Because of what leaks in the meantime. Providers disagree at the wire level about nearly everything - tool-schema shapes, message formats, streaming event vocabularies, how reasoning is surfaced, whether you resend history or pass a server-side "previous response id". If you call one provider directly, each of those quirks quietly becomes load-bearing somewhere in your agent loop, and by the time you want a second provider you're not adding an adapter, you're doing a rewrite. The abstraction isn't speculative generality; it's a firebreak. And the payoff arrives before the second provider does, because the same seam is what lets you tier models, A/B two of them by changing a parameter, and adopt a new model the day it ships.</details>
+
+2. Routing work to cheaper, less capable models is supposed to be a cost compromise. The chapter claims it can improve perceived performance at the same time. How does using a worse model make the product feel better?
+   <details><summary>Show answer</summary>Because "capable" and "fast" are different axes, and most of what an agent does isn't hard. Generating a chat title, a quick reformat, a yes/no check - these are trivial tasks, and a top-tier model spends real time being thoughtful about them. Send them to the cheapest, fastest model and they finish sooner, so the interface feels snappier while the bill goes down. The discipline is to map tasks to tiers deliberately: top tier with reasoning on for the main interactive chat, mid tier with reasoning off for bulk extraction, low tier for background trivia. You're not accepting worse quality, you're stopping yourself from paying premium latency for work that never needed it.</details>
+
+3. Some providers require you to echo back an opaque signature from the model's previous turn, byte for byte. What does a requirement that strange tell you about where such code has to live?
+   <details><summary>Show answer</summary>It tells you it must be sealed inside the adapter, because it's the kind of rule that cannot be generalised and must not spread. If your agent loop knows about signature echoing, it now knows about one provider specifically, and the next provider's equally arbitrary quirk gets its own branch, and soon your loop is three providers' wire protocols wearing a trench coat. So the tool-call replay loop lives inside the adapter, and the adapter's contract is narrow: neutral input in, native call, neutral streaming callbacks out, accumulated result returned. It knows nothing about documents or citations or your domain at all - and that ignorance is exactly what makes it small enough to be interchangeable.</details>
+
+4. The model id often arrives from the client, because the user picked it in a dropdown. Why is that one of the more dangerous values in your system?
+   <details><summary>Show answer</summary>Because it's user-controlled input that you're about to hand to a paid external API, and the dropdown is not the only way to send it. The chapter's rule is blunt: never pass an unvalidated, client-supplied model id straight through. Centralise the allowed ids in a registry, check the incoming id against that allow-list, and fall back to a safe default for anything unknown. The registry then does double duty - the same id-prefix rule or explicit map that tells your dispatcher which provider owns a model is also what defines the boundary of what a client is permitted to ask for.</details>
+
 ---
 
 Next: [Chapter 5: Context engineering and memory](chapter-05-context-engineering.md)

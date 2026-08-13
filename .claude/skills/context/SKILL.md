@@ -39,6 +39,10 @@ Source files still live alongside chapters in `sources/` subfolders. They were *
 - **No em dashes.** Use commas, parentheses, colons, or rewrite the sentence instead.
 - **Practitioner-focused writing.** Teach engineers how things actually work under the hood. Avoid surface-level overviews, buzzwords without mechanism, and hand-wavy explanations.
 - Slides should be dense but readable: one core idea per slide, concrete examples where possible.
+- **Two-layer style discipline — both mandatory:**
+  - **Macro (make it compelling):** structure every chapter with the `veritasium-storytelling` skill (hook, human entry, narrative arc).
+  - **Micro (make it clear):** run every draft through the clarity layer at `.claude/skills/veritasium-storytelling/references/bhadani-explanation-rulebook.md`. It guarantees no unexplained term, no unmotivated concept, and no visible scaffolding reaches the reader. Its core law: motivation, definitions, and analogies are woven in casually — the term arrives *after* the plain-language explanation, never announced ("Let's define," "To use an analogy"). Check drafts against its banned-phrase list.
+  - "Beginner" here means "new to *this topic*," not non-technical. Clarity never lowers depth: depth stays ≥ textbook, it just becomes followable.
 
 ## Current phase
 
