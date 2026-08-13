@@ -13,7 +13,7 @@
 
 ## Metadata
 - status: active
-- owner: @vivek.d
+- owner: @boss6825
 - last-verified: 2026-07-18
 
 ## C1. Spec-First (spec-on-touch)

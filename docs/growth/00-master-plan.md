@@ -2,7 +2,7 @@
 
 > The "how we are going to do this" file. Written 2026-07-19 from the research
 > in `01-gtm-research.md`, the audits in `02`/`04`, and the designs in
-> `03`/`05`. Owner: @vivek.d. Review cadence: monthly, against the phase gates
+> `03`/`05`. Owner: @boss6825. Review cadence: monthly, against the phase gates
 > below. This is a plan, not a spec: every initiative still flows
 > CR → PRD → spec per `specs/WORKFLOW.md`.
 
@@ -137,8 +137,8 @@ click-through; GitHub stars if public. Guardrail metric: reader NPS proxy
 ## Open questions (human decisions, not agent calls)
 
 - **Q1:** Production domain (blocks `NEXT_PUBLIC_SITE_URL`, Search Console,
-  everything in Phase A). Owner: @vivek.d.
-- **Q2:** Repo public (opens Channel 3) or content-repo split? Owner: @vivek.d.
+  everything in Phase A). Owner: @boss6825.
+- **Q2:** Repo public (opens Channel 3) or content-repo split? Owner: @boss6825.
 - **Q3:** CR-2026-013 tension with plan.md non-goals: accept the moderated
   daily challenge and amend the non-goals line, or reject at triage.
 - **Q4:** Who runs the social cadence (founder, agent-drafted queue with human

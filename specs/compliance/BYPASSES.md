@@ -7,7 +7,7 @@
 
 ## Metadata
 - status: active
-- owner: @vivek.d
+- owner: @boss6825
 - last-verified: 2026-07-18
 
 | Date (UTC) | PR / commit | Author | Reason | State | Closed by |
