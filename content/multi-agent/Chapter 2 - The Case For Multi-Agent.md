@@ -73,3 +73,167 @@ The honest conclusion from these articles: multi-agent systems shine for high-va
 - Reserve multi-agent for high-value, parallelizable, breadth-heavy tasks, not for interdependent work like coding.
 
 Continue to Chapter 3 for the opposing view.
+
+## Review
+
+**Quick Check**
+
+1. By roughly how much did the multi-agent system (Claude Opus 4 lead, Claude Sonnet 4 subagents) outperform a single-agent Claude Opus 4 on Anthropic's internal research evaluation?
+   - A) 12 percent
+   - B) 40 percent
+   - C) 90.2 percent
+   - D) 200 percent
+   <details><summary>Answer</summary>C) 90.2 percent - measured on their internal research evaluation, with the articles candid that this works largely because multi-agent systems spend more tokens.</details>
+
+2. Which single factor explained about 80 percent of the performance variance in the browsing evaluations?
+   - A) Model choice
+   - B) Token usage
+   - C) Number of subagents
+   - D) Quality of the citation agent
+   <details><summary>Answer</summary>B) Token usage - with the number of tool calls and the model choice as the next biggest factors.</details>
+
+3. What is the Citation Agent's job?
+   - A) Formatting the report into markdown
+   - B) Deciding which subagents to spawn
+   - C) Checking every claim against its sources and matching citations correctly
+   - D) Compressing subagent findings before they reach the lead
+   <details><summary>Answer</summary>C) Checking every claim against its sources and matching citations correctly - it guards against hallucination and against attributing a fact to the wrong source.</details>
+
+4. Under the effort scaling rules written into the prompts, what does a simple fact check get?
+   - A) One agent and 3 to 10 tool calls
+   - B) 2 to 4 subagents with 10 to 15 calls each
+   - C) 10 or more subagents
+   - D) Whatever the lead agent judges appropriate at runtime
+   <details><summary>Answer</summary>A) One agent and 3 to 10 tool calls - the rules exist precisely because agents are bad at judging how much effort a task deserves.</details>
+
+5. One subagent investigated the 2021 semiconductor shortage while two others ran nearly identical searches on 2025 supply chains. What does the chapter identify as the fix?
+   - A) Increasing the token budget so duplication costs less
+   - B) Prompting the orchestrator to produce detailed, unambiguous subtask descriptions with clear objectives, output formats, tool guidance, and task boundaries
+   - C) Reducing the number of subagents to one
+   - D) Adding a second citation agent
+   <details><summary>Answer</summary>B) Teaching the orchestrator to delegate properly - without a clear objective, output format, tool guidance, and precise boundaries, subagents duplicated work or left gaps.</details>
+
+**More Questions**
+
+6. At what point does the system persist context so a long research task does not lose its plan and findings?
+   - A) After every subagent returns
+   - B) When conversations pass 200,000 tokens
+   - C) Only on failure and retry
+   - D) After the citation agent finishes
+   <details><summary>Answer</summary>B) When conversations pass 200,000 tokens - the lead writes its plan into memory, and persisting past that threshold protects the plan from being lost when tokens run out. This is memory used as a safeguard against context rot.</details>
+
+7. How does the system use parallelism at two levels, and what is the reported effect?
+   - A) The lead spawns 3 to 5 subagents at once and each subagent runs multiple tool calls in parallel, cutting research time by up to 90 percent for complex queries
+   - B) Two leads run concurrently, halving latency
+   - C) Every subagent is duplicated for redundancy, improving accuracy by 90 percent
+   - D) Tool calls are batched across subagents by a scheduler
+   <details><summary>Answer</summary>A) The lead spawns 3 to 5 subagents at once, and each subagent runs multiple tool calls in parallel - cutting research time by up to 90 percent for complex queries.</details>
+
+8. Deploying new code could break agents running mid-task. What solved it?
+   - A) Pausing all traffic during deploys
+   - B) Rainbow deployments, which gradually shift traffic from the old version to the new while keeping both alive
+   - C) Forcing agents to checkpoint and restart on the new version
+   - D) Deploying only during low-traffic windows
+   <details><summary>Answer</summary>B) Rainbow deployments - both versions stay alive while traffic shifts gradually, so in-progress sessions are not disrupted.</details>
+
+9. What did Anthropic find about the size and structure of their evaluations?
+   - A) Large evaluation sets were mandatory from day one
+   - B) Effect sizes were so large early on that about 20 representative queries sufficed, and one well-designed judge prompt beat several specialized judges
+   - C) Human review could be dropped once the LLM judge reached 90 percent accuracy
+   - D) Process-based grading proved more reliable than outcome-based grading
+   <details><summary>Answer</summary>B) About 20 representative queries were enough early on because success rates were jumping from 30 to 80 percent, and a single well-designed judge prompt proved more consistent than several specialized judges.</details>
+
+10. What does the chapter name as the system's known remaining bottleneck?
+    - A) The citation agent's throughput
+    - B) Context window size
+    - C) Synchronous execution, where the lead waits for each batch of subagents to finish
+    - D) The cost of the Opus lead model
+    <details><summary>Answer</summary>C) Synchronous execution - it keeps coordination simple but slows things down and prevents real-time steering. Asynchronous execution would unlock more parallelism but adds hard problems in coordinating results, keeping state consistent, and propagating errors.</details>
+
+**Think About It**
+
+1. The team built an agent whose only job was to repeatedly try a badly described tool and then rewrite its description. That sounds like a strange thing to spend engineering time on. What made it worth it?
+<details><summary>Show answer</summary>
+It cut task completion time by about 40 percent for later agents - a bigger win than most prompt tweaks produce, from an agent that never touches the actual research task. The reason it works is that the interface between an agent and its tools matters as much as a human-computer interface, and a poorly described tool can send an agent down completely the wrong path. That failure is invisible from the outside: the agent looks like it is reasoning badly when actually it was misinformed about what the tool does. The tool-testing agent is a striking case of an agent improving its own environment rather than its own reasoning - and once MCP servers start exposing many external tools of wildly varying quality, that becomes the more scalable place to intervene.
+</details>
+
+2. The honest headline is that the multi-agent system beat the single agent by 90 percent - and that token usage alone explains about 80 percent of the performance variance. Doesn't that deflate the result?
+<details><summary>Show answer</summary>
+It reframes it rather than deflating it. The architecture is not making the model smarter; it is a mechanism for spending far more tokens on a problem across parallel context windows than a single agent could ever spend inside one. That is a real capability - a single agent physically cannot comb hundreds of sources, because the window fills and the sequential processing is too slow - but it tells you exactly when the trade is worth making. If a task cannot absorb more tokens productively, multi-agent has nothing to offer it. And since the system costs roughly 15 times the tokens of a chat, the task has to be valuable enough to justify buying that spend.
+</details>
+
+3. Human testers were still catching things the automated judge missed. What kind of thing, and why couldn't the judge see it?
+<details><summary>Show answer</summary>
+They caught hallucinated answers on unusual queries, subtle biases, and - the most interesting one - a tendency in early agents to prefer SEO-optimized content farms over authoritative sources like academic PDFs. A rubric-based judge grading factual accuracy, citation accuracy, completeness, source quality, and tool efficiency will happily pass a report that is internally consistent and correctly cited to a bad source, because nothing in the output looks wrong. The problem lives in what the agent chose to read, not in what it wrote. That finding is what led to adding explicit source-quality heuristics to the prompts - a fix that only exists because a human noticed a pattern the automation had no way to flag.
+</details>
+
+4. Standard RAG already retrieves documents and answers from them. Why wasn't that enough for research?
+<details><summary>Show answer</summary>
+Because standard RAG fetches a fixed set of documents once, based on similarity to the original query, and then answers from them - it assumes you know what to look for before you start looking. Open-ended research does not work that way: each discovery can shift the direction of inquiry, so you cannot script a fixed pipeline in advance. What the task needs is repeated searching, adaptation based on what turns up, and the freedom to follow new leads, which is dynamic branching exploration rather than static retrieval. That requirement - not a preference for elaborate architecture - is what pushes the design toward agents that decide their own next query.
+</details>
+
+5. Both articles say going from prototype to production was harder than expected. Why should a minor glitch matter more for an agent than for ordinary software?
+<details><summary>Show answer</summary>
+Because errors in long-running stateful agents compound. In ordinary software a transient glitch slows a request down and the next request starts clean; in an agent, a bad tool result becomes part of the context that shapes every subsequent decision, so it can completely derail a research trajectory rather than just delaying it. That is why the production work looks the way it does: the ability to resume from failure points instead of restarting from scratch, deterministic safeguards like retry logic and regular checkpoints wrapped around the model's adaptability, and telling agents about tool failures so they can adapt rather than silently absorbing them. Debugging is harder too - the same prompt can take different paths, so ordinary logging isn't enough and they added tracing over high-level decision patterns while deliberately not storing the contents of individual user conversations.
+</details>
+
+**Coding Challenge**
+
+**Implement the effort-scaling rules**
+
+Write a `scale_effort(complexity)` function that encodes the chapter's explicit effort scaling rules. For `"fact_check"` return 1 agent and a 3-to-10 tool-call budget; for `"comparison"` return 2 to 4 subagents with 10 to 15 calls each; for `"complex"` return 10 or more subagents with clearly divided responsibilities. Raise a clear error for anything else rather than guessing, since the whole point is that agents judge effort badly.
+
+<details>
+<summary>Python Solution</summary>
+
+```python
+RULES = {
+    "fact_check": {"agents": (1, 1), "calls_per_agent": (3, 10)},
+    "comparison": {"agents": (2, 4), "calls_per_agent": (10, 15)},
+    "complex":    {"agents": (10, None), "calls_per_agent": (10, 15)},
+}
+
+
+def scale_effort(complexity):
+    if complexity not in RULES:
+        raise ValueError(f"unknown complexity {complexity!r}; expected {sorted(RULES)}")
+    rule = RULES[complexity]
+    lo, hi = rule["agents"]
+    return {
+        "subagents": f"{lo}+" if hi is None else (str(lo) if lo == hi else f"{lo}-{hi}"),
+        "tool_calls_per_agent": "{}-{}".format(*rule["calls_per_agent"]),
+        "max_total_calls": (hi or lo) * rule["calls_per_agent"][1],
+    }
+
+
+for c in ("fact_check", "comparison", "complex"):
+    print(c, scale_effort(c))
+```
+
+</details>
+
+<details>
+<summary>JavaScript Solution</summary>
+
+```javascript
+const RULES = {
+  fact_check: { agents: [1, 1], callsPerAgent: [3, 10] },
+  comparison: { agents: [2, 4], callsPerAgent: [10, 15] },
+  complex: { agents: [10, null], callsPerAgent: [10, 15] },
+};
+
+function scaleEffort(complexity) {
+  const rule = RULES[complexity];
+  if (!rule) throw new Error(`unknown complexity "${complexity}"`);
+  const [lo, hi] = rule.agents;
+  return {
+    subagents: hi === null ? `${lo}+` : lo === hi ? `${lo}` : `${lo}-${hi}`,
+    toolCallsPerAgent: rule.callsPerAgent.join("-"),
+    maxTotalCalls: (hi ?? lo) * rule.callsPerAgent[1],
+  };
+}
+
+for (const c of ["fact_check", "comparison", "complex"]) console.log(c, scaleEffort(c));
+```
+
+</details>
