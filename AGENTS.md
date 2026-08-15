@@ -36,7 +36,7 @@ and `.env.example`. Do not modify `src/lib/content.ts` or the reader UI.
 
 ## Commands
 
-- `npm run dev` — dev server
+- `npm run dev` — dev server → http://localhost:3005
 - `npm run build` — production build (also validates types/static params)
 - `npm run lint` — eslint
 

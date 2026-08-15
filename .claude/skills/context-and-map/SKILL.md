@@ -155,7 +155,7 @@ Import content from `src/lib/content.ts`; never re-parse markdown elsewhere.
 ## Commands
 
 ```bash
-npm run dev      # localhost:3000
+npm run dev      # localhost:3005
 npm run build    # production build + type/static validation
 npm run lint     # eslint
 ```

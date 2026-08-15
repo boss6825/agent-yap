@@ -49,9 +49,9 @@ restate AGENTS.md's rules. Edit rules in `AGENTS.md`; edit navigation here.
 ## Commands
 
 ```bash
-npm run dev      # dev server → http://localhost:3000
+npm run dev      # dev server → http://localhost:3005
 npm run build    # production build — ALSO type-checks + prerenders all slides (the real gate)
-npm run start    # serve the production build
+npm run start    # serve the production build → http://localhost:3005
 npm run lint     # eslint
 ```
 

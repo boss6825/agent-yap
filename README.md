@@ -35,14 +35,14 @@ AI "Ask the docs" assistant grounded in the content.
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
+npm run dev      # http://localhost:3005
 ```
 
 Build / run production:
 
 ```bash
 npm run build
-npm start
+npm start        # http://localhost:3005
 ```
 
 ### Environment

@@ -34,7 +34,7 @@ One commit, verified with `npm run build` + `npm run lint` + curl against
 `npm run start`:
 
 - `src/lib/site.ts`: canonical origin helper. Resolution order:
-  `NEXT_PUBLIC_SITE_URL`, then Vercel envs, then `http://localhost:3000`.
+  `NEXT_PUBLIC_SITE_URL`, then Vercel envs, then `http://localhost:3005`.
 - `src/app/sitemap.ts`: landing page + all 181 canonical slide URLs from
   `src/lib/content.ts`. Redirect routes (`/read`, `/read/[book]`) excluded.
 - `src/app/robots.ts`: allow all, disallow `/api/`, point at the sitemap.
