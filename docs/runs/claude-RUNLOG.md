@@ -356,3 +356,154 @@ ambiguous. One token hairline doing one job.
   diagram container falls back to Chrome's default ring and picks up the token ring for free
   once SOL-10 lands.
 
+### SOL-12 — `aria-hidden` the scramble animation
+
+- **Status:** complete · commit `09bd073` *fix: keep real heading text in the accessibility tree during scramble (SOL-12)*
+- **Files changed:** `src/components/home/fx.ts` **only** (+70/−7). `Home.tsx` not edited at all.
+- **Build:** green — exit 0, `✓ Generating static pages (210/210) in 4.2s`
+- **Lint:** green — exit 0, zero output
+- **Slide count:** 199 → 199
+
+**Line-number / count audit**
+
+| Issue claim | Reality |
+|---|---|
+| `src/lib/fx.ts` | **WRONG PATH — no such file.** The module is `src/components/home/fx.ts`. Applies to the Files list and all three `fx.ts:NN` citations |
+| `fx.ts:36-55` scramble | correct |
+| `fx.ts:107` hero applier | correct |
+| `fx.ts:144-163` IO applier | correct |
+| `Home.tsx:151` `<h1>` | correct |
+| six `<h2>` at `214, 256, 278, 324, 381, 409` | five correct; **`256` is off by one — the attribute is at `Home.tsx:255`** |
+| "one h1 + six h2s = seven call sites" | **correct, counted independently.** Built HTML: 1 `<h1>`, 7 `<h2>` total, 6 carrying `data-scramble`. The 7th h2 (`Home.tsx:187`) uses `data-lines`/SplitText and is not scrambled |
+
+The audit itself (`02-code-ux-audit.md` §4.5) uses the bare filename `fx.ts`, so the wrong path
+was introduced when the issue was written, not in the audit.
+
+**SSR vs client (measured).** Server-rendered HTML is **unchanged** — `.next/server/app/index.html`
+still holds `<h1 id="hero-head" …>Understand agents from the inside.</h1>` with no spans, no
+`aria-hidden`, no duplicated text. That is the argument for doing this in `fx.ts` rather than in
+seven places in `Home.tsx`: a JSX implementation would ship doubled text to every no-JS reader,
+every CSS-off reader and every text extractor.
+
+**Hydration: no mismatch, measured.** `initHomeFx` runs from a `useEffect`, after hydration
+commits, so React never diffs the restructured DOM. Verified on a **dev** build (React dev
+bundle, port 3017) with `console` + `pageerror` listeners attached before navigation: 4 entries
+total, all framework noise; filtering `/hydrat|did not match|Warning|mismatch/i` → **0 matches**.
+DOM after load: `animSpans: 7, srOnly: 7, h1ChildCount: 2, duplicateNesting: 0` — idempotent
+through strict-mode double-mount. React re-render resilience also measured: opening and closing
+the Search panel to force `Home` state changes left `survivedOpen: true, survivedClose: true`,
+7 anim spans, all still `aria-hidden`, names unchanged.
+
+**Acceptance**
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| real heading text in the a11y tree at all times | MET | restructuring happens at `initHomeFx` time, before the hero's 350 ms lead-in and before any h2 scrolls into view — no unlabelled window |
+| animated node is `aria-hidden` | MET | `<span data-scramble-anim="" aria-hidden="true">`, all 7 checked programmatically (`allAriaHidden: true`) |
+| heading levels + outline unchanged | MET | no tags added or changed, only inline `span`s inside existing headings; tree shows `[level=1]` once and `[level=2]` seven times |
+| verified on the rendered a11y tree, not source | MET | see below |
+| reduced motion → no scramble at all | MET | measured |
+| build + lint green | MET | both exit 0 |
+
+**F-021 · `read_page` is NOT an accessibility tree and must not be used as a11y evidence.**
+This is the most important finding of the run so far. `read_page` showed every heading name
+doubled — `heading "Understand agents from the inside.Understand agents from the inside."` —
+which would read as a failure. The agent probed it by injecting
+`<h3><span>PROBEVISIBLE</span><span aria-hidden="true">PROBEHIDDENSPAN</span></h3><p aria-hidden="true">PROBEHIDDENPARA</p>`
+and got back `heading "PROBEVISIBLEPROBEHIDDENSPAN"` plus `generic "PROBEHIDDENPARA"` — a fully
+`aria-hidden` paragraph still appears. **`read_page` is DOM-derived: it does not prune
+`aria-hidden` and does not compute accessible names.** Switching to Playwright's ARIA snapshot
+(which does real accessible-name computation) on the same probe returned
+`heading "PROBEVISIBLE" [level=3]` — correct. Real page, real tool:
+
+```yaml
+heading "Understand agents from the inside." [level=1]
+heading "Most courses stop at the architecture diagram. …" [level=2]   # not scrambled
+heading "Many agents. One system." [level=2]
+heading "Rise above surface-level understanding." [level=2]
+heading "18 chapters. No hand-waving." [level=2]
+heading "Memory is sediment." [level=2]
+heading "The climb is the curriculum." [level=2]
+heading "Built for reading, not scrolling." [level=2]
+```
+
+This retroactively weakens the a11y-tree claims in SOL-5, SOL-6 and SOL-7, which all used
+`read_page`. Their *other* evidence (computed styles, DOM attributes, measured contrast, click
+behaviour) stands; only the "accessibility tree" framing was overstated.
+
+**During-animation evidence — measured.** `requestAnimationFrame` was gated, then "Memory is
+sediment." was scrolled into view so its **real** IntersectionObserver fired the **real**
+`scrambleEl`. The gate stopped the loop after three sampled frames, leaving genuine
+mid-animation output in the DOM (the gibberish was produced by the app, not written by hand):
+
+```json
+{"samples":[{"tMs":1515,"animText":"MDDOHV IE LQLOBIQH."}],
+ "frozenAnimAriaHidden":"true","frozenSrOnlyText":"Memory is sediment.",
+ "headingTextContent":"Memory is sediment.MDDOHV IE LQLOBIQH."}
+```
+
+ARIA snapshot taken in that frozen state:
+`heading "Memory is sediment." [level=2]: MDDOHV IE LQLOBIQH.` — accessible name correct while
+the rendered glyphs are gibberish. That is the criterion, measured on a real accessibility tree.
+
+**`sr-only` copy off-screen, zero visual duplication — measured.** `position: absolute · 1px ×
+1px · clip-path: inset(50%) · overflow: hidden · margin: -1px · white-space: nowrap`,
+`getBoundingClientRect → 1 × 1`. Tailwind v4 built-in, not hand-rolled; `globals.css` untouched;
+no new colors. **Zero layout delta:** for all seven headings the rect was measured with the fix,
+the pre-fix single text node swapped back in, re-measured, and restored — `identical: true` on
+width, height and top for **7/7** (h1 `980 × 166.4 @ top 470.5` both ways). Mobile 375×812:
+`horizontalOverflow: false`, sr-only still 1×1, name still correct.
+
+**Reduced motion — measured.** Playwright `emulateMedia({ reducedMotion: 'reduce' })`, full load:
+`mediaMatches: true`, `h1.restructured: false`, `scrambleTargetsPrepared: 0`, `animSpans: 0`,
+`srOnlySpansInHeadings: 0`, name correct. **It was already honoured before this issue**
+(`fx.ts:84-86` plus `!reduced` guards at both call sites) — that acceptance criterion was
+pre-satisfied, not new work. The new restructure was gated behind the same flag so
+reduced-motion users get a DOM identical to the SSR output.
+
+**Console / hydration.** Production build (3016): `Total messages: 0 (Errors: 0, Warnings: 0)`
+for the whole session. Dev build (3017): 4 framework-noise entries, 0 errors, **0 hydration
+warnings**. Reader slide `01-anatomy/0`: 0 page errors, 0 stray anim/sr-only nodes — SOL-5/6/7
+not regressed.
+
+**What the issue got wrong**
+
+- **F-022 · `src/lib/fx.ts` does not exist.** The file is `src/components/home/fx.ts`. The Files
+  list and all three citations need correcting. Offsets *inside* the file were accurate.
+- **F-023 · `Home.tsx:256` is off by one** — the fifth scrambled heading's `data-scramble` is at
+  line 255.
+- **F-024 · `prefers-reduced-motion` was already honoured**, so that criterion was pre-satisfied.
+  The live gap the audit §4.5 actually describes is different: the check is a one-shot
+  `matchMedia(...).matches` at init with **no `change` listener**, so toggling the OS setting
+  still needs a reload — while `AmbientBackdrop` uses framer's reactive `useReducedMotion()`.
+  Inconsistent. **Not fixed here**: it is a separate defect outside this issue's acceptance, and
+  reactive teardown/re-init of the whole fx system is well beyond "aria-hidden the scramble".
+- **F-025 · `P-READER-002` is defined but unregistered.** It exists at
+  `specs/features/reader/ide-shell/spec.md:77` ("Progress is monotone and local") and is cited in
+  that feature's `plan.md:40` and `review.md:13`, but the global registry
+  `specs/properties/invariants.md` contains only `P-CONTENT-001` and `P-ASK-001`. So an agent
+  told to "check against P-READER-002" and pointed at the registry finds nothing. This is the
+  C10 violation already recorded in `03-prior-decisions.md` — three shipped invariants
+  (P-READER-002, P-READER-003, P-CHAT-001) are missing from the registry.
+- **F-026 · Caveat on the prescribed shape, worth recording.** `sr-only` sibling + `aria-hidden`
+  animated node is correct and measured. But implementing it in `fx.ts` means replacing children
+  of React-owned elements. That is safe here only because all seven headings render **static**
+  text — re-renders were verified not to clobber it. If any of these headings' text later becomes
+  dynamic, React loses its text-node handle. The `data-scramble-original` attribute and the
+  teardown restore limit the blast radius; a JSX implementation would be immune but would ship
+  duplicated text in the SSR HTML.
+
+**F-027 · Playwright MCP writes into the wrong tree.** It created
+`C:/Users/arpit/Projects/agent YAP/.playwright-mcp/` (snapshots + console logs) inside **Cursor's
+live working tree**, resolving its output dir from the session cwd rather than the worktree.
+`.playwright-mcp` is **not** in that repo's `.gitignore`, so it would have been swept into a
+`git add -A` there. The agent removed both artifacts; independently re-verified — that tree has
+no `.playwright-mcp` directory. Worth gitignoring before another agent uses Playwright here.
+
+**Noted, deliberately not done**
+
+- The scramble effect itself — untouched, same durations, same visuals.
+- The reactive-reduced-motion gap (F-024).
+- The non-scrambled SplitText `<h2>` at `Home.tsx:187`, which splits into four line `div`s. Its
+  accessible name concatenates correctly today, so it has no equivalent bug.
+
