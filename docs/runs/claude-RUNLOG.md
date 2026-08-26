@@ -118,3 +118,109 @@ reverted it with `git checkout` before committing; it is not in the commit.
 - The `<details>` sits inside the `<li>` of option "D)" as a lazy continuation, so the answer
   renders flush under the last distractor. A parser concern (M2 `## Review` → `questions[]`).
 
+### SOL-6 — `Markdown.tsx`: resolve relative `.md` links to reader routes
+
+- **Status:** complete · commit `a380684` *fix: resolve relative .md cross-links to reader routes (SOL-6)*
+- **Files changed:** `src/components/markdown-links.ts` (new, 248 lines), `src/components/Markdown.tsx`, `src/app/read/[book]/[chapter]/[slide]/page.tsx` (+310/−7)
+- **Build:** green — exit 0, 210 pages, TypeScript clean
+- **Lint:** green — exit 0, zero output
+- **Slide count:** 199 → 199
+- **`content/` untouched:** confirmed — `git diff d55d2da HEAD -- content/` is empty
+
+**Recon — the issue's numbers are wrong**
+
+| Measured | Value |
+|---|---|
+| `.md` link occurrences corpus-wide | **417** in **85** files |
+| of which relative | **411** in **82** files |
+| shapes | 182 `../path` · 142 `sub/path` · 87 bare filename |
+| anchored (`.md#…`) | **264** (almost all `../glossary/Glossary.md#…`) |
+| in the only live book | **36** relative, **0** anchored |
+| …of those actually **rendered** today | **17** (the `Next:` link at the foot of ch. 01–17) |
+
+By directory: research papers 163 · architecture 72 (36 inside `old docs/`) · context
+engineering 46 · agentic memory 42 · rag 39 · multi-agent 32 · harness 17.
+
+**Decision on unresolvable targets: inert *and* visibly marked — both, not either.**
+Rendered as a non-link `<span class="text-ink-2 underline decoration-dotted …"
+data-unresolved-link="…">glossary term<span class="sr-only"> (not published yet)</span></span>`.
+Nothing to click, nothing focusable (`tabIndex === -1`), muted `--color-ink-2` (existing
+token, no new color), and assistive tech reads "glossary term (not published yet)". A
+`title` tooltip was written first and then **removed**: on a non-interactive element it is
+keyboard-unreachable and it hijacked the accessible name — the tree read
+`generic "Not published yet: ../glossary/Glossary.md#embedding"` instead of the link text.
+
+**Acceptance**
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| build + lint green | MET | both exit 0 |
+| relative link resolves to `/read/<book>/<chapter>/<slide>` | MET | all 17 real corpus links resolve in the shipping build; `grep 'href="[^"]*\.md[^"]*"' .next/server/app/read` returns **nothing**. Clicked ch.06 slide 10 → `/read/architecture-and-system-design/07-retrieval-strategies/0` |
+| anchored links land on the right **slide** | MET | `#a-decision-guide` (an `##`) → slide **4**; `#2-retrieval-augmented-generation-rag` (an `###` nested inside "The three strategies") → slide **1**, not slide 0 |
+| unresolvable target not silently broken | MET | decision above |
+| external + in-page anchors unchanged | MET | external keeps `target="_blank" rel="noopener noreferrer"`; `#the-six-parts` verbatim; `../img/diagram.png` passes through untouched |
+
+The anchor map is built from `##` slide titles plus every ATX heading inside each slide's
+markdown, fenced code excluded, with a GitHub-slugger-compatible slugifier and two fallback
+passes.
+
+**Browser verification.** `npm run build` → `npx next start -p 3014` → `preview_start {url}`.
+Port 3005 / PID 3672 never touched. Because the live book has **zero** anchored links and its
+only unresolvable link lives in the never-rendered `index.md`, those two criteria are
+untestable against shipped content — the agent temporarily inserted a 10-case probe into
+`chapter-01-anatomy.md`, verified, restored the file, and rebuilt. Verified afterwards:
+`git diff d55d2da HEAD -- content/` empty, `grep -rn "SOL6TESTBLOCK" content/ src/` → none.
+
+Accessibility tree on the probe page showed `link` for resolved targets and `generic` (not
+`link`) for the unresolved one. Measured contrast, computed in-page with the WCAG formula:
+dark theme unresolved span `rgb(152,152,157)` on `rgba(10,10,12,.72)` → **6.89:1**, resolved
+link **6.56:1**; light theme unresolved **5.07:1**, resolved **4.70:1**. Mobile 375×812 →
+`scrollWidth 375`, no horizontal overflow. `read_console_messages` after every navigation:
+"No console logs."
+
+**Screenshots: NOT captured.** `computer{action:"screenshot"}` failed on every attempt with
+"the Browser pane is not displayed, so the page is not compositing frames", including after
+`tabs_select`. Substituted DOM attribute dumps, computed styles and the full accessibility
+tree rather than describe an image nobody saw.
+
+**What the issue got wrong**
+
+- **F-011 · The 324-links-across-47-files figure is wrong.** Measured **411 relative links
+  across 82 files** (417/85 counting the 6 external ones). The master plan §1 table carries
+  the 324 number, and `research/02-code-ux-audit.md` carries **no `file:line` evidence for
+  links at all** — the issue's Source promised evidence that is not there.
+- **F-012 · "324 dead links fixed" books an M3 payoff to Week 1.** Only **17** relative `.md`
+  links currently render anywhere on the site. 375 are in dark folders and 19 more are in
+  `index.md` files the reader never renders. The resolver handles all 411, but 394 stay
+  invisible until M3.
+- **F-013 · The Files list is incomplete.** `Markdown.tsx` took only `{ children }` and has no
+  ambient way to learn the current book/chapter, so the call site
+  `src/app/read/[book]/[chapter]/[slide]/page.tsx` had to change too (2 call sites, 1 file).
+- **F-014 · Pre-existing bug fixed in passing.** The old `a({ href, children, ...props })`
+  spread react-markdown's `node` (the hast AST) onto the DOM element, emitting
+  `node="[object Object]"` on **every anchor in the corpus**. Confirmed with
+  `renderToStaticMarkup` on the installed React 19; now stripped, 0 in the built HTML.
+- **F-015 · Anchors route but do not scroll.** There is no `rehype-slug` in the pipeline, so
+  no heading carries an `id`. The link lands on the correct *slide* (which is what the
+  criterion asks) and the fragment is preserved for forward-compatibility, but nothing
+  scrolls. The corpus's own in-page `#anchor` links are equally inert today.
+- **F-016 · Screenshots are not obtainable from this headless session** — see above. Applies
+  to every issue in this run, not just this one.
+
+**Needs to fold into M2 (`content.ts`): nothing required.** The mapping is fully derivable
+from existing exports (`getBook`, `getChapter`, `Chapter.slides[].{title,markdown,sectionIndex,href}`).
+One coupling to know about: `markdown-links.ts` **mirrors** two rules that live in
+`content.ts` — "book slug = directory name under `content/`" and "chapter slug = filename
+minus leading `chapter-` and trailing `.md`". If M2 changes either (frontmatter-driven slugs,
+`###` sub-splitting shifting slide indices), the resolver must change with it. A
+`resolveContentPath(fromBook, relativePath)` export would remove the duplication —
+nice-to-have, not a blocker.
+
+**Noted, deliberately not done**
+
+- The moment M3 gives `content/glossary/` an `index.md` and a `chapter-NN-*.md` filename, all
+  264 glossary anchors resolve with **no further code change**. Worth re-verifying then.
+- `content/architecture-and-system-design/index.md` and its 19 chapter links are never
+  rendered by the reader. If that is meant to be a book landing page, it is a missing
+  surface, not a link bug.
+
