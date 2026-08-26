@@ -3,10 +3,41 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeHighlight from "rehype-highlight";
+import type { Element, ElementContent } from "hast";
 import {
   resolveMarkdownLink,
   type MarkdownLinkContext,
 } from "@/components/markdown-links";
+import { MermaidDiagram } from "@/components/MermaidDiagram";
+
+/** Every text node under a hast subtree, concatenated. */
+function hastText(node: ElementContent): string {
+  if (node.type === "text") return node.value;
+  if (node.type === "element") return node.children.map(hastText).join("");
+  return "";
+}
+
+/**
+ * The source of a ```mermaid fence, or `null` for every other `<pre>`.
+ *
+ * Reads the hast node rather than the rendered React children so the text
+ * comes back verbatim regardless of what the rehype pipeline did to the
+ * element tree.
+ */
+function mermaidSource(node: Element | undefined): string | null {
+  const code = node?.children.find(
+    (child): child is Element =>
+      child.type === "element" && child.tagName === "code",
+  );
+  if (!code) return null;
+
+  const classNames = code.properties?.className;
+  const list = Array.isArray(classNames) ? classNames.map(String) : [];
+  if (!list.includes("language-mermaid")) return null;
+
+  const source = code.children.map(hastText).join("").replace(/\n+$/, "");
+  return source.trim() ? source : null;
+}
 
 /**
  * Renders a slide's markdown. Server component — no JS shipped for content.
@@ -33,6 +64,14 @@ import {
  * the `a()` override turn the corpus's relative `.md` cross-links into reader
  * routes (see `markdown-links.ts`). Omit it and every href renders exactly as
  * it did before — relative `.md` links included.
+ *
+ * The `pre()` override hands a ```mermaid fence to `MermaidDiagram`, a lazy
+ * client island, and passes the untouched `<pre>` down as its children so the
+ * code block is what the server sends and what survives no-JS or a malformed
+ * diagram. `plainText: ["mermaid"]` keeps rehype-highlight's hands off those
+ * fences — highlight.js has no mermaid grammar, so it would otherwise log a
+ * `missing-language` message per diagram and stamp a pointless `hljs` class on
+ * markup nobody sees.
  */
 export function Markdown({
   children,
@@ -47,9 +86,22 @@ export function Markdown({
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[
           rehypeRaw,
-          [rehypeHighlight, { detect: true, ignoreMissing: true }],
+          [
+            rehypeHighlight,
+            { detect: true, ignoreMissing: true, plainText: ["mermaid"] },
+          ],
         ]}
         components={{
+          pre({ children, node, ...props }) {
+            const source = mermaidSource(node);
+            if (!source) return <pre {...props}>{children}</pre>;
+
+            return (
+              <MermaidDiagram chart={source}>
+                <pre {...props}>{children}</pre>
+              </MermaidDiagram>
+            );
+          },
           a({ href, children, node, ...props }) {
             // react-markdown passes the hast node to every override
             // (`passNode: true`). It has to be pulled out of the rest spread or
