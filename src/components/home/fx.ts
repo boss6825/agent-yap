@@ -32,6 +32,55 @@ function rnd(i: number, salt: number) {
 
 /* ---------------- HyperText scramble ---------------- */
 const SCRAMBLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const SCRAMBLE_ANIM_ATTR = "data-scramble-anim";
+const SCRAMBLE_ORIGINAL_ATTR = "data-scramble-original";
+
+/**
+ * Split a heading in two before any animation is allowed to touch it:
+ *
+ *   <h2><span class="sr-only">Real text</span><span aria-hidden>Real text</span></h2>
+ *
+ * `scrambleEl` then only ever writes into the `aria-hidden` span, so the
+ * heading's accessible name is computed from the `sr-only` copy and stays
+ * correct before, during, and after the 900–1100 ms animation. Screen readers
+ * and heading navigation never see the random characters. `sr-only` is
+ * out-of-flow (absolute, clipped to 1×1), so the visible text is unchanged and
+ * nothing is duplicated on screen.
+ *
+ * This runs from `initHomeFx`, i.e. from a `useEffect` after hydration — the
+ * server-rendered HTML still ships the plain heading text (correct with no JS)
+ * and React never diffs against the restructured DOM. Idempotent, and undone by
+ * `restoreScrambleTarget` on teardown so React strict-mode double mounts do not
+ * nest spans.
+ */
+function prepareScrambleTarget(el: HTMLElement): HTMLElement | null {
+  const existing = el.querySelector<HTMLElement>(`[${SCRAMBLE_ANIM_ATTR}]`);
+  if (existing) return existing;
+
+  const original = el.textContent ?? "";
+  if (!original) return null;
+  el.setAttribute(SCRAMBLE_ORIGINAL_ATTR, original);
+
+  const label = document.createElement("span");
+  label.className = "sr-only";
+  label.textContent = original;
+
+  const anim = document.createElement("span");
+  anim.setAttribute(SCRAMBLE_ANIM_ATTR, "");
+  anim.setAttribute("aria-hidden", "true");
+  anim.textContent = original;
+
+  el.replaceChildren(label, anim);
+  return anim;
+}
+
+/** Undo `prepareScrambleTarget`: back to a single plain text node. */
+function restoreScrambleTarget(el: HTMLElement) {
+  const original = el.getAttribute(SCRAMBLE_ORIGINAL_ATTR);
+  if (original === null) return;
+  el.removeAttribute(SCRAMBLE_ORIGINAL_ATTR);
+  el.replaceChildren(document.createTextNode(original));
+}
 
 function scrambleEl(el: HTMLElement, duration = 900) {
   const original = el.getAttribute("data-scramble-text") ?? el.textContent ?? "";
@@ -89,6 +138,8 @@ export function initHomeFx(root: HTMLElement): () => void {
   const observers: IntersectionObserver[] = [];
   const rafTicker: ((time: number) => void)[] = [];
   const windowListeners: Array<[string, EventListener]> = [];
+  const scrambleTargets: HTMLElement[] = [];
+  const timers: ReturnType<typeof setTimeout>[] = [];
 
   const ctx = gsap.context(() => {
     /* ------- Lenis smooth scroll ------- */
@@ -104,7 +155,13 @@ export function initHomeFx(root: HTMLElement): () => void {
     /* ------- Hero ------- */
     const head = root.querySelector<HTMLElement>("#hero-head");
     if (head && !reduced) {
-      setTimeout(() => scrambleEl(head, 1100), 350);
+      // Restructure immediately, not at animation start: the h1 is
+      // a11y-correct for the whole 350 ms lead-in as well as the scramble.
+      const anim = prepareScrambleTarget(head);
+      if (anim) {
+        scrambleTargets.push(head);
+        timers.push(setTimeout(() => scrambleEl(anim, 1100), 350));
+      }
     }
     if (!reduced) {
       gsap.from("#hero-sub, #hero-cta", {
@@ -148,17 +205,21 @@ export function initHomeFx(root: HTMLElement): () => void {
             for (const en of entries) {
               if (en.isIntersecting) {
                 io.unobserve(en.target);
-                const d = parseInt(
-                  (en.target as HTMLElement).getAttribute("data-scramble") || "900",
-                  10,
-                );
-                scrambleEl(en.target as HTMLElement, d);
+                const el = en.target as HTMLElement;
+                const d = parseInt(el.getAttribute("data-scramble") || "900", 10);
+                // Only the aria-hidden span is ever mutated; the sr-only
+                // sibling keeps the heading's accessible name intact.
+                const anim = el.querySelector<HTMLElement>(`[${SCRAMBLE_ANIM_ATTR}]`);
+                if (anim) scrambleEl(anim, d);
               }
             }
           },
           { threshold: 0.4 },
         );
-        els.forEach((el) => io.observe(el));
+        els.forEach((el) => {
+          if (prepareScrambleTarget(el)) scrambleTargets.push(el);
+          io.observe(el);
+        });
         observers.push(io);
       }
     }
@@ -478,7 +539,9 @@ export function initHomeFx(root: HTMLElement): () => void {
   }, root);
 
   return () => {
+    timers.forEach((t) => clearTimeout(t));
     observers.forEach((io) => io.disconnect());
+    scrambleTargets.forEach(restoreScrambleTarget);
     windowListeners.forEach(([ev, fn]) => window.removeEventListener(ev, fn));
     rafTicker.forEach((fn) => gsap.ticker.remove(fn));
     lenis?.destroy();
