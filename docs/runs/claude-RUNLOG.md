@@ -666,3 +666,163 @@ but neither file was authorised by the issue.
   ("Architecture and Sys…"). Existing `truncate` behaviour, no overflow, but a shorter shelf
   label would read better once M3 defines one.
 
+### SOL-14 — de-duplicate the nav manifest
+
+- **Status:** complete · commit `e53e8f1` *refactor: stop emitting nav slides twice in the manifest (SOL-14)*
+- **Sequencing:** option **(a)** — standalone before M2. Confirmed M2 has not started on this branch (`content.ts` has no frontmatter parsing, no `featured`, no `questions[]`, no `###` sub-splitting, no validator). `content.ts` was held exclusively for the whole task and is released.
+- **Files changed:** `src/lib/content.ts`, `src/components/reader/Rail.tsx` (+43/−7). `src/app/read/[book]/layout.tsx` needed **no** change.
+- **Build:** green before AND after — after: `✓ Generating static pages (210/210) in 3.8s`, TypeScript clean, exit 0
+- **Lint:** green before and after — exit 0, zero findings
+- **Slide count:** 199 → 199. Per-chapter counts unchanged: `7,10,13,10,13,11,8,12,13,10,11,12,14,15,9,12,12,7` (sum 199), verified both from the built manifest and from the rendered chapter meters
+
+**Citation audit — three of five citations had drifted**
+
+| Citation | Verdict |
+|---|---|
+| `content.ts:351-366` (`getNavManifest`) | matched exactly |
+| `content.ts:363` (nested `toNavSlide`) | matched |
+| `content.ts:357` (flat `toNavSlide`) | **drifted by 1** — :357 was `total:`; the flat `.map(toNavSlide)` was on **:358** |
+| `layout.tsx:15` (manifest prop) | **drifted** — `getNavManifest(book)` is on **:14**; :15 is the SOL-13 comment |
+| `Rail.tsx:113-116` | **partially drifted** — `chapters.length`/`total` are on :115, but `bookTitle` is on **:112**, outside the cited range |
+
+The **103 KB figure is sound**: audit §3.5 measured 105,166 bytes; today it is **105,221**
+(55 bytes of content drift). The duplication is exactly as described.
+
+**Shape decision: indices into the flat array — a contiguous `[start, count)` range.**
+`NavChapter.slides: NavSlide[]` → `NavChapter.start` + `NavChapter.count`.
+
+Why, and why **not** the issue's alternative:
+
+- It is what audit §3.5 recommends, so the fix matches its own source.
+- It keeps the flat `slides` array **authoritative and byte-identical**, preserving the
+  `slides[i].globalIndex === i` positional invariant that `ReaderChrome` relies on for
+  prev/next.
+- **The "derive the flat array from chapters" option is latently unsafe here.** `book.slides`
+  is built in **filename** order (`content.ts:202`, `:240`) while `book.chapters` is re-sorted
+  by **chapter number** (`content.ts:243`). Those orders agree today only because every
+  filename is zero-padded. The moment a book ships `chapter-1-…` alongside `chapter-10-…`,
+  `flatMap(chapters)` would silently produce a different reading order than `globalIndex` — a
+  prev/next and `01 / 199`-counter reordering bug with no error. The range approach cannot
+  express that bug. Verified empirically today: `flatOrderMatchesChapterOrder: true`.
+
+Cost to consumers: **`ReaderChrome.tsx` and `layout.tsx` unchanged** — including the SOL-13
+`byHref`/prev-next code, which reads only the flat array. `Rail.tsx` pays: one `useMemo`
+resolving each chapter's range into a `Map<slug, NavSlide[]>` plus three call-site swaps
+(+11/−3). Resolving in a memo rather than inline also means the 18 slices happen once per
+manifest instead of on every navigation re-render. Empty chapters are handled —
+`start: c.slides[0]?.globalIndex ?? 0`, `count: 0`, and `done = readCount === c.count`
+preserves the previous `0 === 0 → true`.
+
+**Manifest bytes: 105,221 → 53,852 (−51,369, −48.8%).** Three independent measurements, no
+estimates:
+
+| Measurement | Before | After | Δ |
+|---|---|---|---|
+| manifest object in the RSC flight payload | 105,221 | 53,852 | −48.8% |
+| serialized `NavSlide` objects per page | 398 | 199 | −50% |
+| per-page prerendered HTML (JS-string-escaped) | 154,417 | 98,706 | −36.1% |
+| all 199 slide pages, HTML | 32,423,515 | 21,337,026 | −34.2% |
+| all 199 slide pages, `.rsc` | 23,956,546 | 13,734,115 | −42.7% |
+
+The three reconcile **to the byte**, which is itself the strongest zero-change proof:
+
+```
+escape accounting: rawDelta + netQuotes = 51369 + 4342 = 55711
+                   observed per-page HTML delta = 55711   exact: true
+uniformity:        perPageDelta × 199 = 11086489
+                   observed total delta = 11086489        exact: true
+```
+
+`netQuotes` = 199 removed NavSlide copies × 22 quote chars, minus 18 chapters × 4 quotes for
+the new `"start"`/`"count"` keys, plus 18 chapters × 2 for the dropped `"slides"` key. **Every
+byte that moved is accounted for by the de-duplication, and all 199 pages shrank by exactly
+the same amount** — so no other byte in any prerendered page changed.
+
+**Zero-behaviour-change evidence — identical, no differences found.**
+
+| Fingerprint | Before | After |
+|---|---|---|
+| canonical logical model (whole manifest) | `2853d8758004719f` | `2853d8758004719f` |
+| per-chapter counts + hrefs + row labels (18 ch) | `717a7955cdcf3f02` | `717a7955cdcf3f02` |
+| prev/next adjacency, all 199 slides | `252fc8c67360ec2b` | `252fc8c67360ec2b` |
+| rendered `<header>` + `<nav aria-label="Book contents">`, all 199 pages | `6f747b6e9aa4f1a4` | `6f747b6e9aa4f1a4` |
+| total rendered rail DOM bytes | 3,445,632 | 3,445,632 |
+
+```
+full-state-identical (excluding page byte sizes): true
+adjacency arrays identical (all 199): true
+chapterCounts identical (all 18): true
+per-page nav+header hashes identical (all 199): true
+pages whose html byte size changed: 199 of 199   ← the only difference, fully explained above
+```
+
+Both captures normalise the two manifest shapes to one canonical form (post-change chapters
+re-expanded from their ranges) so they are directly comparable. Boundary cases, before ==
+after: first slide `prev: null`; last slide of ch.1 → `next /02-agent-loop-pattern/0` (crosses);
+first slide of ch.2 → `prev /01-anatomy/6` (crosses back); last slide of book (globalIndex 198)
+→ `next: null`.
+
+**Consumers audited** (from `grep -rn "NavManifest\|NavSlide\|NavChapter\|getNavManifest\|manifest" src/`):
+`layout.tsx:14` producer — unchanged. `ReaderChrome.tsx` — unchanged; reads only preserved
+fields (`manifest.slides` → `byHref` at :114-118, `total` :122, `slides[index±1]` :123-124,
+`bookSlug` :130/:137/:151), never `chapters[]`. `Rail.tsx` — the only consumer changed.
+`src/components/markdown-links.ts` (SOL-6) — **not a manifest consumer**; it reads the
+server-side `Book`/`Chapter`/`Slide` types, which were not touched, and its two mirrored slug
+rules are confirmed unchanged. `search.ts`, `llms.txt`, `llms-full.txt`, `sitemap.ts` and every
+page route import `getBooks`/`getBook`/`getSlide` — none import the manifest. `art.ts` reads a
+different manifest entirely (SOL-29). **P-CONTENT-001 untouched** — no change to `loadBooks`,
+directory walking, the `index.md` + `chapter-NN-*.md` test, or any slug rule.
+
+**Regression, verified in the browser.** SOL-13: seeded `agent-yap:progress:v2` with a pointer
+to `/03-tool-design/2`; the pill rendered `Continue where you left off → "The description is a
+prompt"` linking correctly — it resolves its title through `byHref` built from
+`manifest.slides`, the exact consumer at risk, and it works. SOL-6: the authored link
+`[Chapter 2: The agent loop pattern](chapter-02-agent-loop-pattern.md)` rendered as
+`href="/read/architecture-and-system-design/02-agent-loop-pattern/0"`. SOL-5: raw inline HTML
+still renders inside the slide body. SOL-12: not touched, and the rendered header/rail DOM is
+byte-identical across all 199 pages. **SOL-7 not exercisable** — no live slide contains a
+mermaid fence; the diff touches neither `Markdown.tsx` nor the island. Checkmarks: seeded 4 of
+ch.1's 7 slides and all of ch.2 — rail showed exactly 4 check glyphs, meters `4/7` and `8/10`,
+`aria-current="page"` on the active row, chapter auto-expand on crossing a boundary still
+correct (rows 7 → 17 = 7 + 10, matching the ranges).
+
+**Browser verification.** `npx next start -p 3019` (3005 never bound, PID 3672 never touched).
+Exercised ‹ / › across the ch.1→ch.2 boundary and back, `ArrowLeft` keyboard nav, prev disabled
+on slide 1 and next disabled on slide 199, header counters `01/199`, `07/199`, `08/199`,
+`199/199`, `198/199`. Smoke-tested `/` 200, `/read` 307, `/read/[book]` 307, a deep slide 200,
+`/llms.txt` 200, `/sitemap.xml` 200, `/api/search?q=agent+loop` 200. **Console: no messages at
+all.** Server killed, port free. Playwright not used, so no artifacts in Cursor's tree.
+
+**What the issue got wrong**
+
+- **F-033 · Three of five `file:line` citations had drifted** (table above). None invalidated
+  the issue — the described duplication was exactly real.
+- **F-034 · `markdown-links.ts` lives at `src/components/`, not `src/lib/`** (my brief had this
+  wrong, not the issue).
+- **F-035 · The issue's suggested alternative — "drop the flat array and derive it" — is
+  latently unsafe and should never be taken.** See the shape decision above. Worth knowing
+  before M3 wires six more books in.
+- **F-036 · `NavManifest.total` is redundant** (always `slides.length`). Deliberately left:
+  removing it is a consumer-visible change with no payload benefit, and this is Tier 3.
+- The audit's "~103 KB" is accurate; the precise current figure is 105,221 bytes.
+
+**Noted, deliberately not done**
+
+- **The real ceiling-lift is still ahead.** All 199 pages embed a *byte-identical* copy of the
+  same manifest (`distinctManifestsAcrossPages: 1`). Even at 53,852 bytes that is ~10.7 MB of
+  identical JSON across the route. Moving it behind a route handler or shared chunk is the
+  natural SOL-14 follow-up before 8-book cross-book navigation lands — explicitly ruled out by
+  this issue's Out of scope.
+- `getPrimaryBook()` returning `books[0]` (`content.ts:277-281`) is still the alphabetical-first
+  landmine; `/` and `/read` both depend on it. Left for SOL-16.
+- `art.ts` keys chapter art on `chapterSlug` alone — confirmed still true, left for SOL-29.
+- The pre-existing Turbopack warning about the dynamic `process.cwd()` join in
+  `resolveContentRoot()` (`content.ts:66`) is present identically before and after. Not
+  "fixed" — the comment at `content.ts:59-64` says that walk exists to survive a wrong cwd
+  under Turbopack, so silencing it needs a decision, not a drive-by.
+
+**No URL or progress migration required, and none made.** Nothing here renumbers slides or
+changes a route: `sectionIndex` (which forms the URL) and `globalIndex` are both produced by
+unchanged code, the 199 generated paths are identical, and no localStorage key, shape or href
+is affected. That question belongs to SOL-18's `###` sub-splitting.
+
