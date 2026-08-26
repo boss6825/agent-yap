@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { NavManifest } from "@/lib/content";
+import type { NavManifest, NavSlide } from "@/lib/content";
 import { chapterDisplayTitle } from "@/lib/display";
 import { getChapterArt } from "@/lib/art";
 
@@ -36,6 +36,17 @@ export function Rail({
     () => manifest.slides.find((s) => s.href === currentHref)?.chapterSlug,
     [manifest, currentHref],
   );
+
+  // Chapters carry a `[start, count)` range into `manifest.slides` instead of
+  // their own copy of the slide objects, so resolve the ranges once per
+  // manifest rather than on every navigation re-render.
+  const slidesByChapter = useMemo(() => {
+    const byChapter = new Map<string, NavSlide[]>();
+    for (const c of manifest.chapters) {
+      byChapter.set(c.slug, manifest.slides.slice(c.start, c.start + c.count));
+    }
+    return byChapter;
+  }, [manifest]);
 
   const [expanded, setExpanded] = useState<Set<string>>(
     () => new Set(currentChapter ? [currentChapter] : []),
@@ -131,12 +142,13 @@ export function Rail({
         className="scrollbar-thin relative flex-1 overflow-y-auto px-2.5 py-3"
       >
         {manifest.chapters.map((c) => {
+          const slides = slidesByChapter.get(c.slug) ?? [];
           const isOpen = expanded.has(c.slug);
           const isCurrent = c.slug === currentChapter;
           const readCount = readHrefs
-            ? c.slides.reduce((n, s) => n + (readHrefs.has(s.href) ? 1 : 0), 0)
+            ? slides.reduce((n, s) => n + (readHrefs.has(s.href) ? 1 : 0), 0)
             : 0;
-          const done = readHrefs ? readCount === c.slides.length : false;
+          const done = readHrefs ? readCount === c.count : false;
 
           return (
             <div key={c.slug} className="mb-0.5">
@@ -173,7 +185,7 @@ export function Rail({
                 {readHrefs && (
                   <ChapterMeter
                     read={readCount}
-                    total={c.slides.length}
+                    total={c.count}
                     done={done}
                   />
                 )}
@@ -181,7 +193,7 @@ export function Rail({
 
               {isOpen && (
                 <ul className="ml-[30px] mt-0.5 border-l border-hairline pb-1.5 pl-2.5">
-                  {c.slides.map((s) => {
+                  {slides.map((s) => {
                     const active = s.href === currentHref;
                     const read = readHrefs?.has(s.href) ?? false;
                     return (

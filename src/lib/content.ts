@@ -320,13 +320,33 @@ export interface NavSlide {
   href: string;
 }
 
+/**
+ * A chapter's slides are a contiguous window into `NavManifest.slides`, not a
+ * second copy of them. `slides` is assembled chapter by chapter (`bookSlides`
+ * in `loadBooks`), so every chapter owns one unbroken run and the half-open
+ * range `[start, start + count)` recovers it exactly.
+ */
 export interface NavChapter {
   number: number;
   title: string;
   slug: string;
-  slides: NavSlide[];
+  /** Index of this chapter's first slide in `NavManifest.slides`. */
+  start: number;
+  /** How many slides this chapter owns (0 for an empty chapter file). */
+  count: number;
 }
 
+/**
+ * Client-serializable navigation model for one book.
+ *
+ * `slides` is the single authority: flat, in reading order, and positional on
+ * `globalIndex` (`slides[i].globalIndex === i`). Chapters index into it rather
+ * than repeating it. This manifest is a prop to a client component, so it is
+ * serialized into the RSC flight payload of *every* prerendered slide page —
+ * emitting each slide twice (once flat, once nested) doubled that payload on
+ * the critical path for no gain. See §3.5 of
+ * `docs/redesign-2026/research/02-code-ux-audit.md`.
+ */
 export interface NavManifest {
   bookSlug: string;
   bookTitle: string;
@@ -360,7 +380,11 @@ export function getNavManifest(bookSlug: string): NavManifest {
       number: c.number,
       title: c.title,
       slug: c.slug,
-      slides: c.slides.map(toNavSlide),
+      // `globalIndex` is the slide's position in the flat array, so the first
+      // slide's index is the chapter's offset. `count === 0` makes the range
+      // empty whatever `start` says, which covers a chapter with no sections.
+      start: c.slides[0]?.globalIndex ?? 0,
+      count: c.slides.length,
     })),
   };
 }
