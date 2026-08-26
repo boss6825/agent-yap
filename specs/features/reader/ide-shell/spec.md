@@ -48,9 +48,18 @@
 ## Input Contract
 
 - Progress store (`src/lib/progress.ts`, client-only):
-  `getProgress(): Progress`, `markSlideRead(bookSlug, href): void`,
-  `getLastRead(): { href: string; at: number } | null`; localStorage key
-  `agent-yap:progress:v1`; shape `{ version: 1, lastHref, lastReadAt, read: { [bookSlug]: { [href]: epochMs } } }`.
+  `useProgress(): ProgressData | null`, `markSlideRead(bookSlug, href): void`,
+  `getLastRead(bookSlug): { href, at } | null`,
+  `getLastReadOverall(): { bookSlug, href, at } | null`, plus the pure selectors
+  `lastReadInBook(data, bookSlug)` / `lastReadOverall(data)`; localStorage key
+  `agent-yap:progress:v2`; shape
+  `{ version: 2, lastByBook: { [bookSlug]: { href, at } }, lastBook, read: { [bookSlug]: { [href]: epochMs } } }`.
+  The resume pointer is **per book** (SOL-13); `lastBook` is the most-recent-overall
+  pointer the landing CTA uses. The v1 key (`agent-yap:progress:v1`, global
+  `lastHref`) is migrated on read and left in place — never written to, never
+  deleted — so a tab still running the v1 bundle cannot blank out v2 state. A v1
+  pointer that cannot be attributed to a book is dropped rather than guessed;
+  `read` entries are never dropped (P-READER-002).
 - Gemini client (`src/lib/chat/gemini.ts`, Codex-authored):
   `streamGeminiChat({ apiKey, model?, system, messages, temperature?, maxOutputTokens?, signal?, onChunk })` → `Promise<{ text, finishReason }>`; key helpers
   `get/set/clearStoredGeminiKey`, `looksLikeGeminiKey`. Endpoint

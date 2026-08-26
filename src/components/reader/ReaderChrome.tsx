@@ -19,9 +19,28 @@ import { Rail } from "@/components/reader/Rail";
 import { ResumePill } from "@/components/reader/ResumePill";
 import { SearchPanel } from "@/components/SearchPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { getLastRead, markSlideRead, useProgress } from "@/lib/progress";
+import {
+  getLastRead,
+  getLastReadOverall,
+  markSlideRead,
+  useProgress,
+} from "@/lib/progress";
 
 const RAIL_PREF_KEY = "agent-yap:rail-open";
+
+/** Just enough of the shelf to name a resume target in another book. */
+export interface ReaderBook {
+  slug: string;
+  title: string;
+}
+
+/**
+ * What the resume pill should offer: this book's own saved position, or — when
+ * this book has none — the book the reader was actually last in.
+ */
+type ResumeSuggestion =
+  | { kind: "in-book"; href: string }
+  | { kind: "cross-book"; href: string; bookTitle: string };
 
 function isDesktop(): boolean {
   return (
@@ -62,9 +81,14 @@ function isTypingTarget(el: Element | null): boolean {
 
 export function ReaderChrome({
   manifest,
+  books = [],
   children,
 }: {
   manifest: NavManifest;
+  /** Every book on the shelf (slug + title only) — used to name a resume target
+   *  that lives outside `manifest`. Optional so the chrome still renders without
+   *  it; the cross-book pill simply stays silent. */
+  books?: ReaderBook[];
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -116,19 +140,60 @@ export function ReaderChrome({
 
   // Resume pointer captured once on mount, before dwell-marking moves it;
   // cleared as soon as the reader navigates anywhere (they're oriented).
-  const [resumeHref, setResumeHref] = useState<string | null>(null);
+  // The pointer is per book now, so this book's href is always resolvable
+  // against this book's manifest. When the reader has never read this book but
+  // has a position elsewhere, offer that book instead of silently rendering
+  // nothing (SOL-13 / audit §3.9).
+  const [resume, setResume] = useState<ResumeSuggestion | null>(null);
   const initialPath = useRef(pathname);
+  // Props arrive fresh from the server on every render; snapshot what the
+  // one-shot lookup needs so the effect below genuinely runs once.
+  const resumeInputs = useRef({ bookSlug: manifest.bookSlug, books });
   useEffect(() => {
-    const last = getLastRead();
-    if (last && last.href !== initialPath.current) setResumeHref(last.href);
+    const { bookSlug, books: shelf } = resumeInputs.current;
+    const inBook = getLastRead(bookSlug);
+    if (inBook) {
+      if (inBook.href !== initialPath.current) {
+        setResume({ kind: "in-book", href: inBook.href });
+      }
+      return;
+    }
+    const elsewhere = getLastReadOverall();
+    if (!elsewhere || elsewhere.bookSlug === bookSlug) return;
+    const book = shelf.find((b) => b.slug === elsewhere.bookSlug);
+    if (book) {
+      setResume({ kind: "cross-book", href: elsewhere.href, bookTitle: book.title });
+    }
   }, []);
   useEffect(() => {
-    if (pathname !== initialPath.current) setResumeHref(null);
+    if (pathname !== initialPath.current) setResume(null);
   }, [pathname]);
-  const resumeTarget =
-    resumeHref && current?.globalIndex === 0 && resumeHref !== pathname
-      ? byHref.get(resumeHref)
-      : undefined;
+
+  const resumePill = useMemo(() => {
+    // Same product rule as before: only on the first slide of a book.
+    if (!resume || current?.globalIndex !== 0 || resume.href === pathname) {
+      return null;
+    }
+    if (resume.kind === "cross-book") {
+      return {
+        href: resume.href,
+        lead: "You were last reading",
+        destination: resume.bookTitle,
+      };
+    }
+    const slide = byHref.get(resume.href);
+    // A pointer this book's manifest no longer knows (renamed chapter, edited
+    // content): stay silent rather than link the reader into a 404.
+    if (!slide) return null;
+    return {
+      href: slide.href,
+      lead: "Continue where you left off",
+      destination:
+        slide.sectionIndex === 0
+          ? chapterDisplayTitle(slide.chapterTitle)
+          : slide.title,
+    };
+  }, [resume, current, pathname, byHref]);
 
   const anyModal = searchOpen;
 
@@ -354,14 +419,11 @@ export function ReaderChrome({
               {children}
             </div>
 
-            {resumeTarget && (
+            {resumePill && (
               <ResumePill
-                href={resumeTarget.href}
-                title={
-                  resumeTarget.sectionIndex === 0
-                    ? chapterDisplayTitle(resumeTarget.chapterTitle)
-                    : resumeTarget.title
-                }
+                href={resumePill.href}
+                lead={resumePill.lead}
+                destination={resumePill.destination}
               />
             )}
 

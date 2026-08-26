@@ -7,7 +7,7 @@ import { SearchPanel } from "@/components/SearchPanel";
 import { AskPanel } from "@/components/AskPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { initHomeFx } from "@/components/home/fx";
-import { useProgress } from "@/lib/progress";
+import { lastReadOverall, useProgress } from "@/lib/progress";
 
 export interface HomeChapter {
   number: number;
@@ -50,12 +50,13 @@ export function Home({ data }: { data: HomeData }) {
 
   const firstChapter = data.chapters[0];
 
-  // Resume where the reader left off (localStorage; neutral until mounted).
+  // Resume where the reader left off, across every book (localStorage; neutral
+  // until mounted). Every entry point below reads `ctaHref` so the page cannot
+  // contradict itself about where the reader currently is.
   const progress = useProgress();
+  const lastRead = lastReadOverall(progress);
   const resumeHref =
-    progress?.lastHref && progress.lastHref !== data.startHref
-      ? progress.lastHref
-      : null;
+    lastRead && lastRead.href !== data.startHref ? lastRead.href : null;
   const ctaHref = resumeHref ?? data.startHref;
   const ctaLabel = resumeHref ? "Continue reading" : "Start learning";
 
@@ -384,10 +385,10 @@ export function Home({ data }: { data: HomeData }) {
             The climb is the curriculum.
           </h2>
           <Link
-            href={data.startHref}
+            href={ctaHref}
             className="mt-9 inline-flex min-h-11 items-center rounded-pill bg-blue px-7 py-[13px] text-[17px] text-white transition-transform active:scale-95"
           >
-            Start with Chapter 1
+            {resumeHref ? "Continue reading" : "Start with Chapter 1"}
           </Link>
         </div>
       </section>

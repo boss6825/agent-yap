@@ -6,14 +6,21 @@ import { motion } from "framer-motion";
 
 /**
  * Quiet "continue where you left off" affordance, shown only when the reader
- * lands at the start of the book while saved progress points elsewhere.
+ * lands at the start of a book while saved progress points elsewhere.
+ *
+ * Two shapes, one layout: `lead` names the relationship ("Continue where you
+ * left off" for this book, "You were last reading" for a different one) and
+ * `destination` is the emphasised thing being linked to — a slide title in the
+ * first case, a book title in the second.
  */
 export function ResumePill({
   href,
-  title,
+  lead,
+  destination,
 }: {
   href: string;
-  title: string;
+  lead: string;
+  destination: string;
 }) {
   const [dismissed, setDismissed] = useState(false);
   if (dismissed) return null;
@@ -30,9 +37,9 @@ export function ResumePill({
           href={href}
           className="flex min-w-0 items-center gap-2 py-1.5 text-[13px] text-ink-2 transition-colors hover:text-ink"
         >
-          <span className="shrink-0">Continue where you left off</span>
+          <span className="shrink-0">{lead}</span>
           <span className="min-w-0 truncate font-medium text-ink">
-            {title}
+            {destination}
           </span>
           <span aria-hidden className="shrink-0 text-blue">
             →
