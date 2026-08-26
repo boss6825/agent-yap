@@ -224,3 +224,135 @@ nice-to-have, not a blocker.
   rendered by the reader. If that is meant to be a book landing page, it is a missing
   surface, not a link bug.
 
+### SOL-7 — `Markdown.tsx`: render the 33 mermaid diagrams
+
+- **Status:** complete · commit `a2cf702` *feat: render mermaid fences as themed diagrams (SOL-7)*
+- **Files changed:** `src/components/Markdown.tsx`, `src/components/MermaidDiagram.tsx` (new, 193 lines), `package.json`, `package-lock.json` (+1359/−1)
+- **Build:** green — `✓ Compiled successfully in 10.6s`, `✓ Generating static pages (210/210) in 3.6s`. Baseline was 11.7s / 3.9s — **build time unchanged within noise**, because mermaid never executes at build time. The one Turbopack warning (`next.config.ts → content.ts → llms-full.txt` dynamic `path.join`) is present on the baseline build too.
+- **Lint:** green — exit 0, zero output
+- **Slide count:** 199 → 199
+- **`content/` untouched:** confirmed — `git diff d55d2da HEAD -- content/` empty
+
+**Recon — the issue's number is exactly right**
+
+- Corpus-wide: **33** ```mermaid fences. Issue said 33. Correct.
+- Concentration: **33 of 33 (100%)** in `content/research papers/` across 17 files —
+  `01-Foundational-Modelling/explanations` 16 · `02-Planning-and-Reasoning/explanations` 13 ·
+  `04-Benchmarks/explanations` 4.
+- Live book `content/architecture-and-system-design/`: **0**. So "renders in both themes"
+  could not be verified against shipped content — verified with a temporary probe slide that
+  was removed and rebuilt afterwards.
+- All 33 are `flowchart` (LR/TD), all using `<br/>` in labels.
+
+**Rendering decision: client island, lazy-loaded, mounted only for a `<pre>` that holds a
+mermaid fence.** Build-time was *tested*, not assumed, and does not work in this stack:
+
+- `await import('mermaid')` in Node succeeds; `mermaid.render()` then throws
+  `ReferenceError: document is not defined` (measured, mermaid 11.17.2).
+- A jsdom shim does not rescue it: **135 files** under `node_modules/mermaid/dist/chunks/`
+  call `getBBox()`, the SVG text-metrics API jsdom does not implement — labels would be
+  mis-measured rather than fail loudly.
+- The project's own answer, `@mermaid-js/mermaid-cli`, drives headless Chromium via
+  Puppeteer. A ~300MB browser download inside `npm run build` costs far more than it saves,
+  and the issue does not authorise it.
+
+**Measured cost** (from the chunks a slide's prerendered HTML actually references):
+
+| | bytes | chunks |
+|---|---|---|
+| slide **without** a diagram, baseline | 1,031,719 | 14 |
+| slide **without** a diagram, after | **1,034,123** | 14 |
+| delta | **+2,404 (+0.23%)** — the wrapper only | — |
+| slide **with** diagrams | — | 33 requests vs 18 |
+| the 15 mermaid-only chunks | **809,353 uncompressed** | — |
+
+That 809 KB is what a static import would have added to all 199 slides; it now lands only
+where a diagram exists.
+
+**Acceptance**
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| build + lint green | MET | both exit 0; 210 pages with the change, 211 with the probe slide |
+| mermaid fence renders as a diagram in **both** themes | MET | all 33 corpus fences on one probe slide: **33 SVGs, 0 left as code blocks**, 187 `g.node`, 159 `path.flowchart-link`. Flipping the real theme toggle redrew all 33 — one distinct value each, so nothing went stale. `<br/>` survives as real `<br>` inside labels |
+| malformed fence degrades to a code block, no crash | MET | stayed `PRE>CODE` with `class="language-mermaid"` and its original text; nothing thrown, no mermaid error SVG (`suppressErrorRendering: true`), and the two valid diagrams on the same slide rendered normally |
+| wide diagrams scroll in their own container; body never scrolls horizontally | MET | at 610px: containers `clientWidth 524 / scrollWidth 1453` and `524 / 2093`, both scrolling, `documentElement.scrollWidth === innerWidth` (610 === 610). At **375×812**: `304 / 1453` and `304 / 2093`, `375 === 375`, label font stays 15px. Also 610 === 610 with all 33 on one page |
+| reduced-motion + no-JS behaviour stated | MET | below |
+
+**Theme evidence** — computed on the rendered page, every value traceable to `globals.css`:
+
+| | dark | light |
+|---|---|---|
+| container bg | `rgb(28,28,30)` = `--color-canvas-2` | `rgb(245,245,247)` = `--color-canvas-2` |
+| container border | `rgba(255,255,255,0.1)` = `--color-hairline` | `rgba(0,0,0,0.08)` = `--color-hairline` |
+| node fill | `rgb(0,0,0)` = `--color-canvas` | `rgb(255,255,255)` = `--color-canvas` |
+| node stroke / edge | `rgb(152,152,157)` = `--color-ink-2` | `rgb(110,110,115)` = `--color-ink-2` |
+| label text | `rgb(245,245,247)` = `--color-ink` | `rgb(29,29,31)` = `--color-ink` |
+| **contrast, label on node** | **19.29:1** | **16.83:1** |
+| **contrast, stroke/edge on container** | **5.93:1** | **4.66:1** (1.4.11 needs 3:1) |
+
+No white diagram box in dark mode. No raw colors: mermaid cannot be handed
+`var(--color-ink)` because it does khroma colour maths on its theme variables, so the values
+are read off the live document with `getComputedStyle` — and if a token comes back empty the
+component **refuses to draw** rather than inventing a fallback palette.
+
+**Reduced motion — nothing animates (measured).** Across the rendered SVGs: 0
+`<animate>`/`<animateTransform>`/`<animateMotion>` elements and **0 elements with a computed
+`animationName !== 'none'` or a transition**. Mermaid declares `.edge-animation-slow/fast`
+inside each SVG's own `<style>`, but those apply only to edges an author opts in
+(`e1@{ animate: true }`), which no corpus diagram does. The `<pre>` → SVG swap is an instant
+React state change with no transition.
+
+**No-JS — the fence renders as the code block it is today (measured).** On the prerendered
+HTML: 3 `class="language-mermaid"` code blocks, **0** `<svg aria-roledescription>`. By
+construction — the untouched `<pre>` is passed as `children` into the island and is what the
+server emits; the diagram only ever replaces it after a successful client render.
+
+**Regression (SOL-5, SOL-6).** Both intact on `/read/architecture-and-system-design/01-anatomy/6`:
+15 `<details>` disclosures with `<summary>Answer</summary>`, one opened to reveal its answer;
+the relative cross-link resolved to `/read/architecture-and-system-design/02-agent-loop-pattern/0`
+with **0** `data-unresolved-link` spans. A plain ```python block still gets
+`class="hljs language-python"`, so `plainText: ["mermaid"]` scoped correctly.
+
+**Browser verification.** `npx next start -p 3015` → `preview_start {url}`. 3005 / PID 3672
+untouched, port free after teardown. Accessibility tree: each diagram is `group "Diagram"` →
+`graphics-document document` → one text node per label, so node text is exposed rather than
+the raw fence. The scroll container is keyboard-reachable — a real `shift+Tab` landed on it
+with `:focus-visible` matching and a ring painted, and `scrollLeft` moves. `role="group"`
+rather than `region` deliberately, so 33 diagrams do not become 33 landmarks.
+`read_console_messages`: **no console logs at all**, including on the 33-diagram slide. No
+leftover mermaid temp containers in `<body>`. Probe removed afterwards —
+`git diff --stat HEAD -- content/` empty, post-removal build back to 210 pages / 199 slides.
+
+**What the issue got wrong**
+
+- **F-017 · The Files list is incomplete.** A client island cannot live in `Markdown.tsx` —
+  it is a server component, and `"use client"` there would ship react-markdown, rehype-raw
+  and rehype-highlight to the browser on all 199 slides. A second file
+  (`src/components/MermaidDiagram.tsx`) is structurally required, exactly as SOL-6 needed
+  `markdown-links.ts`. Two issues in a row with an under-specified Files list.
+- **F-018 · The issue's stated preference for build-time rendering is not achievable in this
+  stack**, per the three measurements above. Recorded rather than routed around silently.
+- **F-019 · Pre-existing WCAG 2.1.1 gap.** `.prose-yap pre` — every code block on the site —
+  is `overflow-x: auto` with no `tabindex`, so those scroll regions are not keyboard-reachable.
+  Predates this issue. The new diagram container does it correctly.
+- **F-020 · Latent.** Mermaid's `.edge-animation-*` keyframes do not honour
+  `prefers-reduced-motion`. Harmless today (no corpus diagram opts in), but it would bite the
+  moment someone authors an animated edge.
+- Everything else in the issue checks out: 33 is exact, the concentration in
+  `research papers/` is 100%, and the fences really do render today as syntax-guessed code.
+
+**One judgement call, recorded.** The container carries a hairline border that the adjacent
+`.prose-yap pre` does not. Kept deliberately — a flowchart is mostly empty space, so without
+an edge the box dissolves into the glass reading surface and the scroll region reads as
+ambiguous. One token hairline doing one job.
+
+**Noted, deliberately not done**
+
+- `content/research papers/` stays dark — SOL-28's attribution decision, untouched.
+- `AskPanel.tsx` and `reader/ChatPanel.tsx` render LLM output through `ReactMarkdown`
+  directly and were left alone, so a model cannot get an arbitrary mermaid payload rendered.
+- This branch predates SOL-10, so `globals.css` here has **no** `:focus-visible` rule — the
+  diagram container falls back to Chrome's default ring and picks up the token ring for free
+  once SOL-10 lands.
+
