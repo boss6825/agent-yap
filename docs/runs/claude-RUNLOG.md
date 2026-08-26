@@ -1,6 +1,6 @@
 # Claude run log — Agent YAP M0–M3 build
 
-Branch: `claude/yap-build-m0-m3` (off `d55d2da`)
+Branch: `claude/yaps` (off `d55d2da`)
 Worktree: `C:/Users/arpit/Projects/agent-YAP-claude` — **isolated**. The primary
 tree `C:/Users/arpit/Projects/agent YAP` was left on `karsaa/yaps-build` with
 Cursor's in-flight changes untouched (see Finding F-000).
