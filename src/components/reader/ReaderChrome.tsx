@@ -28,6 +28,9 @@ import {
 
 const RAIL_PREF_KEY = "agent-yap:rail-open";
 
+/** Browsers leave a couple of lines on screen when they page down; so do we. */
+const PAGE_SCROLL_RATIO = 0.9;
+
 /** Just enough of the shelf to name a resume target in another book. */
 export interface ReaderBook {
   slug: string;
@@ -249,7 +252,27 @@ export function ReaderChrome({
       // Modals and mobile overlays own the remaining keys.
       if (anyModal || ((railState === true || chatOpen) && !isDesktop())) return;
 
-      if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+      // Space is page-down, never next-slide. Whatever holds focus — a Review
+      // disclosure, a nav button, the scrollable diagram box — owns its own
+      // Space, so step in only when focus is nowhere: the stage is an inner
+      // overflow container, and the browser will not page one that neither
+      // holds focus nor contains it.
+      if (e.key === " ") {
+        const stage = stageScrollRef.current;
+        const active = document.activeElement;
+        const focusIsNowhere =
+          !active ||
+          active === document.body ||
+          active === document.documentElement;
+        if (stage && focusIsNowhere) {
+          e.preventDefault();
+          const page = stage.clientHeight * PAGE_SCROLL_RATIO;
+          stage.scrollBy({ top: e.shiftKey ? -page : page });
+        }
+        return;
+      }
+
+      if (e.key === "ArrowRight" || e.key === "PageDown") {
         e.preventDefault();
         go(next, 1);
       } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
