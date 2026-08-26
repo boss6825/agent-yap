@@ -52,6 +52,8 @@ export default async function SlidePage({
   const isIntro = s.sectionIndex === 0;
   const sectionCount = ch.slides.length - 1; // excludes the intro slide
   const displayTitle = chapterDisplayTitle(s.chapterTitle);
+  // Origin for the relative `.md` cross-links authored inside this chapter.
+  const linkContext = { bookSlug: s.bookSlug, chapterSlug: s.chapterSlug };
 
   return (
     <article className="w-full max-w-[720px]">
@@ -79,14 +81,14 @@ export default async function SlidePage({
           <h1 className="mb-7 font-display text-[clamp(34px,5.6vw,48px)] font-semibold leading-[1.08] tracking-[-0.01em] text-ink [text-wrap:pretty]">
             {displayTitle}
           </h1>
-          <Markdown>{s.markdown}</Markdown>
+          <Markdown context={linkContext}>{s.markdown}</Markdown>
         </>
       ) : (
         <>
           <h1 className="mb-7 font-display text-[clamp(30px,5vw,40px)] font-semibold leading-[1.12] tracking-[-0.01em] text-ink [text-wrap:pretty]">
             {s.title}
           </h1>
-          <Markdown>{s.markdown}</Markdown>
+          <Markdown context={linkContext}>{s.markdown}</Markdown>
         </>
       )}
     </article>
