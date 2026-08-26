@@ -507,3 +507,162 @@ no `.playwright-mcp` directory. Worth gitignoring before another agent uses Play
 - The non-scrambled SplitText `<h2>` at `Home.tsx:187`, which splits into four line `div`s. Its
   accessible name concatenates correctly today, so it has no equivalent bug.
 
+### SOL-13 — cross-book resume: `lastHref` is a single global pointer
+
+- **Status:** complete · commit `6a43b82` *fix: make the resume pointer per-book with a most-recent-overall fallback (SOL-13)*
+- **Files changed:** `src/lib/progress.ts`, `src/components/reader/ReaderChrome.tsx`, `src/components/reader/ResumePill.tsx`, `src/components/Home.tsx`, `src/app/read/[book]/layout.tsx`, `specs/features/reader/ide-shell/spec.md` (+307/−68)
+- **Build:** green — `✓ Compiled successfully in 31.3s`, `✓ Generating static pages (210/210) in 13.5s`
+- **Lint:** green — exit 0, zero output
+- **Slide count:** 199 → 199 · `content/` clean, still the original 8 directories
+
+**Citation audit**
+
+| Citation | Verdict |
+|---|---|
+| `progress.ts:17` = `lastHref` | **off by one** — `lastHref` is line **16**; 17 is `lastReadAt` |
+| `progress.ts:19` = `read` map | correct |
+| `ResumePill.tsx:~23-28`, "the `resumeTarget` computation" | **wrong file.** `ResumePill.tsx` is 52 lines and purely presentational — no `byHref`, no `resumeTarget`. Lines 23–28 are a framer-motion `transition` and a wrapper `className`. The real logic is `ReaderChrome.tsx:128-131` (`resumeTarget`) and `:90-95` (`byHref`) — which the **Source cites correctly**. The issue drifted from its own source |
+| `Home.tsx:55-60`, `:386`, `:120-125` | correct (`:386` opens the `<Link`, `href` at `:387`, label at `:390`) |
+| Files list completeness | **incomplete — it omits the file containing the bug.** `ReaderChrome.tsx` is unavoidably in scope |
+
+**Reproduction — all three bugs reproduced on unmodified code**
+
+1. **Global `lastHref`.** Seeded v1 with `lastHref = /read/architecture-and-system-design/05-context-engineering/2`, visited book B slide 1 once → storage became `"lastHref":"/read/zz-temp-second-book/01-alpha/0"`. Book A's position destroyed by a single visit and unrecoverable.
+2. **Pill silently vanishes cross-book.** On book B slide 1 with `lastHref` pointing into book A: `pillCount: 0`, `pillHTML: []`. No error, no fallback.
+3. **Entry points disagree** (same page state): nav CTA and hero CTA → "Continue reading" → `05-context-engineering/2`; "Start with Chapter 1" → `01-anatomy/0`. Contradiction.
+
+**Storage shape**
+
+```
+v1  {"version":1,"lastHref":"…","lastReadAt":…,"read":{"<book>":{"<href>":…}}}
+v2  {"version":2,
+     "lastByBook":{"<book>":{"href":"…","at":…}},
+     "lastBook":"<book>",
+     "read":{"<book>":{"<href>":…}}}
+```
+
+Exactly two new concepts, both authorised: a per-book pointer and a most-recent-overall
+pointer. No learner-profile fields (honouring `03-prior-decisions.md` row 23).
+
+**Migration: v2 lives under a NEW key; the v1 blob is read, never written, never deleted.**
+The decisive reason for a new key rather than bumping `version` in place: the currently-deployed
+v1 `parseProgress` gates on `data.version !== 1` and **resets to empty**. If v2 lived under the
+v1 key, a tab still running the old bundle would read the v2 payload, fail the gate, and persist
+an empty v1 blob over it on its next `markSlideRead` — wiping the read-set and violating
+P-READER-002 during the deploy window. Separate keys make old and new tabs mutually harmless.
+
+Migration is **pure and derived on read** — nothing persists until the reader actually marks a
+slide read. Attribution of the old global `lastHref` to a book uses the already book-keyed
+`read` map first, falling back to the strict canonical route `^/read/([^/]+)/[^/]+/\d+$`. **An
+unattributable pointer is dropped, never guessed.** `read` entries are never dropped.
+
+Proven in the browser across four cases:
+
+1. **Valid v1 blob** → CTA and pill both resolved to `05-context-engineering/2`; v2 still `null`
+   at that point (read-only migration). After the 1.2 s dwell the v2 write carried all three
+   original `read` timestamps unchanged; v1 byte-identical.
+2. **Unattributable pointer** (`"lastHref":"/not-a-slide-route"`) → all three entry points fell
+   back to "Start learning" / `01-anatomy/0`, no pill, and the subsequent v2 write still held
+   **both** read entries with original timestamps.
+3. **Truncated JSON** → full zero-state, no wrong destination, no console error.
+4. **Stale `lastBook`** pointing at a nonexistent book → fell back to the newest `at`, CTA still
+   correct.
+
+**Acceptance**
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| per-book `lastHref` + separate overall pointer | MET | `lastByBook` held both books simultaneously after reading in each; `lastBook` tracked the most recent |
+| entering book B with a book-A target renders something sensible | MET | `<a href="/read/architecture-and-system-design/05-context-engineering/2"><span>You were last reading</span><span>Architecture and System Design for AI Agents</span><span aria-hidden="true">→</span></a>`; Playwright ARIA snapshot: `link "You were last reading Architecture and System Design for AI Agents"` (arrow correctly excluded) |
+| three entry points agree | MET | quoted below, three states |
+| old localStorage never breaks | MET | four cases above |
+| verified with two books | MET | temporary book created, exercised, removed |
+| build + lint green | MET | both exit 0 |
+
+**Two-book evidence.** Faked `content/zz-temp-second-book/` (`index.md` + two chapters, 5
+slides; slug sorts after the real book so `getPrimaryBook()` was unaffected). Build went
+199 → 204 slides / 210 → 215 pages. Pointer only in book A → enter book B → cross-book pill
+naming book A, **and book A's pointer survived**. Read into book B, return to book A slide 1 →
+`Continue where you left off · The context window is a budget` → `05-context-engineering/2`.
+**That is precisely what was impossible before.** Then book B slide 1 resumed to
+`02-beta/1` — both books resume independently. Removed and rebuilt afterwards:
+`git status --short content/` empty, `git diff d55d2da HEAD --stat -- content/` empty,
+`curl /read/zz-temp-second-book/01-alpha/0` → **404**, slide count back to 199.
+
+**Three entry points, quoted**
+
+```
+State 1 — no progress:      all three → "Start learning" / "Start with Chapter 1"
+                            → /read/architecture-and-system-design/01-anatomy/0   allAgree: true
+State 2 — mid-book:         all three → "Continue reading"
+                            → /read/architecture-and-system-design/09-data-modeling/1   allAgree: true
+State 3 — progress in book B: all three → "Continue reading"
+                            → /read/zz-temp-second-book/02-beta/1                  allAgree: true
+```
+
+The third slot keeps the copy "Start with Chapter 1" only in the fresh-reader state; with a
+resume target it becomes "Continue reading" and follows `ctaHref`.
+
+**The `current?.globalIndex === 0` guard was NOT changed** — deliberately. It is the existing
+product rule ("shown only when the reader lands at the start of a book"), the issue does not
+authorise changing it, and relaxing it would float a pill over every deep link. Verified on a
+non-first slide: `03-tool-design/0` with a pointer at ch5/2 → `pillCount: 0`. The "entering
+book B" case still works because `/read/<book>` redirects to slide 0, so the guard is satisfied
+precisely when it matters.
+
+**P-READER-002 / 003 — two independent checks.** Runtime: `performance.getEntriesByType('resource')`
+over 77 requests — every one a Next RSC `?_rsc=` GET or a static chunk, `initiatorTypes`
+link/script/img/fetch, **no XHR, no POST**; a regex for `progress|lastByBook|lastBook|lastHref`
+across all request URLs returned **zero** hits. Static: `grep -rln "lib/progress" src/` returns
+only `Home.tsx` and `ReaderChrome.tsx`, and grepping `fetch(|XMLHttpRequest|sendBeacon|navigator.send`
+in `progress.ts` plus both importers returns none. Monotonicity: every migration case shows the
+`read` set surviving with original timestamps; `markSlideRead` still only ever adds.
+
+**Measured a11y / visual.** Dark 375×812: lead on `bg-canvas-2` **5.93:1**, destination
+**15.63:1**; long book title truncates (`scrollWidth 269 > clientWidth 114`), pill 321.6 px
+inside 375 px, no horizontal overflow; dismiss button 32×32 with
+`aria-label="Dismiss resume suggestion"`. Light desktop 948 px: lead **4.66:1**, destination
+**15.46:1**. Tokens only (`text-ink-2`, `text-ink`, `bg-canvas-2`, `text-blue`); `globals.css`
+untouched. Console: no errors, no hydration warnings.
+
+**What the issue got wrong**
+
+- **F-028 · The Files list omits the file containing the bug.** `resumeTarget` is in
+  `ReaderChrome.tsx:128-131`, `byHref` at `:90-95` — not in `ResumePill.tsx:23-28`, which is 52
+  purely presentational lines. The audit §3.9 cites it correctly; the **issue** drifted from its
+  own Source. That is four issues in a row with an incomplete or wrong Files list.
+- **F-029 · `progress.ts:17` is off by one** — `lastHref` is line 16.
+- **F-030 · The feature spec was already drifted before this issue.**
+  `specs/features/reader/ide-shell/spec.md:50-53` documented a `getProgress(): Progress` export
+  that does not exist in `progress.ts`. Corrected while updating the Input Contract to v2.
+- **F-031 · The landing CTA links a stored href with no validation.** Found by accident while
+  seeding `/read/architecture-and-system-design/09-memory/1` (the real slug is
+  `09-data-modeling`): the reader pill correctly stayed silent because it validates against the
+  manifest, but **the landing CTA happily linked to a 404**. Pre-existing in v1, not a
+  regression, out of scope here — worth its own issue.
+- **F-032 · A stale v1 blob is now retained indefinitely** (~one extra copy of the read-set).
+  Deliberate: deleting it would break tabs still running the v1 bundle during a deploy. A later
+  release can drop the key once the deploy window has passed.
+
+**Deviation, disclosed.** Two files outside the issue's Files list were edited:
+`src/app/read/[book]/layout.tsx` (3 lines, using the **existing** `getBooks()` export so the
+cross-book pill can name the destination book truthfully instead of humanising a slug —
+`content.ts` untouched) and `specs/features/reader/ide-shell/spec.md` (Input Contract updated to
+the v2 shape, plus the F-030 correction). The spec edit is the C1 "spec written on-touch" rule,
+but neither file was authorised by the issue.
+
+**Noted, deliberately not done**
+
+- Cross-book prev/next, book switcher, path model — untouched. `content.ts` and `getAdjacent()`
+  not edited.
+- Three further landing links still point at `data.startHref`: nav "Reader" (`:93`), "Open the
+  reader" (`:420`), footer "Reader" (`:470`), plus the chapter-1 preview card (`:427`). Left
+  deliberately — they are navigational labels or an explicit Chapter-1 preview, and none of them
+  *claims* where the reader currently is, which is what the criterion is about.
+- The layout now serialises every book's slug+title into every reader page (~40 bytes/book).
+  Proportionate, but it is the same category the audit flags in §3.5 ("stop embedding cross-book
+  data in page HTML") and should be revisited when the shelf lands in M3.
+- On 375 px the cross-book pill truncates a long book title to ~114 px
+  ("Architecture and Sys…"). Existing `truncate` behaviour, no overflow, but a shorter shelf
+  label would read better once M3 defines one.
+
