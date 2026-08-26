@@ -826,3 +826,124 @@ changes a route: `sectionIndex` (which forms the URL) and `globalIndex` are both
 unchanged code, the 199 generated paths are identical, and no localStorage key, shape or href
 is affected. That question belongs to SOL-18's `###` sub-splitting.
 
+### SOL-9 — unbind `Space` from next-slide
+
+- **Status:** complete · commit `2a4c724` *fix: unbind Space from next-slide so it pages the scroll container (SOL-9)*
+- **Files changed:** `src/components/reader/ReaderChrome.tsx` only (+24/−1)
+- **Build:** green — `✓ Generating static pages (210/210) in 14.6s`, exit 0
+- **Lint:** green — exit 0, zero output
+- **Slide count:** 199 → 199
+
+**Citation audit — all three drifted**
+
+| Issue says | Actually (pre-fix) | Drift |
+|---|---|---|
+| `:187-189` keydown handler | `:252-257` | +65 |
+| `:352` scroll container | `:415-419` | +63 |
+| `:370-372` shortcut hint | `:431-433` | +61 |
+
+Consistent with SOL-13's +94-line insert into the same file. The *content* of all three
+citations was correct once relocated.
+
+**Keyboard instrument — `computer{action:"key"}` is broken for space, confirmed by
+measurement.** A capture-phase keydown probe showed `text:"space"` and `text:"Space"` both
+deliver `key:""`, `code:""`, `keyCode:0` — matching nothing, `defaultPrevented:false`, no
+navigation. `text:" "` is rejected by the tool's own parser. Playwright's
+`page.keyboard.press('Space')` delivered `key:" "`, `code:"Space"`, `keyCode:32`,
+`isTrusted:true` and **did navigate on the unfixed build** — instrument validated against the
+known-bad baseline before being trusted. All keyboard evidence is Playwright. This confirms and
+generalises the SOL-5 observation (F-009).
+
+**Reproduction.** `/read/architecture-and-system-design/01-anatomy/6` — "Review — Chapter 1".
+Stage container measured at **`scrollHeight: 3247` vs `clientHeight: 876`** (3.7× viewport; 5.1×
+at the pane's 634 px). Focus on `BODY`, `scrollTop: 0`. Space → URL `…/01-anatomy/6` →
+**`…/02-agent-loop-pattern/0`**, `scrollTop` never left 0, probe showed
+`defaultPrevented: true`. Reproduced exactly as described.
+
+**Acceptance**
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| Space scrolls a tall slide, does not navigate | MET | `scrollTop` 0 → **788.8** (876 × 0.9), URL unchanged. Second Space → 1577.6. `Shift+Space` → back to 789.6. At the bottom (`scrollTop 2371.2`, max 2371) Space is inert — **no navigation**, which is the point |
+| `→`, `PageDown`, swipe still advance, guards intact | MET | `→`: `01-anatomy/6` → `02-agent-loop-pattern/0`. `PageDown`: `/0` → `/1`. `←`: `/1` → `/0`. Swipe below |
+| reproduce first and name the slide | MET | above |
+| build + lint green | MET | both exit 0 |
+
+**Guards.** *Typing* — opened Search with `/`, typed "tool"; `→` moved the caret and did not
+navigate, Space typed a literal space (`value` → `"tool "`), did not scroll the stage, did not
+navigate. *Modal* — isolated properly by focusing a search-result `<button>` so
+`isTypingTarget` was `false` and only `anyModal` could suppress: `→` → URL unchanged, stage
+`scrollTop 0`, dialog still open. *Mobile overlay* — 390×844, pressed `t` (`isDesktop: false`,
+stage scrollable 4666 vs 770), blurred to `BODY`: Space → no scroll, `→` → no navigation. Both
+correctly suppressed by the pre-existing guard, which the new branch sits **below**.
+
+**Swipe** — untouched by the diff, tested with real `TouchEvent`s and constructed `Touch`
+objects on `<main>`: left swipe (dx −180) advanced, right swipe (dx +200) went back. Synthetic
+(`isTrusted:false`), but React's synthetic handler is the only consumer.
+
+**The SOL-5 disclosure case — this is the user-visible payoff.** Focused the first `<summary>`
+("Answer") on the Review slide. *Unfixed:* `open: false` → Space → **navigated away**, the
+disclosure never opened. *Fixed:* `open: false` → Space → **`open: true`**, URL unchanged,
+stage `scrollTop` stayed 0 (the new handler correctly defers to native activation). **264
+disclosures across the book are now keyboard-operable** — F-008 from the SOL-5 log is closed.
+
+**Short-slide case** (the "subtler bug" the brief warned about): `01-anatomy/0`,
+`scrollHeight 876 === clientHeight 876`. Space → nothing at all, no navigation. Space never
+navigates under any condition.
+
+**SOL-7 mermaid container** — could not exercise the real component; the claim was *verified*
+rather than assumed: zero mermaid fences in the live book, zero `language-mermaid` across all
+199 built slide HTMLs. Exercised the identical code path by injecting a container mirroring
+`MermaidDiagram.tsx:184-190` (`role="group"`, `tabIndex={0}`, overflow), focusing it and
+pressing Space — the **box** scrolled 0 → 104.8, the stage stayed at 0, URL unchanged. Caveat:
+the real box is `overflow-x-auto` (horizontal only), so a vertical Space there walks up to the
+stage — correct native behaviour either way.
+
+**Advertised-keys string: not changed.** It reads `← → arrow keys work too` and never mentioned
+Space, so removing Space from navigation does not make it inaccurate. Touching it would stray
+into the out-of-scope shortcut sheet.
+
+**Console:** Playwright `browser_console_messages`, all levels, whole session:
+`Total messages: 0 (Errors: 0, Warnings: 0)`. Chrome pane: "No console logs."
+
+**What the issue got wrong**
+
+- **F-037 · "Drop Space entirely and let the browser do its job" does NOT work here — measured.**
+  Before writing code the agent bypassed the handler (capture-phase `stopImmediatePropagation`
+  *without* cancelling the event) to observe pure native behaviour on the tall slide. Result:
+  **`scrollTop` stayed 0. Space did nothing.** The stage is an inner `overflow-y-auto` div that
+  is not focusable and does not contain focus (focus is on `<body>` after load), and the
+  document itself cannot scroll — the `ReaderChrome` root is `h-dvh` and
+  `document.scrollingElement.scrollHeight === clientHeight === 720`. Chrome's spacebar default
+  action has no scroller to act on. **Pure unbinding would have satisfied "Space does not
+  navigate" while failing "Space scrolls the content" — a silent half-fix that passes a casual
+  check.** The shipped fix is unbinding **plus** four lines that page the stage only when focus
+  is nowhere (`!active || body || documentElement`); anything focused keeps its own native
+  Space. This is not the "advance only when scrolled to the bottom" cleverness the issue ruled
+  out — Space never navigates, and the branch sits below the existing modal/overlay guard.
+- **F-038 · `Shift+Space` changed behaviour on the same key.** The old check ignored `shiftKey`,
+  so Shift+Space also advanced the slide. It now pages **up**, matching every browser. Same key,
+  so not a rebinding — but a behaviour change the issue did not name.
+- **F-039 · The stage fails WCAG 2.1.1, the same hole SOL-7 found for mermaid.** The stage
+  scroll container has no `tabIndex`, so a keyboard user cannot reach it: `ArrowUp`/`ArrowDown`/
+  `Home`/`End` do nothing on a 3,247 px slide, and Space works only because it is now forwarded
+  explicitly. SOL-7's own comment states the principle and applies `tabIndex={0}` +
+  `role="group"` + `aria-label` to its box. The same treatment on the stage would make Space,
+  both arrows, Home/End and Shift+Space all native and let the four forwarding lines be deleted.
+  **Not done here** — it adds a tab stop and changes focus behaviour across the whole reader,
+  beyond a Tier-1 fix and beyond what this issue authorises. Worth its own issue.
+- **F-040 · `02-code-ux-audit.md` §1.4 is now stale** — its table still lists `Space` in the
+  next-slide row and its note still describes the bug. Not edited: a dated research artifact,
+  not in the Files list.
+
+**Orchestrator correction to the agent's report.** It attributed the search dialog pulling focus
+back to the input to "SOL-10's focus trap". **There is no focus trap on this branch** — SOL-10
+has not been implemented here. Verified: `grep` for `focus-visible|focusTrap|trapFocus` across
+`globals.css` and `SearchPanel.tsx` returns nothing. What actually refocuses is
+**`SearchPanel.tsx:35` — a one-shot `setTimeout(() => inputRef.current?.focus(), 40)`**. The
+guard evidence is unaffected (the agent tested the modal guard via a focused result button
+instead, which is cleaner anyway), but SOL-10 still has to *build* the trap from scratch.
+
+**Invariants.** P-READER-002 untouched — no progress or localStorage code changed.
+P-READER-003 strengthened: a long slide is now keyboard-readable rather than a trap.
+
