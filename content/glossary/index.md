@@ -5,6 +5,7 @@ track: Reference
 order: 90
 accent: slate
 featured: false
+body: Glossary.md
 ---
 # Glossary of Hard Terms
 

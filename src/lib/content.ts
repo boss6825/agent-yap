@@ -1,8 +1,10 @@
 /**
  * Content layer — the single source of truth for the knowledge base.
  *
- * Markdown lives in `content/<book>/`. Each book has an `index.md` (title +
- * description) and `chapter-NN-*.md` files. Every chapter is split into
+ * Markdown lives in `content/<book>/`. Every book folder has the same shape:
+ * an `index.md` (typed frontmatter, then an H1 title and a `>` description) and
+ * `chapter-NN-*.md` files beside it. Anything else in the folder (`sources/`,
+ * a nested `glossary/`) is never parsed. Every chapter is split into
  * "slides": one intro slide (the text under the H1, before the first H2) plus
  * one slide per `##` section. Slides are flattened into a single ordered list
  * per book so the reader can move left/right across the whole book.
@@ -10,9 +12,112 @@
  * This module is server-only (it reads the filesystem). It is imported by the
  * statically-generated reader pages AND by the API routes (search + ask), so
  * the parsing logic is never duplicated.
+ *
+ * ## Subjects
+ *
+ * The site serves several subjects, not one book. `index.md` frontmatter is
+ * what groups them: `track` names the shelf section, `order` sorts within and
+ * across sections, `featured` promotes a book to the top row, and `accent`
+ * picks its card tint. Adding a subject is a folder plus that block: no code
+ * change, which is the whole point of keeping the layout uniform.
  */
 import fs from "node:fs";
 import path from "node:path";
+
+/** Card tints the shelf knows how to render. Unknown values fall back. */
+export const ACCENTS = [
+  "teal",
+  "violet",
+  "rose",
+  "amber",
+  "sky",
+  "indigo",
+  "slate",
+] as const;
+export type Accent = (typeof ACCENTS)[number];
+
+/** Every key the frontmatter block understands. Unknown keys are ignored. */
+export interface Frontmatter {
+  /** Overrides the H1 as the display title. */
+  title?: string;
+  /** One short line under the title on a shelf card. */
+  tagline?: string;
+  /** Shelf section this book belongs to, e.g. "Context, Memory, and Retrieval". */
+  track?: string;
+  /** Sort key within a track, and (by a track's minimum) between tracks. */
+  order?: number;
+  /** Card tint. */
+  accent?: Accent;
+  /** Promote to the featured row on the landing page and the library. */
+  featured?: boolean;
+  /**
+   * Names the markdown file holding this entry's body, which makes the folder
+   * a single-page *reference* instead of a chaptered book. See `Reference`.
+   */
+  body?: string;
+}
+
+function unquote(value: string): string {
+  const t = value.trim();
+  const quoted =
+    (t.startsWith('"') && t.endsWith('"')) ||
+    (t.startsWith("'") && t.endsWith("'"));
+  return quoted ? t.slice(1, -1) : t;
+}
+
+/**
+ * Minimal typed frontmatter: a leading `---` block of `key: value` lines.
+ *
+ * Deliberately not YAML. The corpus is hand-authored markdown and the only
+ * shapes it needs are strings, numbers and booleans, so a dependency-free
+ * splitter keeps `content/` readable and the build honest. A file with no
+ * `---` block parses exactly as it did before this existed.
+ */
+export function parseFrontmatter(raw: string): {
+  data: Frontmatter;
+  body: string;
+} {
+  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+  if (!match) return { data: {}, body: raw };
+
+  const data: Frontmatter = {};
+  for (const line of match[1].split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const kv = trimmed.match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
+    if (!kv) continue;
+    const value = unquote(kv[2]);
+    switch (kv[1]) {
+      case "title":
+        if (value) data.title = value;
+        break;
+      case "tagline":
+        if (value) data.tagline = value;
+        break;
+      case "track":
+        if (value) data.track = value;
+        break;
+      case "order": {
+        const n = Number(value);
+        if (Number.isFinite(n)) data.order = n;
+        break;
+      }
+      case "accent":
+        if ((ACCENTS as readonly string[]).includes(value)) {
+          data.accent = value as Accent;
+        }
+        break;
+      case "featured":
+        if (value === "true") data.featured = true;
+        else if (value === "false") data.featured = false;
+        break;
+      case "body":
+        if (value) data.body = value;
+        break;
+    }
+  }
+  return { data, body: raw.slice(match[0].length) };
+}
 
 export interface Slide {
   /** Globally unique id, e.g. "architecture-and-system-design/01-anatomy/2". */
@@ -45,15 +150,58 @@ export interface Chapter {
   slides: Slide[];
   /** Route to the first slide of the chapter. */
   href: string;
+  /** Frontmatter `order`, when a book departs from its filename numbering. */
+  order?: number;
 }
 
+/** A subject: one book folder under `content/`. */
 export interface Book {
   slug: string;
   title: string;
+  /** The `>` blockquote in `index.md`: a paragraph of prose. */
   description: string;
+  /** The frontmatter `tagline`: one line, sized for a card. */
+  tagline: string;
+  /** Shelf section. Books without a `track` collect under "Other". */
+  track: string;
+  /** Shelf sort key. Books without an `order` sort last, then by slug. */
+  order?: number;
+  accent: Accent;
+  featured: boolean;
   chapters: Chapter[];
   /** All slides across all chapters, in reading order. */
   slides: Slide[];
+  /** Route to the first slide, i.e. where "Start learning" goes. */
+  startHref: string;
+}
+
+/**
+ * A single-page reference: a folder with an `index.md` whose frontmatter names
+ * a `body` file, and no chapters.
+ *
+ * The glossary is why this exists. Its entries are `###` definitions, so the
+ * one-slide-per-`##` rule would collapse sixty terms onto a single slide, and
+ * 159 cross-book links already point at it. It needs a route, not a reader.
+ */
+export interface Reference {
+  slug: string;
+  title: string;
+  description: string;
+  tagline: string;
+  track: string;
+  accent: Accent;
+  order?: number;
+  /** Body markdown, frontmatter stripped. */
+  markdown: string;
+  href: string;
+}
+
+/** One section of the shelf: a track label and what sits under it. */
+export interface Track {
+  /** The `track` value, used verbatim as the section heading. */
+  name: string;
+  books: Book[];
+  references: Reference[];
 }
 
 /**
@@ -96,6 +244,9 @@ export function toPlainText(markdown: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+/** The `>` line in an `index.md`: the entry's one-paragraph description. */
+const BLOCKQUOTE_RE = /^>\s?(.*)$/m;
 
 function firstHeading(markdown: string, level: 1 | 2): string | null {
   const re = new RegExp(`^#{${level}}\\s+(.*)$`, "m");
@@ -181,9 +332,10 @@ function loadBooks(): Book[] {
     const indexPath = path.join(dir, "index.md");
     if (!fs.existsSync(indexPath)) continue;
 
-    const indexMd = fs.readFileSync(indexPath, "utf8");
-    const title = firstHeading(indexMd, 1) ?? bookSlug;
-    const blockquote = indexMd.match(/^>\s?(.*)$/m);
+    const indexRaw = fs.readFileSync(indexPath, "utf8");
+    const { data: meta, body: indexMd } = parseFrontmatter(indexRaw);
+    const title = meta.title ?? firstHeading(indexMd, 1) ?? bookSlug;
+    const blockquote = indexMd.match(BLOCKQUOTE_RE);
     const description = (blockquote ? blockquote[1] : firstParagraph(indexMd)).trim();
 
     const chapterFiles = fs
@@ -204,8 +356,11 @@ function loadBooks(): Book[] {
       const chapterNumber = numberMatch ? parseInt(numberMatch[1], 10) : 0;
       const chapterSlug = file.replace(/^chapter-/, "").replace(/\.md$/, "");
 
-      const md = fs.readFileSync(path.join(dir, file), "utf8");
-      const h1 = firstHeading(md, 1) ?? `Chapter ${chapterNumber}`;
+      const { data: chapterMeta, body: md } = parseFrontmatter(
+        fs.readFileSync(path.join(dir, file), "utf8"),
+      );
+      const h1 =
+        chapterMeta.title ?? firstHeading(md, 1) ?? `Chapter ${chapterNumber}`;
       const chapterTitle = cleanChapterTitle(h1);
       const sections = splitIntoSections(md, chapterTitle);
 
@@ -222,7 +377,7 @@ function loadBooks(): Book[] {
           markdown: section.markdown,
           text: toPlainText(section.markdown),
           href,
-          globalIndex: globalIndex++,
+          globalIndex: 0, // handed out below, in final chapter order
         };
         return slide;
       });
@@ -236,18 +391,132 @@ function loadBooks(): Book[] {
         blurb,
         slides,
         href: slides[0]?.href ?? `/read/${bookSlug}/${chapterSlug}/0`,
+        order: chapterMeta.order,
       });
-      bookSlides.push(...slides);
     }
 
-    chapters.sort((a, b) => a.number - b.number);
-    books.push({ slug: bookSlug, title, description, chapters, slides: bookSlides });
+    // Sort first, number second. `NavChapter` addresses a chapter as a
+    // half-open range into the flat slide list, so `globalIndex` has to be
+    // handed out in final reading order: numbering during the read loop and
+    // sorting afterwards would point every range at the wrong slides.
+    chapters.sort(compareChapters);
+    for (const chapter of chapters) {
+      for (const slide of chapter.slides) {
+        slide.globalIndex = globalIndex++;
+        bookSlides.push(slide);
+      }
+    }
+
+    books.push({
+      slug: bookSlug,
+      title,
+      description,
+      tagline: meta.tagline ?? description,
+      track: meta.track ?? OTHER_TRACK,
+      order: meta.order,
+      accent: meta.accent ?? "slate",
+      featured: meta.featured === true,
+      chapters,
+      slides: bookSlides,
+      startHref: bookSlides[0]?.href ?? `/read/${bookSlug}`,
+    });
   }
+
+  books.sort(compareBooks);
 
   if (books.length > 0) {
     globalForContent.__agentYapBooks = books;
   }
   return books;
+}
+
+/** Where entries with no `track` collect, so nothing silently disappears. */
+const OTHER_TRACK = "Other";
+
+const globalForReferences = globalThis as typeof globalThis & {
+  __agentYapReferences?: Reference[] | null;
+};
+
+/**
+ * Load every single-page reference. Same folder scan as `loadBooks`, opposite
+ * test: a reference has a `body` in its frontmatter, a book has chapter files.
+ * A folder with neither (`content/research papers/`) stays unpublished, which
+ * is the behaviour it has always had.
+ */
+function loadReferences(): Reference[] {
+  if (globalForReferences.__agentYapReferences?.length) {
+    return globalForReferences.__agentYapReferences;
+  }
+
+  const contentRoot = resolveContentRoot();
+  const references: Reference[] = [];
+  if (!fs.existsSync(contentRoot)) return references;
+
+  for (const entry of fs.readdirSync(contentRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const dir = path.join(contentRoot, entry.name);
+    const indexPath = path.join(dir, "index.md");
+    if (!fs.existsSync(indexPath)) continue;
+
+    const { data: meta, body: indexMd } = parseFrontmatter(
+      fs.readFileSync(indexPath, "utf8"),
+    );
+    if (!meta.body) continue;
+
+    const bodyPath = path.join(dir, meta.body);
+    if (!fs.existsSync(bodyPath)) {
+      console.warn(
+        `[content] ${entry.name}/index.md names body "${meta.body}", which does not exist. Skipping.`,
+      );
+      continue;
+    }
+
+    const title = meta.title ?? firstHeading(indexMd, 1) ?? entry.name;
+    const blockquote = indexMd.match(BLOCKQUOTE_RE);
+    const description = (
+      blockquote ? blockquote[1] : firstParagraph(indexMd)
+    ).trim();
+
+    references.push({
+      slug: entry.name,
+      title,
+      description,
+      tagline: meta.tagline ?? description,
+      track: meta.track ?? OTHER_TRACK,
+      accent: meta.accent ?? "slate",
+      order: meta.order,
+      markdown: parseFrontmatter(fs.readFileSync(bodyPath, "utf8")).body,
+      href: `/${entry.name}`,
+    });
+  }
+
+  references.sort((a, b) => {
+    const ao = a.order ?? Number.POSITIVE_INFINITY;
+    const bo = b.order ?? Number.POSITIVE_INFINITY;
+    if (ao !== bo) return ao - bo;
+    return a.slug.localeCompare(b.slug);
+  });
+  if (references.length > 0) {
+    globalForReferences.__agentYapReferences = references;
+  }
+  return references;
+}
+
+/** Shelf order: explicit `order` first, then slug. No `order` sorts last. */
+function compareBooks(a: Book, b: Book): number {
+  const ao = a.order ?? Number.POSITIVE_INFINITY;
+  const bo = b.order ?? Number.POSITIVE_INFINITY;
+  if (ao !== bo) return ao - bo;
+  return a.slug.localeCompare(b.slug);
+}
+
+/** Reading order in a book: frontmatter `order`, then `chapter-NN`, then slug. */
+function compareChapters(a: Chapter, b: Chapter): number {
+  const ao = a.order ?? a.number;
+  const bo = b.order ?? b.number;
+  if (ao !== bo) return ao - bo;
+  if (a.number !== b.number) return a.number - b.number;
+  return a.slug.localeCompare(b.slug);
 }
 
 function firstParagraph(markdown: string): string {
@@ -273,11 +542,73 @@ export function getBook(slug: string): Book | undefined {
   return loadBooks().find((b) => b.slug === slug);
 }
 
-/** The primary book (the site currently ships one knowledge base). */
+/**
+ * Where a reader with no history starts: the first book in shelf order.
+ *
+ * `featured` deliberately does not decide this. Featured means "show in the
+ * top row", which several subjects are at once, so the entry point stays the
+ * `order` key and one book can be promoted without becoming the front door.
+ */
 export function getPrimaryBook(): Book {
   const books = loadBooks();
   if (books.length === 0) throw new Error("No content books found under /content");
   return books[0];
+}
+
+/** The books promoted to the featured row, in shelf order. */
+export function getFeaturedBooks(): Book[] {
+  return loadBooks().filter((b) => b.featured);
+}
+
+export function getReferences(): Reference[] {
+  return loadReferences();
+}
+
+export function getReference(slug: string): Reference | undefined {
+  return loadReferences().find((r) => r.slug === slug);
+}
+
+/**
+ * Every subject grouped into shelf sections, books before references.
+ *
+ * A track's position is its lowest `order`, so moving one book can move its
+ * whole section and nothing here holds a hardcoded list of track names: adding
+ * a subject is an `index.md`, never an edit to this file. "Other" always sorts
+ * last so an untracked folder is visible rather than lost.
+ */
+export function getShelf(): Track[] {
+  const byTrack = new Map<string, Track>();
+
+  const trackFor = (name: string): Track => {
+    let track = byTrack.get(name);
+    if (!track) {
+      track = { name, books: [], references: [] };
+      byTrack.set(name, track);
+    }
+    return track;
+  };
+
+  for (const book of loadBooks()) trackFor(book.track).books.push(book);
+  for (const reference of loadReferences()) {
+    trackFor(reference.track).references.push(reference);
+  }
+
+  const rank = (track: Track): number => {
+    const orders = [
+      ...track.books.map((b) => b.order),
+      ...track.references.map((r) => r.order),
+    ].filter((o): o is number => o !== undefined);
+    return orders.length ? Math.min(...orders) : Number.POSITIVE_INFINITY;
+  };
+
+  return [...byTrack.values()].sort((a, b) => {
+    if (a.name === OTHER_TRACK) return b.name === OTHER_TRACK ? 0 : 1;
+    if (b.name === OTHER_TRACK) return -1;
+    const ao = rank(a);
+    const bo = rank(b);
+    if (ao !== bo) return ao - bo;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 export function getChapter(bookSlug: string, chapterSlug: string): Chapter | undefined {
