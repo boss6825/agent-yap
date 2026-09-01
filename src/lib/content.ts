@@ -433,6 +433,23 @@ function loadBooks(): Book[] {
 }
 
 /**
+ * Drop a reference body's leading H1.
+ *
+ * `splitIntoSections` does the same thing for chapters: the H1 becomes the
+ * title the page renders in its own chrome, so leaving it in the body gives
+ * the document two top-level headings and reads the title out twice.
+ */
+function stripLeadingH1(markdown: string): string {
+  const lines = markdown.split(/\r?\n/);
+  let i = 0;
+  while (i < lines.length && !lines[i].trim()) i++;
+  if (i >= lines.length || !/^#\s+/.test(lines[i])) return markdown;
+  i++;
+  while (i < lines.length && !lines[i].trim()) i++;
+  return lines.slice(i).join("\n");
+}
+
+/**
  * How many things a reference defines: its deepest recurring heading level.
  *
  * The glossary uses `###` per term, but a reference is free to use `##`, so
@@ -499,7 +516,9 @@ function loadReferences(): Reference[] {
     const description = (
       blockquote ? blockquote[1] : firstParagraph(indexMd)
     ).trim();
-    const body = parseFrontmatter(fs.readFileSync(bodyPath, "utf8")).body;
+    const body = stripLeadingH1(
+      parseFrontmatter(fs.readFileSync(bodyPath, "utf8")).body,
+    );
 
     references.push({
       slug: entry.name,

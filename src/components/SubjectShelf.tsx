@@ -63,7 +63,7 @@ function FeaturedTile({ book }: { book: ShelfBook }) {
         backgroundImage:
           "linear-gradient(155deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 58%, #0b0b0f) 100%)",
       }}
-      className="group relative flex min-h-[210px] flex-col justify-between overflow-hidden rounded-card p-6 text-white transition-transform duration-[400ms] ease-out hover:-translate-y-1 active:scale-[0.98]"
+      className="accent-scope group relative flex min-h-[210px] flex-col justify-between overflow-hidden rounded-card p-6 text-white transition-transform duration-[400ms] ease-out hover:-translate-y-1 active:scale-[0.98]"
     >
       {/* Amber and teal are bright enough that white type on the raw gradient
           lands near 2:1. The scrim only darkens the lower half, so the tile

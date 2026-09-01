@@ -165,6 +165,14 @@ html.lenis body {
   .animate-kenburns {
     animation: none;
   }
+  /* Shelf cards lift and scale on hover and press. Harmless for most people,
+     but the whole point of the preference is that movement is not decoration.
+     Colour and background transitions stay: those are not motion. */
+  .accent-scope,
+  .accent-scope:hover,
+  .accent-scope:active {
+    transform: none !important;
+  }
   html {
     scroll-behavior: auto;
   }
