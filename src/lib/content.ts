@@ -193,6 +193,8 @@ export interface Reference {
   order?: number;
   /** Body markdown, frontmatter stripped. */
   markdown: string;
+  /** Headings in the body, i.e. how many things this page defines. */
+  entryCount: number;
   href: string;
 }
 
@@ -430,6 +432,27 @@ function loadBooks(): Book[] {
   return books;
 }
 
+/**
+ * How many things a reference defines: its deepest recurring heading level.
+ *
+ * The glossary uses `###` per term, but a reference is free to use `##`, so
+ * counting one fixed level would report zero for half of them. Counting the
+ * deepest level that actually recurs gets the entries and not the section
+ * headers above them.
+ */
+function countEntries(markdown: string): number {
+  const byLevel = new Map<number, number>();
+  for (const line of markdown.split(/\r?\n/)) {
+    const m = line.match(/^(#{2,4})\s+\S/);
+    if (!m) continue;
+    const level = m[1].length;
+    byLevel.set(level, (byLevel.get(level) ?? 0) + 1);
+  }
+  if (byLevel.size === 0) return 0;
+  const deepest = Math.max(...byLevel.keys());
+  return byLevel.get(deepest) ?? 0;
+}
+
 /** Where entries with no `track` collect, so nothing silently disappears. */
 const OTHER_TRACK = "Other";
 
@@ -476,6 +499,7 @@ function loadReferences(): Reference[] {
     const description = (
       blockquote ? blockquote[1] : firstParagraph(indexMd)
     ).trim();
+    const body = parseFrontmatter(fs.readFileSync(bodyPath, "utf8")).body;
 
     references.push({
       slug: entry.name,
@@ -485,8 +509,9 @@ function loadReferences(): Reference[] {
       track: meta.track ?? OTHER_TRACK,
       accent: meta.accent ?? "slate",
       order: meta.order,
-      markdown: parseFrontmatter(fs.readFileSync(bodyPath, "utf8")).body,
-      href: `/${entry.name}`,
+      markdown: body,
+      entryCount: countEntries(body),
+      href: `/reference/${entry.name}`,
     });
   }
 

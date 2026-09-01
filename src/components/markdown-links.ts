@@ -16,12 +16,11 @@
  *     the leading `chapter-` and the trailing `.md` removed
  *
  * Anything the content layer does not actually serve — a book with no
- * `index.md`, a file named `Chapter 1 - X.md`, a path into a subdirectory —
- * comes back as `unresolved` so the renderer can mark it instead of emitting a
- * route that 404s. Those are the files M3 (content wiring) renames; until then
- * an unresolved link is the honest answer.
+ * `index.md`, a path into a subdirectory, a folder that is neither a book nor
+ * a reference — comes back as `unresolved` so the renderer can mark it instead
+ * of emitting a route that 404s.
  */
-import { getBook, getChapter } from "@/lib/content";
+import { getBook, getChapter, getReference } from "@/lib/content";
 
 /** Where the markdown being rendered lives, so relative paths have an origin. */
 export interface MarkdownLinkContext {
@@ -64,8 +63,15 @@ export function slugifyHeading(text: string): string {
     .replace(/\s/g, "-");
 }
 
-/** Collapse repeated/edge hyphens so near-miss anchors still land. */
-function normalizeSlug(slug: string): string {
+/**
+ * Collapse repeated/edge hyphens so near-miss anchors still land.
+ *
+ * github-slugger emits one hyphen per whitespace character, so a heading like
+ * "Chain-of-thought (and extended / interleaved thinking)" slugs with a double
+ * hyphen where the `/ ` was, while every hand-written link to it uses a single
+ * one. Collapsing runs on both sides is what makes the two agree.
+ */
+export function normalizeSlug(slug: string): string {
   return slug.replace(/-{2,}/g, "-").replace(/^-+|-+$/g, "");
 }
 
@@ -221,6 +227,22 @@ export function resolveMarkdownLink(
     dirs.push(segment);
   }
   if (dirs.length !== 1) return unresolved;
+
+  // A reference folder renders as one page, so every `.md` inside it resolves
+  // to that page and the fragment carries the rest. This is what makes the
+  // corpus's 159 `../glossary/Glossary.md#term` links land.
+  const reference = getReference(dirs[0]);
+  if (reference) {
+    // Re-slug the authored fragment through the same pipeline that stamps the
+    // ids on the page (`rehypeHeadingIds`), so the two cannot disagree.
+    const fragment = anchor
+      ? normalizeSlug(slugifyHeading(decodeSegment(anchor)))
+      : "";
+    return {
+      kind: "internal",
+      href: fragment ? `${reference.href}#${fragment}` : reference.href,
+    };
+  }
 
   const book = getBook(dirs[0]);
   if (!book || book.slides.length === 0) return unresolved;

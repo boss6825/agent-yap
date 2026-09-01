@@ -9,6 +9,7 @@ import {
   type MarkdownLinkContext,
 } from "@/components/markdown-links";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
+import { rehypeHeadingIds } from "@/components/rehype-heading-ids";
 
 /** Every text node under a hast subtree, concatenated. */
 function hastText(node: ElementContent): string {
@@ -72,13 +73,20 @@ function mermaidSource(node: Element | undefined): string | null {
  * fences — highlight.js has no mermaid grammar, so it would otherwise log a
  * `missing-language` message per diagram and stamp a pointless `hljs` class on
  * markup nobody sees.
+ *
+ * `headingIds` is off by default so slide output is byte-identical to what it
+ * was. Reference pages turn it on: they are one long document that the corpus
+ * links into by fragment, and a slide is short enough that its own headings
+ * are reached by paging, not by anchor.
  */
 export function Markdown({
   children,
   context,
+  headingIds = false,
 }: {
   children: string;
   context?: MarkdownLinkContext;
+  headingIds?: boolean;
 }) {
   return (
     <div className="prose-yap">
@@ -86,6 +94,7 @@ export function Markdown({
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[
           rehypeRaw,
+          ...(headingIds ? [rehypeHeadingIds] : []),
           [
             rehypeHighlight,
             { detect: true, ignoreMissing: true, plainText: ["mermaid"] },
