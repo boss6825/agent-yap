@@ -947,3 +947,96 @@ instead, which is cleaner anyway), but SOL-10 still has to *build* the trap from
 **Invariants.** P-READER-002 untouched — no progress or localStorage code changed.
 P-READER-003 strengthened: a long slide is now keyboard-readable rather than a trap.
 
+
+---
+
+### M3 + multi-subject restructure — six subjects, a shelf, and a library
+
+**Ask.** The site is structured around one subject (agent system design) while
+five more sit authored-but-dark under `content/`. Organise it like TUF: subjects
+on the landing page, and a reading surface that knows there is more than one
+book. Do not touch the animations.
+
+**Baseline → after.**
+
+| Metric | Before | After |
+|---|---|---|
+| Live books | 1 | 6 |
+| Prerendered slide pages | 199 | 481 |
+| Chapters | 18 | 53 |
+| Reference pages | 0 | 1 (`/reference/glossary`, 49 entries) |
+| Resolved glossary cross-links in rendered slides | 0 | 146 of 146 |
+| `npm run build` | green | green (493 static pages) |
+| `npm run lint` | green | green |
+
+`architecture-and-system-design` stayed at exactly 199 slides, which is the
+regression signal that the `globalIndex` reordering (see F-041) changed nothing
+already live.
+
+**Shape now enforced for every book folder.** This is the framework the ask
+deferred, in its minimum form: a folder is a **book** with `index.md` +
+`chapter-NN-*.md`, and a **reference** with `index.md` whose frontmatter names a
+`body` file. `sources/` and nested folders are never parsed. Frontmatter keys:
+`title`, `tagline`, `track`, `order`, `accent`, `featured`, `body`. Adding a
+subject is a folder and that block — no code change, which is the point.
+
+**Findings.**
+
+- **F-041 · `globalIndex` was handed out before the chapter sort.** `loadBooks`
+  numbered slides while reading chapter files and sorted `chapters` afterwards,
+  while `NavChapter` addresses a chapter as a half-open `[start, count)` range
+  into the flat slide list. Filename order and `chapter-NN` order agreed for the
+  only live book, so nothing was visibly wrong — but any book whose sort
+  disagreed with its filenames would have pointed every rail range at the wrong
+  slides. Numbering now happens after the sort, which is also what makes
+  chapter-level `order` frontmatter safe to honour. Latent, not observed.
+- **F-042 · Accent colours fail AA as text.** Apple's system colours are correct
+  as identity but not as ink: `#ff9500` at 14px on `#F5F5F7` measures ≈2:1, and
+  white on the raw amber featured tile ≈2.2:1. Fixed with `--accent-ink` (a
+  per-theme mix of the same hue) and a bottom scrim on the tiles. Measured after:
+  worst card CTA **4.68:1** dark / **5.80:1** light; worst featured tile
+  **6.01:1**, sampled from pixels in the rendered PNG rather than computed from
+  the gradient stops.
+- **F-043 · Two anchors of 47 missed because github-slugger emits one hyphen per
+  whitespace character.** `### Chain-of-thought (and extended / interleaved
+  thinking)` slugs with a double hyphen where the `/ ` was; every hand-written
+  link uses a single one. `normalizeSlug` now runs on both the emitted id and the
+  resolved anchor. 47/47 land.
+- **F-044 · The reference route shipped two `<h1>`.** The page renders the title
+  in its own chrome and then rendered the body verbatim, so the glossary had
+  "Glossary" followed by "Glossary of Hard Terms". `stripLeadingH1` mirrors what
+  `splitIntoSections` already does for chapters.
+- **F-045 · 13 of the corpus's 159 glossary links are unreachable by design.**
+  They live in `index.md` bodies, and the content layer reads only the H1 and the
+  `>` blockquote from those files. 146 are in `chapter-NN-*.md` and all 146
+  resolve. Nothing to fix; recorded so the 159/146 gap is not mistaken for a bug.
+- **F-046 · `preview_start` cannot reach a git worktree.** It launched the dev
+  server with `cwd` set to the *primary* tree (`agent YAP`, Cursor's branch), so
+  the first round of browser verification was measuring Cursor's code. Caught
+  because the nav still read "Curriculum / Reader". The dev server for this run
+  was started from the worktree by hand instead. Same trap as F-000, one layer
+  down.
+- **F-047 · `content/architecture-and-system-design/old docs/` is still present.**
+  19 stale duplicate files. Not parsed (the loader only scans top-level folders
+  under `content/`), so they are invisible to the site, and deleting content was
+  outside this ask. Worth its own issue.
+- **F-048 · Named skills in `AGENTS.md` are not installed here.**
+  `design-an-interface`, `web-design-guidelines`, `vercel-react-best-practices`,
+  `design-taste-frontend`, `high-end-visual-design`, `premium-frontend-ui`,
+  `accessibility` and `impeccable` are absent, and there is no shadcn MCP in this
+  session. `frontend-design` ran; the critique and a11y steps were done directly
+  against the rendered page (contrast sampling, a11y-tree audit, 375px overflow
+  check, console check) rather than pretending a skill was read.
+
+**Verification.** Chrome DevTools MCP against the worktree's own dev server: no
+console errors; no nested interactive elements inside a card; every shelf section
+`aria-labelledby` resolves; all 11 subject marks `aria-hidden`; focus ring visible
+on a card; zero horizontal overflow at 375px; subject switcher lists all six books
+with per-book resume targets. Full-corpus audit over all 481 prerendered slides:
+**zero** `data-unresolved-link`.
+
+**Invariants.** P-READER-002/003 untouched — no progress or localStorage logic
+changed. `home/fx.ts` not modified; every motion hook it keys off is preserved
+(`data-scramble`, `data-rise`, `data-lines`, `data-parallax`, `data-navtheme`,
+`#hero-*`, `#agent-pin`, `#strata-pin`, `[data-cloud-text]`). Only the section id
+moved, `#curriculum` → `#subjects`, with its nav and footer anchors.
