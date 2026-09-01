@@ -36,10 +36,10 @@
 | 6 | Dark theme + theme toggle | ✅ | `src/components/ThemeToggle.tsx`, `src/app/globals.css` | — |
 | 7 | Landing page | ✅ | `src/app/page.tsx`, `src/components/Home.tsx` | — |
 | 8 | Book TOC + not-found handling | ✅ | `src/app/read/[book]/page.tsx`, `src/app/not-found.tsx` | — |
-| 31 | Subject shelf (featured row + tracks, Resume/Start cards) | ✅ | `src/components/SubjectShelf.tsx`, `src/components/SubjectMark.tsx`, `src/lib/shelf.ts` | — |
-| 32 | Library index at `/read` (was a redirect to the only book) | ✅ | `src/app/read/page.tsx`, `src/components/Library.tsx` | — |
-| 33 | Subject switcher in the reader rail (per-book resume targets) | ✅ | `src/components/reader/Rail.tsx` | — |
-| 34 | Single-page reference route with heading anchors | ✅ | `src/app/reference/[slug]/page.tsx`, `src/components/rehype-heading-ids.ts` | — |
+| 35 | Subject shelf (featured row + tracks, Resume/Start cards) | ✅ | `src/components/SubjectShelf.tsx`, `src/components/SubjectMark.tsx`, `src/lib/shelf.ts` | — |
+| 36 | Library index at `/read` (was a redirect to the only book) | ✅ | `src/app/read/page.tsx`, `src/components/Library.tsx` | — |
+| 37 | Subject switcher in the reader rail (per-book resume targets) | ✅ | `src/components/reader/Rail.tsx` | — |
+| 38 | Single-page reference route with heading anchors | ✅ | `src/app/reference/[slug]/page.tsx`, `src/components/rehype-heading-ids.ts` | — |
 | 28 | Ambient shader layer + glass reading card (theme-aware, reduced-motion + WebGL fallback) | ✅ | `src/components/reader/AmbientBackdrop.tsx`, `src/app/globals.css` | `specs/features/reader/ide-shell/spec.md` |
 | 29 | BYOK Gemini chat panel grounded in current slide (`/api/ask` fallback, key never leaves browser) | ✅ | `src/components/reader/ChatPanel.tsx`, `src/lib/chat/gemini.ts`, `slide-context.ts` | `specs/features/reader/ide-shell/spec.md` |
 | 30 | Per-chapter public-domain artwork in the rail (The Met, CC0; build-time fetch script) | ✅ | `scripts/fetch-art.mjs`, `src/lib/art.ts`, `public/art/` | `specs/features/reader/ide-shell/spec.md` |
