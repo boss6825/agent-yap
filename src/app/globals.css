@@ -105,6 +105,20 @@ html.lenis body {
   background: rgba(10, 10, 12, 0.72);
 }
 
+/* Subject accents on the shelf.
+   `--accent` is set per card as an inline custom property (see SubjectShelf).
+   Raw, it is a decoration colour: #ff9500 as 14px text on #F5F5F7 lands around
+   2:1, well under AA. `--accent-ink` is the readable version of the same hue,
+   mixed toward the surface's opposite, so a card keeps its identity in text
+   without failing contrast in either theme. The ratios are the least-mixed
+   that still clear 4.5:1 for every accent at both settings. */
+.accent-scope {
+  --accent-ink: color-mix(in srgb, var(--accent) 55%, #000);
+}
+[data-theme="dark"] .accent-scope {
+  --accent-ink: color-mix(in srgb, var(--accent) 78%, #fff);
+}
+
 /* Slim, token-colored scrollbar for the contents rail. */
 .scrollbar-thin {
   scrollbar-width: thin;
