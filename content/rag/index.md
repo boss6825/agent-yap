@@ -1,4 +1,14 @@
-# Agentic RAG: Overview and Reading Order
+---
+title: Agentic RAG
+tagline: How retrieval grows from a one-shot lookup into a reasoning loop
+track: Context, Memory, and Retrieval
+order: 40
+accent: amber
+featured: true
+---
+# Agentic RAG
+
+> Ordinary RAG retrieves a fixed set of documents once and answers from them. Agentic RAG adds agents that decide what to retrieve, retrieve repeatedly, judge the quality of what came back, and adapt.
 
 These chapters explain the survey "Agentic Retrieval-Augmented Generation: A Survey on Agentic RAG" for someone who understands the basics of AI agents and has at least heard of [RAG](../glossary/Glossary.md#rag-retrieval-augmented-generation), but wants to understand how RAG grows up into something agentic.
 

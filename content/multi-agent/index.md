@@ -1,4 +1,14 @@
-# Multi-Agent Systems: Overview and Reading Order
+---
+title: Multi-Agent Systems
+tagline: One agent or many? The strongest case on each side
+track: Orchestration
+order: 50
+accent: sky
+featured: false
+---
+# Multi-Agent Systems
+
+> Anthropic and Cognition published opposite headlines about building with many agents, and agreed on the thing that matters most: the real problem is managing context, and the architecture should follow the shape of the task.
 
 These chapters explain the six articles in this folder for someone who understands the basics of AI agents (an [agent](../glossary/Glossary.md#agent) is an LLM that calls [tools](../glossary/Glossary.md#tool-calling-function-calling) in a loop) and now wants to understand the bigger architectural debate: should you build one agent or many?
 

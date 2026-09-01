@@ -1,4 +1,14 @@
-# Context Engineering: Overview and Reading Order
+---
+title: Context Engineering
+tagline: What goes into the window, what stays out, and why agents fail
+track: Context, Memory, and Retrieval
+order: 20
+accent: violet
+featured: true
+---
+# Context Engineering
+
+> Most agent failures are not the model being stupid. They are the model being handed the wrong information, too much of it, or badly formatted information. Fixing that is context engineering.
 
 These chapters explain the three articles in this folder for someone who already understands the basics of AI agents (an [agent](../glossary/Glossary.md#agent) is an LLM that calls [tools](../glossary/Glossary.md#tool-calling-function-calling) in a loop) but is now moving toward the more advanced engineering ideas.
 

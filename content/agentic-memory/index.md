@@ -1,4 +1,14 @@
-# Agentic Memory: Overview and Reading Order
+---
+title: Agentic Memory
+tagline: Write, manage, read: how an agent remembers across runs
+track: Context, Memory, and Retrieval
+order: 30
+accent: rose
+featured: false
+---
+# Agentic Memory
+
+> A plain LLM forgets everything between calls. Memory is the system you build around the model so it remembers, and the gap between an agent that has memory and one that does not is often larger than the gap between models.
 
 These chapters explain the articles in this folder for someone who understands the basics of AI agents and now wants to understand memory: why agents need it, how it is built and stored, how it fails, and how to keep it safe.
 

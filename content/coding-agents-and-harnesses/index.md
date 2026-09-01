@@ -1,4 +1,14 @@
-# Building Coding Agents and Harnesses: A Field Guide
+---
+title: Building Coding Agents and Harnesses
+tagline: Take apart Claude Code, Codex, Cursor, and Manus, then rebuild one
+track: Building Agents
+order: 60
+accent: indigo
+featured: true
+---
+# Building Coding Agents and Harnesses
+
+> The model is the small part. The harness around it (prompt assembly, context management, tool execution, sandboxing, subagents) is what turns a token predictor into something that reads a codebase, runs the tests, and opens a pull request.
 
 ## What this is
 
