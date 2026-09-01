@@ -16,6 +16,7 @@ import { setNavDirection } from "@/components/reader/nav-direction";
 import { AmbientBackdrop } from "@/components/reader/AmbientBackdrop";
 import { ChatPanel } from "@/components/reader/ChatPanel";
 import { Rail } from "@/components/reader/Rail";
+import type { ReaderBook } from "@/lib/shelf";
 import { ResumePill } from "@/components/reader/ResumePill";
 import { SearchPanel } from "@/components/SearchPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -30,12 +31,6 @@ const RAIL_PREF_KEY = "agent-yap:rail-open";
 
 /** Browsers leave a couple of lines on screen when they page down; so do we. */
 const PAGE_SCROLL_RATIO = 0.9;
-
-/** Just enough of the shelf to name a resume target in another book. */
-export interface ReaderBook {
-  slug: string;
-  title: string;
-}
 
 /**
  * What the resume pill should offer: this book's own saved position, or — when
@@ -88,9 +83,10 @@ export function ReaderChrome({
   children,
 }: {
   manifest: NavManifest;
-  /** Every book on the shelf (slug + title only) — used to name a resume target
-   *  that lives outside `manifest`. Optional so the chrome still renders without
-   *  it; the cross-book pill simply stays silent. */
+  /** Every book on the site, in shelf order. Names a resume target that lives
+   *  outside `manifest`, and fills the rail's subject switcher. Optional so the
+   *  chrome still renders without it; the cross-book pill simply stays silent
+   *  and the switcher lists only the current book. */
   books?: ReaderBook[];
   children: React.ReactNode;
 }) {
@@ -425,6 +421,7 @@ export function ReaderChrome({
             onNavigate={closeRailOverlay}
             onClose={closeRailOverlay}
             readHrefs={readHrefs}
+            subjects={books}
           />
         </aside>
 

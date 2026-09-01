@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getBook, getBooks, getNavManifest } from "@/lib/content";
+import { getBook, getNavManifest } from "@/lib/content";
+import { getReaderBooks } from "@/lib/shelf";
 import { ReaderChrome } from "@/components/reader/ReaderChrome";
 
 export default async function ReaderLayout({
@@ -12,11 +13,11 @@ export default async function ReaderLayout({
   const { book } = await params;
   if (!getBook(book)) notFound();
   const manifest = getNavManifest(book);
-  // Slug + title only: enough to name a resume target that lives in another
-  // book, without embedding a second book's slide manifest in this page.
-  const books = getBooks().map((b) => ({ slug: b.slug, title: b.title }));
+  // Four fields per book: enough to name a cross-book resume target and to
+  // fill the rail's subject switcher, without embedding a second book's slide
+  // manifest in every prerendered page.
   return (
-    <ReaderChrome manifest={manifest} books={books}>
+    <ReaderChrome manifest={manifest} books={getReaderBooks()}>
       {children}
     </ReaderChrome>
   );
