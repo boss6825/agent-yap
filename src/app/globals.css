@@ -67,6 +67,17 @@ body {
   background: rgba(0, 113, 227, 0.2);
 }
 
+/* Placeholders sit at the full secondary-ink token, never a faded one.
+   `placeholder:text-ink-2/60` measured 2.28:1 on #F5F5F7 and 2.99:1 on #1C1C1E,
+   both well under the 4.5:1 AA floor, in the three places a reader is most
+   likely to be reading a hint about what to type. At full strength the same
+   token gives 4.66-7.31:1 across every surface/theme pair the panels use.
+   Global so the next input added cannot reintroduce the faded variant. */
+::placeholder {
+  color: var(--color-ink-2);
+  opacity: 1; /* Firefox dims placeholders by default */
+}
+
 /* Lenis smooth-scroll host classes */
 html.lenis,
 html.lenis body {

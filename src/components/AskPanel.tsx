@@ -95,7 +95,7 @@ export function AskPanel({
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Ask a question about designing agents…"
-            className="flex-1 bg-transparent py-3 text-ink outline-none placeholder:text-ink-2/60"
+            className="flex-1 bg-transparent py-3 text-ink outline-none"
           />
           <button
             type="submit"

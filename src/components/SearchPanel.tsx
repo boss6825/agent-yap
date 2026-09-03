@@ -127,7 +127,7 @@ export function SearchPanel({
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder="Search chapters and sections…"
-          className="flex-1 bg-transparent py-4 text-[17px] text-ink outline-none placeholder:text-ink-2/60"
+          className="flex-1 bg-transparent py-4 text-[17px] text-ink outline-none"
         />
         <kbd className="hidden rounded-md border border-hairline px-1.5 py-0.5 font-mono text-[11px] text-ink-2 sm:block">
           esc

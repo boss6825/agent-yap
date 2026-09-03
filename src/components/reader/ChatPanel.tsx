@@ -410,7 +410,7 @@ export function ChatPanel({
                         ? "Ask about this page…"
                         : "Ask the docs (site-wide)…"
                     }
-                    className="max-h-40 flex-1 resize-none bg-transparent py-1 text-sm text-ink outline-none placeholder:text-ink-2/60"
+                    className="max-h-40 flex-1 resize-none bg-transparent py-1 text-sm text-ink outline-none"
                   />
                   <button
                     type="submit"
