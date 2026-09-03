@@ -17,7 +17,7 @@
 
 | Section | ✅ | 🔄 | 〰️ | ⬜ |
 |---|---|---|---|---|
-| Reader & Navigation | 15 | 0 | 0 | 0 |
+| Reader & Navigation | 19 | 0 | 0 | 0 |
 | Search & Ask (backend) | 4 | 0 | 0 | 0 |
 | Content & Modules | 7 | 0 | 1 | 0 |
 | Interactivity & Progress | 1 | 0 | 0 | 5 |
@@ -40,6 +40,10 @@
 | 36 | Library index at `/read` (was a redirect to the only book) | ✅ | `src/app/read/page.tsx`, `src/components/Library.tsx` | — |
 | 37 | Subject switcher in the reader rail (per-book resume targets) | ✅ | `src/components/reader/Rail.tsx` | — |
 | 38 | Single-page reference route with heading anchors | ✅ | `src/app/reference/[slug]/page.tsx`, `src/components/rehype-heading-ids.ts` | — |
+| 39 | Global `:focus-visible` ring + `.field-ring` composed fields | ✅ | `src/app/globals.css`, `SearchPanel.tsx`, `AskPanel.tsx`, `ChatPanel.tsx` | SOL-10 |
+| 40 | Modal focus trap + focus return to trigger | ✅ | `src/components/Modal.tsx` | SOL-10 |
+| 41 | Placeholder contrast ≥ 4.5:1 (global `::placeholder` rule) | ✅ | `src/app/globals.css` | SOL-11 |
+| 42 | Chapter art keyed by book (no cross-book collision) | ✅ | `src/lib/art.ts`, `src/lib/art-manifest.json`, `scripts/fetch-art.mjs` | SOL-29 |
 | 28 | Ambient shader layer + glass reading card (theme-aware, reduced-motion + WebGL fallback) | ✅ | `src/components/reader/AmbientBackdrop.tsx`, `src/app/globals.css` | `specs/features/reader/ide-shell/spec.md` |
 | 29 | BYOK Gemini chat panel grounded in current slide (`/api/ask` fallback, key never leaves browser) | ✅ | `src/components/reader/ChatPanel.tsx`, `src/lib/chat/gemini.ts`, `slide-context.ts` | `specs/features/reader/ide-shell/spec.md` |
 | 30 | Per-chapter public-domain artwork in the rail (The Met, CC0; build-time fetch script) | ✅ | `scripts/fetch-art.mjs`, `src/lib/art.ts`, `public/art/` | `specs/features/reader/ide-shell/spec.md` |
@@ -62,7 +66,7 @@ the folder (`sources/`, a nested `glossary/`) is never parsed.
 
 | # | Module | Status | Notes |
 |---|---|---|---|
-| 13 | Architecture & System Design (18 ch, 199 slides) | ✅ | Live. `content/architecture-and-system-design/`. |
+| 13 | Architecture & System Design (18 ch, 199 slides) | ✅ | Live. `content/architecture-and-system-design/`. Stale `old docs/` duplicate set deleted 2026-09-04 (SOL-20). |
 | 14 | Agentic RAG (4 ch, 35 slides) | ✅ | Live at `/read/rag`. Wired 2026-09-01. |
 | 15 | Context Engineering (4 ch, 33 slides) | ✅ | Live at `/read/context-engineering`. Wired 2026-09-01. |
 | 16 | Agentic Memory (5 ch, 45 slides) | ✅ | Live at `/read/agentic-memory`. Wired 2026-09-01. |
