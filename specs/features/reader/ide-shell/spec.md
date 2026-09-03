@@ -83,12 +83,20 @@
 
 ## Properties (Invariants) — minimum 2 (C10)
 
-### P-READER-002: Progress is monotone and local
+### P-READER-002: Progress is monotone, local, and never identifying
 For any sequence of slide views, the set of read hrefs only grows (until explicit
-user reset), persists across reloads via localStorage, and no progress data is ever
-transmitted over the network.
+user reset), persists across reloads via localStorage, and **no identifying or
+per-user progress data is transmitted over the network**.
+
+Reworded 2026-09-04 (ADR-006). The original clause was "no progress data is ever
+transmitted", which contradicted CR-2026-010's cookieless analytics and the item
+statistics M6 wants ("68% of readers get this wrong"). Both need anonymous
+*aggregates*, neither needs a user. The distinction the invariant is actually
+protecting is **no accounts and no per-user state**, not "no packet ever leaves".
+An anonymous, unlinkable per-item counter satisfies this property; anything that
+could reconstruct one reader's history does not.
 - Type: Monotonicity
-- Source: this spec + `plan.md` Phase 2 ("no accounts")
+- Source: this spec + `plan.md` Phase 2 ("no accounts") + ADR-006
 - Verification (no test runner): manual reproduction (view slides, reload, inspect
   localStorage + network tab) + type system
 
