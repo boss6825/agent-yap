@@ -67,6 +67,36 @@ body {
   background: rgba(0, 113, 227, 0.2);
 }
 
+/* ============================================================ focus model
+   There was no `focus-visible` anywhere in src/ before this: everything rode
+   the UA default ring, and three inputs killed it outright with `outline-none`.
+   The product is keyboard-driven (palette nav, checks, quizzes), so the ring is
+   a global rule rather than a per-component class.
+
+   `:focus-visible`, never `:focus`, so pointer users never see it — the reader
+   stage takes focus on mousedown and would otherwise ring on every click.
+
+   `--color-blue` measures 4.09-4.70:1 against the three light surfaces,
+   4.62-6.96:1 against the three dark ones, and 4.47:1 on the landing's black
+   sections. SC 1.4.11 asks for 3:1, so one token covers every surface in both
+   themes without a second ring colour. The 2px offset means the gap either side
+   of the ring is the parent surface, so those measurements are the adjacent
+   ones. */
+:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+/* A composed text field (icon + input + kbd, or textarea + send button) rings
+   as one unit: the outline goes on the row so it traces the control the reader
+   actually sees. Those inputs therefore keep `outline-none` on purpose — the
+   ring is not missing, it lives one level up. Inset offset so the ring hugs the
+   inside of the row's own rounded edge instead of colliding with it. */
+.field-ring:focus-within {
+  outline: 2px solid var(--color-blue);
+  outline-offset: -1px;
+}
+
 /* Placeholders sit at the full secondary-ink token, never a faded one.
    `placeholder:text-ink-2/60` measured 2.28:1 on #F5F5F7 and 2.99:1 on #1C1C1E,
    both well under the 4.5:1 AA floor, in the three places a reader is most

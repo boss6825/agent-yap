@@ -104,7 +104,7 @@ export function SearchPanel({
 
   return (
     <Modal open={open} onClose={onClose} label="Search the knowledge base">
-      <div className="flex items-center gap-3 border-b border-hairline px-4">
+      <div className="field-ring flex items-center gap-3 border-b border-hairline px-4">
         <svg
           width="18"
           height="18"
@@ -127,6 +127,7 @@ export function SearchPanel({
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder="Search chapters and sections…"
+          // The ring lives on the `.field-ring` row, not the bare input.
           className="flex-1 bg-transparent py-4 text-[17px] text-ink outline-none"
         />
         <kbd className="hidden rounded-md border border-hairline px-1.5 py-0.5 font-mono text-[11px] text-ink-2 sm:block">
