@@ -16,7 +16,16 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const BOOK_DIR = path.join(process.cwd(), "content", "architecture-and-system-design");
+const BOOK_SLUG = "architecture-and-system-design";
+const BOOK_DIR = path.join(process.cwd(), "content", BOOK_SLUG);
+
+/**
+ * Manifest keys are `<bookSlug>/<chapterSlug>` so two books cannot claim the
+ * same painting (SOL-29). Image filenames under public/art/ are still flat:
+ * only this book has art, so nothing collides today, but a second book joining
+ * the pipeline needs those scoped too.
+ */
+const manifestKey = (slug) => `${BOOK_SLUG}/${slug}`;
 const MANIFEST_PATH = path.join(process.cwd(), "src", "lib", "art-manifest.json");
 const ART_DIR = path.join(process.cwd(), "public", "art");
 const MET_BASE = "https://collectionapi.metmuseum.org/public/collection/v1";
@@ -131,7 +140,7 @@ async function loadManifest() {
     };
   } catch (error) {
     if (error.code === "ENOENT") {
-      return { version: 1, chapters: {} };
+      return { version: 2, chapters: {} };
     }
     throw new Error(`Could not read ${MANIFEST_PATH}: ${error.message}`);
   }
@@ -287,11 +296,12 @@ async function chooseArtwork(chapter, usedArtworkIds) {
 function sortedManifest(chapters, entries) {
   const sortedChapters = {};
   for (const chapter of chapters.slice().sort((a, b) => a.chapterNumber - b.chapterNumber)) {
-    if (entries[chapter.slug]) {
-      sortedChapters[chapter.slug] = entries[chapter.slug];
+    const key = manifestKey(chapter.slug);
+    if (entries[key]) {
+      sortedChapters[key] = entries[key];
     }
   }
-  return { version: 1, chapters: sortedChapters };
+  return { version: 2, chapters: sortedChapters };
 }
 
 async function main() {
@@ -305,7 +315,8 @@ async function main() {
   let failed = 0;
 
   for (const chapter of chapters) {
-    const existing = manifest.chapters[chapter.slug];
+    const key = manifestKey(chapter.slug);
+    const existing = manifest.chapters[key];
     const imagePath = path.join(ART_DIR, `${chapter.slug}.jpg`);
 
     if (
@@ -314,7 +325,7 @@ async function main() {
       && Number.isInteger(existing.artworkId)
       && await fileExists(imagePath)
     ) {
-      nextEntries[chapter.slug] = existing;
+      nextEntries[key] = existing;
       usedArtworkIds.add(existing.artworkId);
       skipped++;
       console.log(`${chapter.slug}: skipped existing artwork ${existing.artworkId}`);
@@ -328,7 +339,7 @@ async function main() {
       continue;
     }
 
-    nextEntries[chapter.slug] = entry;
+    nextEntries[key] = entry;
     fetched++;
     console.log(`${chapter.slug}: ${entry.title} - ${entry.artist || "Unknown artist"}`);
   }
@@ -340,7 +351,7 @@ async function main() {
     "utf8",
   );
 
-  const missing = chapters.filter((chapter) => !nextEntries[chapter.slug]);
+  const missing = chapters.filter((chapter) => !nextEntries[manifestKey(chapter.slug)]);
   console.log(`\nSummary: fetched ${fetched}, skipped ${skipped}, failed ${failed}`);
 
   if (failed > 0 || missing.length > 0) {

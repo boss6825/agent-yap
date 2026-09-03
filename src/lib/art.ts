@@ -32,8 +32,24 @@ function isChapterArt(value: unknown): value is ChapterArt {
   );
 }
 
-export function getChapterArt(chapterSlug: string): ChapterArt | undefined {
+/**
+ * Art for one chapter, keyed by book **and** chapter.
+ *
+ * The key used to be the chapter slug alone. That was survivable while one
+ * book was live and became wrong the moment a second one shipped: two books
+ * with a chapter slugged `01-anatomy` would have shared a painting, and
+ * whichever book did not own it would have shown the other's.
+ *
+ * A chapter with no entry returns `undefined`, which the rail renders as no
+ * artwork at all. That is the deliberate empty state: only one book has art
+ * today, so five of six books take this path on every render, and a borrowed
+ * painting would be worse than none.
+ */
+export function getChapterArt(
+  bookSlug: string,
+  chapterSlug: string,
+): ChapterArt | undefined {
   const chapters = (manifest as { chapters?: Record<string, unknown> }).chapters;
-  const entry = chapters?.[chapterSlug];
+  const entry = chapters?.[`${bookSlug}/${chapterSlug}`];
   return isChapterArt(entry) ? entry : undefined;
 }

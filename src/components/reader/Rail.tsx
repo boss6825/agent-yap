@@ -116,7 +116,9 @@ export function Rail({
     });
   };
 
-  const art = currentChapter ? getChapterArt(currentChapter) : undefined;
+  const art = currentChapter
+    ? getChapterArt(manifest.bookSlug, currentChapter)
+    : undefined;
 
   return (
     <div className="relative flex h-full w-[min(320px,85vw)] flex-col lg:w-[300px]">
