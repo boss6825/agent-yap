@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "../styles/themes/tokens.css";
+@import "../styles/themes/light.css";
 
 /* ============================================================ design tokens
    Apple-inspired light system: white canvas, #F5F5F7 surfaces, #1D1D1F ink,

@@ -8,17 +8,24 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { NavManifest, NavSlide } from "@/lib/content";
 import { chapterDisplayTitle } from "@/lib/display";
 import { setNavDirection } from "@/components/reader/nav-direction";
-import { AmbientBackdrop } from "@/components/reader/AmbientBackdrop";
 import { ChatPanel } from "@/components/reader/ChatPanel";
 import { Rail } from "@/components/reader/Rail";
 import { ResumePill } from "@/components/reader/ResumePill";
+import {
+  SystemFooter,
+  SystemProgressTrack,
+  SystemTopBar,
+} from "@/components/reader/chrome/SystemReaderChrome";
+import {
+  ReaderThemeCycleButton,
+  useReaderTheme,
+} from "@/components/reader/theme/ReaderThemeProvider";
+import { familyForTheme } from "@/components/reader/theme/theme-types";
 import { SearchPanel } from "@/components/SearchPanel";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { getLastRead, markSlideRead, useProgress } from "@/lib/progress";
 
 const RAIL_PREF_KEY = "agent-yap:rail-open";
@@ -30,12 +37,10 @@ function isDesktop(): boolean {
   );
 }
 
-/** The stored rail preference never notifies — reads happen on re-render. */
 function noopSubscribe(): () => void {
   return () => {};
 }
 
-/** Desktop-only preference; mobile always starts with the rail closed. */
 function readStoredRailPref(): "0" | "1" | null {
   try {
     if (!isDesktop()) return null;
@@ -50,7 +55,6 @@ function getServerRailPref(): null {
   return null;
 }
 
-/** True while the user is typing somewhere shortcuts must not fire. */
 function isTypingTarget(el: Element | null): boolean {
   return (
     el instanceof HTMLInputElement ||
@@ -69,16 +73,14 @@ export function ReaderChrome({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { theme } = useReaderTheme();
 
-  // null = "auto": open when docked on desktop, closed as a mobile overlay.
   const [railOpen, setRailOpen] = useState<boolean | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const railToggleRef = useRef<HTMLButtonElement>(null);
   const stageScrollRef = useRef<HTMLDivElement>(null);
 
-  // Explicit toggles win; otherwise the stored desktop preference applies;
-  // otherwise "auto" (CSS: open when docked on desktop, closed on mobile).
   const storedRailPref = useSyncExternalStore(
     noopSubscribe,
     readStoredRailPref,
@@ -98,15 +100,19 @@ export function ReaderChrome({
   const total = manifest.total;
   const prev = manifest.slides[index - 1];
   const next = manifest.slides[index + 1];
+  const currentChapter = useMemo(
+    () =>
+      manifest.chapters.find((c) => c.slug === current?.chapterSlug) ??
+      manifest.chapters[0],
+    [manifest, current],
+  );
 
-  // Reading progress (localStorage; undefined until mounted — neutral SSR HTML).
   const progress = useProgress();
   const readHrefs = useMemo(() => {
     if (!progress) return undefined;
     return new Set(Object.keys(progress.read[manifest.bookSlug] ?? {}));
   }, [progress, manifest.bookSlug]);
 
-  // Mark the slide read after a short dwell (idempotent; StrictMode-safe).
   useEffect(() => {
     if (!current) return;
     const href = current.href;
@@ -114,8 +120,6 @@ export function ReaderChrome({
     return () => clearTimeout(id);
   }, [current, manifest.bookSlug]);
 
-  // Resume pointer captured once on mount, before dwell-marking moves it;
-  // cleared as soon as the reader navigates anywhere (they're oriented).
   const [resumeHref, setResumeHref] = useState<string | null>(null);
   const initialPath = useRef(pathname);
   useEffect(() => {
@@ -161,12 +165,10 @@ export function ReaderChrome({
     [router],
   );
 
-  // Reset the stage scroll position on every slide change.
   useEffect(() => {
     stageScrollRef.current?.scrollTo({ top: 0 });
   }, [pathname]);
 
-  // Keyboard navigation.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.isComposing || isTypingTarget(document.activeElement)) return;
@@ -181,7 +183,6 @@ export function ReaderChrome({
         toggleRail();
         return;
       }
-      // Modals and mobile overlays own the remaining keys.
       if (anyModal || ((railState === true || chatOpen) && !isDesktop())) return;
 
       if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
@@ -196,7 +197,6 @@ export function ReaderChrome({
     return () => window.removeEventListener("keydown", onKey);
   }, [next, prev, go, anyModal, railState, chatOpen, toggleRail]);
 
-  // Touch swipe.
   const touch = useRef<{ x: number; y: number } | null>(null);
   const onTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
@@ -221,177 +221,92 @@ export function ReaderChrome({
 
   const pad = (n: number) => String(n).padStart(2, "0");
   const progressPct = total > 0 ? ((index + 1) / total) * 100 : 100;
+  const chapterTitle = chapterDisplayTitle(current?.chapterTitle ?? "");
+  const desktopOpen = railState !== false;
+  const mobileOpen = railState === true;
 
   return (
-    <div className="flex h-dvh flex-col bg-canvas text-ink">
-      {/* progress bar */}
-      <div className="fixed inset-x-0 top-0 z-[60] h-0.5 bg-canvas-2">
-        <div
-          className="h-0.5 bg-blue transition-[width] duration-[400ms] ease-out"
-          style={{ width: `${progressPct}%` }}
-        />
-      </div>
+    <div
+      className="sys-reader"
+      data-reader-theme={theme}
+      data-reader-family={familyForTheme(theme)}
+    >
+      <a href="#reader-stage" className="sys-reader__skip">
+        Skip to slide
+      </a>
+      <SystemProgressTrack percent={progressPct} />
+      <SystemTopBar
+        railToggleRef={railToggleRef}
+        railExpanded={railState ?? undefined}
+        onToggleRail={toggleRail}
+        chapterLabel={`Chapter ${current?.chapterNumber ?? 1} · ${chapterTitle}`}
+        indexLabel={pad(index + 1)}
+        totalLabel={pad(total)}
+        chatOpen={chatOpen}
+        onSearch={() => setSearchOpen(true)}
+        onChat={() => setChatOpen((v) => !v)}
+        themeControl={<ReaderThemeCycleButton />}
+      />
 
-      {/* top chrome */}
-      <header className="glass-light z-40 h-[52px] shrink-0 border-b border-hairline">
-        <div className="flex h-full items-center justify-between gap-4 px-3 sm:px-5">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <button
-              ref={railToggleRef}
-              type="button"
-              onClick={toggleRail}
-              title="Contents (t)"
-              aria-label="Toggle contents"
-              aria-expanded={railState ?? undefined}
-              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-ink-2 transition-colors hover:bg-canvas-2 hover:text-ink"
-            >
-              <svg viewBox="0 0 20 20" aria-hidden className="h-[18px] w-[18px]">
-                <rect
-                  x="2.5"
-                  y="3.5"
-                  width="15"
-                  height="13"
-                  rx="2.5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                />
-                <line
-                  x1="7.5"
-                  y1="3.5"
-                  x2="7.5"
-                  y2="16.5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                />
-              </svg>
-            </button>
-            <Link
-              href="/"
-              className="flex h-11 shrink-0 items-center font-display text-[17px] font-semibold tracking-[-0.2px] text-ink"
-            >
-              Agent YAP
-            </Link>
-          </div>
-
-          <span className="hidden min-w-0 truncate text-xs text-ink-2 md:block">
-            Chapter {current?.chapterNumber ?? 1} ·{" "}
-            {chapterDisplayTitle(current?.chapterTitle ?? "")}
-          </span>
-
-          <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              title="Search (/)"
-              className="flex h-11 cursor-pointer items-center px-2.5 text-xs text-ink-2 transition-colors hover:text-ink"
-            >
-              Search
-            </button>
-            <button
-              type="button"
-              onClick={() => setChatOpen((v) => !v)}
-              title="Chat with this page"
-              aria-expanded={chatOpen}
-              className={`flex h-11 cursor-pointer items-center px-2.5 text-xs transition-colors hover:text-ink ${
-                chatOpen ? "text-ink" : "text-ink-2"
-              }`}
-            >
-              Chat
-            </button>
-            <span className="min-w-[56px] text-right text-xs tabular-nums text-ink-2">
-              {pad(index + 1)} / {pad(total)}
-            </span>
-            <ThemeToggle className="ml-1 text-ink-2 hover:bg-canvas-2 hover:text-ink" />
-          </div>
-        </div>
-      </header>
-
-      {/* body: rail | stage over the ambient shader layer */}
-      <div className="relative flex min-h-0 flex-1">
-        <AmbientBackdrop />
-
-        {/* mobile scrim */}
-        {railState === true && (
+      <div className="sys-reader__body">
+        {mobileOpen ? (
           <div
+            className="sys-reader__scrim lg:hidden"
             onClick={closeRailOverlay}
             aria-hidden
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden"
           />
-        )}
+        ) : null}
 
         <aside
           aria-label="Contents rail"
-          className={`glass-light fixed inset-y-0 left-0 z-50 overflow-hidden transition-transform duration-300 ease-out lg:relative lg:z-10 lg:translate-x-0 lg:transition-[width] ${
-            railState === true ? "translate-x-0" : "-translate-x-full"
-          } ${
-            railState === false
-              ? "lg:w-0 lg:border-r-0"
-              : "lg:w-[300px] lg:border-r lg:border-hairline"
-          } border-r border-hairline`}
+          className={[
+            "sys-reader__sidebar-slot",
+            desktopOpen ? "" : "sys-reader__sidebar-slot--closed",
+            "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-50 max-lg:w-[min(300px,85vw)]",
+            mobileOpen
+              ? "sys-reader__sidebar-slot--overlay max-lg:translate-x-0"
+              : "max-lg:-translate-x-full",
+          ].join(" ")}
         >
           <Rail
             manifest={manifest}
             currentHref={pathname}
-            mobileOpen={railState === true}
+            mobileOpen={mobileOpen}
             onNavigate={closeRailOverlay}
             onClose={closeRailOverlay}
             readHrefs={readHrefs}
           />
         </aside>
 
-        {/* slide stage: a glass card over the shader */}
         <main
-          className="relative z-10 min-w-0 flex-1 p-2.5 sm:p-4"
+          id="reader-stage"
+          className="sys-reader__stage"
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
-          <div className="glass-card relative h-full overflow-hidden rounded-[24px] border border-hairline">
-            <div
-              ref={stageScrollRef}
-              className="h-full overflow-y-auto overflow-x-hidden"
-            >
-              {children}
-            </div>
-
-            {resumeTarget && (
-              <ResumePill
-                href={resumeTarget.href}
-                title={
-                  resumeTarget.sectionIndex === 0
-                    ? chapterDisplayTitle(resumeTarget.chapterTitle)
-                    : resumeTarget.title
-                }
-              />
-            )}
-
-            {/* floating nav */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-between px-5 pb-4 sm:px-7">
-            <span className="hidden text-xs text-ink-2 sm:block">
-              ← → arrow keys work too
-            </span>
-            <div className="pointer-events-auto flex gap-2.5">
-              <button
-                type="button"
-                onClick={() => go(prev, -1)}
-                disabled={!prev}
-                aria-label="Previous slide"
-                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-pill border border-hairline bg-canvas-2 text-[19px] text-ink shadow-sm transition-[opacity,transform] duration-300 hover:bg-canvas-3 active:scale-95 disabled:pointer-events-none disabled:opacity-35"
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                onClick={() => go(next, 1)}
-                disabled={!next}
-                aria-label="Next slide"
-                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-pill border border-hairline bg-canvas-2 text-[19px] text-ink shadow-sm transition-[opacity,transform] duration-300 hover:bg-canvas-3 active:scale-95 disabled:pointer-events-none disabled:opacity-35"
-              >
-                ›
-              </button>
-            </div>
-            </div>
+          <div ref={stageScrollRef} className="sys-reader__stage-scroll">
+            {children}
           </div>
+
+          {resumeTarget ? (
+            <ResumePill
+              href={resumeTarget.href}
+              title={
+                resumeTarget.sectionIndex === 0
+                  ? chapterDisplayTitle(resumeTarget.chapterTitle)
+                  : resumeTarget.title
+              }
+            />
+          ) : null}
+
+          <SystemFooter
+            dashCount={currentChapter?.slides.length ?? 1}
+            dashActive={current?.sectionIndex ?? 0}
+            hasPrev={!!prev}
+            hasNext={!!next}
+            onPrev={() => go(prev, -1)}
+            onNext={() => go(next, 1)}
+          />
         </main>
 
         <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />

@@ -50,12 +50,11 @@ export default async function SlidePage({
   if (!s || !ch || !Number.isInteger(sectionIndex)) notFound();
 
   const isIntro = s.sectionIndex === 0;
-  const sectionCount = ch.slides.length - 1; // excludes the intro slide
   const displayTitle = chapterDisplayTitle(s.chapterTitle);
+  const eyebrow = `CHAPTER ${String(s.chapterNumber).padStart(2, "0")} · ${displayTitle}`;
 
   return (
-    <article className="w-full max-w-[720px]">
-      {/* publish this slide's content to the client chrome (chat grounding) */}
+    <article className="sys-reader__article">
       <SlideContextBridge
         href={s.href}
         title={s.title}
@@ -63,32 +62,17 @@ export default async function SlidePage({
         chapterTitle={displayTitle}
         markdown={s.markdown}
       />
-      {/* kicker */}
-      <p className="mb-5 text-xs font-semibold uppercase tracking-[0.10em] text-ink-2">
-        Chapter {String(s.chapterNumber).padStart(2, "0")} · {displayTitle}
-        {!isIntro && (
-          <span className="font-normal">
-            {" "}
-            · {s.sectionIndex} / {sectionCount}
-          </span>
-        )}
-      </p>
-
-      {isIntro ? (
-        <>
-          <h1 className="mb-7 font-display text-[clamp(34px,5.6vw,48px)] font-semibold leading-[1.08] tracking-[-0.01em] text-ink [text-wrap:pretty]">
-            {displayTitle}
-          </h1>
-          <Markdown>{s.markdown}</Markdown>
-        </>
-      ) : (
-        <>
-          <h1 className="mb-7 font-display text-[clamp(30px,5vw,40px)] font-semibold leading-[1.12] tracking-[-0.01em] text-ink [text-wrap:pretty]">
-            {s.title}
-          </h1>
-          <Markdown>{s.markdown}</Markdown>
-        </>
-      )}
+      <p className="sys-reader__eyebrow">{eyebrow}</p>
+      <h1
+        className={
+          isIntro
+            ? "sys-reader__title"
+            : "sys-reader__title sys-reader__title--section"
+        }
+      >
+        {isIntro ? displayTitle : s.title}
+      </h1>
+      <Markdown>{s.markdown}</Markdown>
     </article>
   );
 }
