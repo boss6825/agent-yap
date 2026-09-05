@@ -1,0 +1,88 @@
+@import "./sepia-family.css";
+
+/* Agent YAP — sepia-family LIGHT tokens (Paper 459-0, B · Study — Light).
+   no shadcn match found: editorial paper reader, not a dashboard sidebar.
+
+   Contract (Agent 1): [data-theme="sepia-light"] plus the --reader-* names below.
+   Live chrome still sets data-reader-theme="sepia"; that selector is aliased
+   so production picks up cream paper + slate without waiting on the switcher.
+
+   Layout (Georgia, drop cap, pill Next, square TOC) lives in sepia-family.css
+   and is shared with sepia-dark. Do not put sepia-dark values here. */
+
+[data-theme="sepia-light"],
+[data-reader-theme="sepia"] {
+  color-scheme: light;
+
+  --reader-bg: #faf8f4;
+  --reader-sidebar-bg: #f3efe7;
+  --reader-nav-bg: #faf8f4;
+
+  --reader-text: #1f1d1a;
+  --reader-text-muted: #6b655c;
+  --reader-text-faint: #a39c90;
+  --reader-body: #423e37;
+
+  --reader-accent: #34526e;
+  --reader-accent-soft: #34526e17;
+  --reader-kicker: #34526e;
+
+  --reader-border: #1f1d1a1a;
+  --reader-progress-track: #1f1d1a14;
+  --reader-progress-fill: #1f1d1a;
+
+  --reader-toc-active-bg: #fdfbf7;
+  --reader-toc-active-border: #34526e;
+  --reader-slide-current-bg: #34526e17;
+
+  --reader-chapter-num: #8a8377;
+  --reader-footer-hint: #a39c90;
+
+  --reader-dot-active: #34526e;
+  --reader-dot-idle: #c4bdb0;
+
+  --reader-back-bg: transparent;
+  --reader-back-border: #1f1d1a24;
+  --reader-back-icon: #c4bdb0;
+
+  --reader-next-bg: #1f1d1a;
+  --reader-next-fg: #faf8f4;
+  --reader-next-shadow: none;
+
+  --font-ui: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-display: Georgia, "Times New Roman", Times, serif;
+  --font-mono: Consolas, "SF Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --reader-family: sepia;
+
+  /* Paper-family extras (sepia-dark may override). */
+  --reader-paper-visited: #a39c90;
+  --reader-paper-chevron-open: #8a8377;
+  --reader-paper-chevron-idle: #b3ab9d;
+  --reader-paper-count-idle: #b3ab9d;
+
+  /* Aliases for live .sys-reader / .pr chrome (light.css class contract). */
+  --reader-bar-bg: var(--reader-nav-bg);
+  --reader-text-secondary: var(--reader-text-muted);
+  --reader-text-body: var(--reader-body);
+  --reader-accent-strong: var(--reader-accent);
+  --reader-border-subtle: #1f1d1a1f;
+  --reader-track: var(--reader-progress-track);
+  --reader-card-bg: var(--reader-toc-active-bg);
+  --reader-card-border: var(--reader-toc-active-border);
+  --reader-card-shadow: 0 1px 2px #1f1d1a0d;
+  --reader-active-row: var(--reader-slide-current-bg);
+  --reader-dot: var(--reader-dot-active);
+  --reader-dash-inactive: var(--reader-dot-idle);
+  --reader-prev-bg: var(--reader-back-bg);
+  --reader-prev-border: var(--reader-back-border);
+  --reader-prev-icon: var(--reader-back-icon);
+  --reader-next-icon: var(--reader-next-fg);
+  --reader-ring-track: var(--reader-progress-track);
+  --reader-check-done: var(--reader-paper-visited);
+  --reader-font-ui: var(--font-ui);
+  --reader-font-sans: var(--font-ui);
+  --reader-font-mono: var(--font-mono);
+  --reader-paper-serif: var(--font-display);
+  --reader-paper-sans: var(--font-ui);
+}
