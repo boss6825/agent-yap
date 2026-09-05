@@ -11,7 +11,9 @@
    and is shared with sepia-dark. Do not put sepia-dark values here. */
 
 [data-theme="sepia-light"],
-[data-reader-theme="sepia"] {
+[data-reader-theme="sepia"],
+[data-theme="sepia-light"] :is(.reader-shell, .sys-reader, .pr),
+[data-reader-theme="sepia"] :is(.reader-shell, .sys-reader, .pr) {
   color-scheme: light;
 
   --reader-bg: #faf8f4;

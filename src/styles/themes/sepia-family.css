@@ -993,14 +993,14 @@
 }
 
 [data-theme-family="sepia"] :is(.slide-title, .sys-reader__title) {
-  font-family: var(--font-display, Georgia, serif);
+  font-family: var(--reader-paper-serif, Georgia, serif);
   font-size: 56px;
   line-height: 60px;
   font-weight: 700;
 }
 
 [data-theme-family="sepia"] :is(.slide-body, .sys-reader__lede, .prose-yap) {
-  font-family: var(--font-display, Georgia, serif);
+  font-family: var(--reader-paper-serif, Georgia, serif);
   font-size: 19px;
   line-height: 33px;
   color: var(--reader-body);
@@ -1008,10 +1008,22 @@
 
 [data-theme-family="sepia"] :is(.nav-next, .sys-reader__circle--next) {
   width: auto;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 24px;
+  gap: 9px;
   border-radius: 23px;
   background: var(--reader-next-bg);
   color: var(--reader-next-fg);
   box-shadow: var(--reader-next-shadow, none);
+  font-family: var(--reader-paper-serif, Georgia, serif);
+}
+
+[data-theme-family="sepia"] .nav-next-label {
+  display: inline;
+  font-family: var(--reader-paper-serif, Georgia, serif);
+  font-size: 14.5px;
+  line-height: 18px;
 }
 
 [data-theme-family="sepia"] :is(.nav-back, .sys-reader__circle--prev) {
