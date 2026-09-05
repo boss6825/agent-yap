@@ -232,7 +232,7 @@ export function ReaderChrome({
       <SystemProgressTrack percent={progressPct} />
       <SystemTopBar
         railToggleRef={railToggleRef}
-        railExpanded={railState ?? undefined}
+        railExpanded={desktopOpen}
         onToggleRail={toggleRail}
         chapterLabel={`Chapter ${current?.chapterNumber ?? 1} · ${chapterTitle}`}
         indexLabel={pad(index + 1)}
