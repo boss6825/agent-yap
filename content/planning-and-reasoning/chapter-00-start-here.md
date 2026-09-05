@@ -6,7 +6,7 @@ This folder is about the leap from a model that **answers** to a model that **th
 
 ## How to use these explanations
 
-Read the chapters in order; each one builds on the last. Bold linked terms like [chain of thought](./glossary.md#chain-of-thought) jump to the [glossary](./glossary.md), where every key idea is explained from scratch. If a term feels like it belongs to folder 01 (such as how a Transformer works), you will find it in that folder's glossary; this folder's glossary focuses on reasoning.
+Read the chapters in order; each one builds on the last. Bold linked terms like [chain of thought](chapter-06-glossary.md#chain-of-thought) jump to the [glossary](chapter-06-glossary.md), where every key idea is explained from scratch. If a term feels like it belongs to folder 01 (such as how a Transformer works), you will find it in that folder's glossary; this folder's glossary focuses on reasoning.
 
 You do not need to have memorized folder 01, but it helps to know one thing from it: a model is fundamentally a next-word predictor. Everything in this folder is a clever way of getting more careful thinking out of that simple engine.
 
@@ -34,15 +34,15 @@ Here is how the five papers map onto that climb.
 
 ## Chapter map
 
-1. [Chain of Thought: teaching models to think out loud](./01-chain-of-thought.md)
-2. [ReAct: reasoning and acting together](./02-react.md)
-3. [Let's Verify Step by Step: rewarding good reasoning, not just right answers](./03-verify-step-by-step.md)
-4. [DeepSeek-R1: learning to reason through reinforcement learning](./04-deepseek-r1.md)
-5. [Recursive Language Models: thinking beyond the memory limit](./05-recursive-language-models.md)
-6. [Glossary: every key term, explained from zero](./glossary.md)
+1. [Chain of Thought: teaching models to think out loud](chapter-01-chain-of-thought.md)
+2. [ReAct: reasoning and acting together](chapter-02-react.md)
+3. [Let's Verify Step by Step: rewarding good reasoning, not just right answers](chapter-03-verify-step-by-step.md)
+4. [DeepSeek-R1: learning to reason through reinforcement learning](chapter-04-deepseek-r1.md)
+5. [Recursive Language Models: thinking beyond the memory limit](chapter-05-recursive-language-models.md)
+6. [Glossary: every key term, explained from zero](chapter-06-glossary.md)
 
 ## One idea to hold in your head
 
 A model that answers instantly is using a fixed, small amount of effort per question, no matter how hard the question is. The single thread running through this entire folder is the idea of **spending more effort on harder problems**: more steps, more tool calls, more checking, more practice, more recursion. Once you see that pattern, every paper here becomes a different answer to the same question, "how do we let a model think harder when it needs to?"
 
-Ready? Start with [Chapter 1: Chain of Thought](./01-chain-of-thought.md).
+Ready? Start with [Chapter 1: Chain of Thought](chapter-01-chain-of-thought.md).

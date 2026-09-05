@@ -16,7 +16,7 @@ What does "it" refer to? The trophy. Now change one word:
 
 Now "it" refers to the suitcase. To understand the sentence, the model has to look back across several words and figure out which earlier word each word is connected to.
 
-Before 2017, the popular tool for this was the [recurrent neural network](./glossary.md#neural-network), which read a sentence one word at a time, left to right, carrying a running memory. This had two big problems:
+Before 2017, the popular tool for this was the [recurrent neural network](chapter-07-glossary.md#neural-network), which read a sentence one word at a time, left to right, carrying a running memory. This had two big problems:
 
 1. It was **slow**, because word number 100 could not be processed until words 1 through 99 were done. No skipping ahead, no doing things in parallel.
 2. It had a **bad memory**. By the time it reached the end of a long paragraph, it had mostly forgotten the beginning.
@@ -29,11 +29,11 @@ Here is the core move. Instead of reading word by word, the Transformer looks at
 
 A simple analogy. Imagine every word in the sentence is a person in a room, and they are all trying to understand their own role. The word "it" raises its hand and asks the room, "Which of you is relevant to me?" Every other word answers with a relevance score. "Trophy" might shout loudly, "suitcase" a bit softer, "the" almost silently. The word "it" then builds its understanding mostly from the words that answered loudest.
 
-That asking-and-weighing process is [self-attention](./glossary.md#self-attention). Doing it lets every word pull in context from every other word in a single step, no matter how far apart they are.
+That asking-and-weighing process is [self-attention](chapter-07-glossary.md#self-attention). Doing it lets every word pull in context from every other word in a single step, no matter how far apart they are.
 
 ### How attention actually works, gently
 
-Every word is first turned into a list of numbers called an [embedding](./glossary.md#embedding). A list of numbers is called a [vector](./glossary.md#vector), and you can think of it as the word's location on a giant map of meaning, where similar words sit close together.
+Every word is first turned into a list of numbers called an [embedding](chapter-07-glossary.md#embedding). A list of numbers is called a [vector](chapter-07-glossary.md#vector), and you can think of it as the word's location on a giant map of meaning, where similar words sit close together.
 
 For attention, each word creates three different versions of itself:
 
@@ -41,7 +41,7 @@ For attention, each word creates three different versions of itself:
 - A **Key**: "Here is what I contain."
 - A **Value**: "Here is what I will hand over if you pick me."
 
-To decide how much word A should attend to word B, the model compares A's Query with B's Key. A strong match means a high score. All the scores get squashed into percentages that add up to 100 using a function called [softmax](./glossary.md#softmax). Then each word builds its new, context-aware representation by mixing together the Values of the other words, weighted by those percentages.
+To decide how much word A should attend to word B, the model compares A's Query with B's Key. A strong match means a high score. All the scores get squashed into percentages that add up to 100 using a function called [softmax](chapter-07-glossary.md#softmax). Then each word builds its new, context-aware representation by mixing together the Values of the other words, weighted by those percentages.
 
 ```mermaid
 flowchart LR
@@ -56,7 +56,7 @@ The beautiful part: the model is not told the rules of grammar. It **learns** wh
 
 ### Many heads are better than one
 
-A single attention pass captures one kind of relationship. But words relate in many ways at once: grammar, subject matter, tone, who-did-what-to-whom. So the Transformer runs several attention passes in parallel, each free to focus on a different pattern. These parallel passes are called [attention heads](./glossary.md#multi-head-attention). One head might track which noun a pronoun refers to, another might track verb tense, another might link adjectives to the things they describe. Their results are combined. The original paper used eight heads.
+A single attention pass captures one kind of relationship. But words relate in many ways at once: grammar, subject matter, tone, who-did-what-to-whom. So the Transformer runs several attention passes in parallel, each free to focus on a different pattern. These parallel passes are called [attention heads](chapter-07-glossary.md#multi-head-attention). One head might track which noun a pronoun refers to, another might track verb tense, another might link adjectives to the things they describe. Their results are combined. The original paper used eight heads.
 
 ## The rest of the machine
 
@@ -73,18 +73,18 @@ flowchart TD
 
 Two new pieces appear here:
 
-- The [feed-forward network](./glossary.md#feed-forward-network) is a small processing step applied to each word separately. If attention is "gather information from neighbors," the feed-forward step is "now think about what you gathered."
+- The [feed-forward network](chapter-07-glossary.md#feed-forward-network) is a small processing step applied to each word separately. If attention is "gather information from neighbors," the feed-forward step is "now think about what you gathered."
 - The "add the input back in" arrows are called residual connections. They let the original information flow straight through, so deep stacks of blocks do not lose the thread. This is a practical trick that makes very deep models trainable.
 
-A real Transformer stacks many of these blocks on top of each other. Each [layer](./glossary.md#layers-and-depth) refines the meaning a little more. Early layers catch simple patterns like grammar; later layers catch abstract ones like intent.
+A real Transformer stacks many of these blocks on top of each other. Each [layer](chapter-07-glossary.md#layers-and-depth) refines the meaning a little more. Early layers catch simple patterns like grammar; later layers catch abstract ones like intent.
 
 ### One more thing: word order
 
-Because attention looks at all words at once, it has no built-in sense of order. "Dog bites man" and "man bites dog" would look identical. The fix is [positional encoding](./glossary.md#positional-encoding), a small signal added to each word's embedding that tells the model where the word sits in the sequence. Now order is preserved.
+Because attention looks at all words at once, it has no built-in sense of order. "Dog bites man" and "man bites dog" would look identical. The fix is [positional encoding](chapter-07-glossary.md#positional-encoding), a small signal added to each word's embedding that tells the model where the word sits in the sequence. Now order is preserved.
 
 ## Encoder and decoder
 
-The original Transformer had two halves, an [encoder and a decoder](./glossary.md#encoder-and-decoder). The encoder reads and understands the input (useful for translation). The decoder generates the output one word at a time. Most chat models today, like GPT, use only the decoder half, because their main job is to generate text. It is worth knowing both exist, because the words "encoder" and "decoder" show up constantly.
+The original Transformer had two halves, an [encoder and a decoder](chapter-07-glossary.md#encoder-and-decoder). The encoder reads and understands the input (useful for translation). The decoder generates the output one word at a time. Most chat models today, like GPT, use only the decoder half, because their main job is to generate text. It is worth knowing both exist, because the words "encoder" and "decoder" show up constantly.
 
 ## Why this paper changed everything
 
@@ -100,7 +100,7 @@ In short, the Transformer is the engine. Everything else in this folder is about
 
 The Transformer lets every word in a sentence directly look at every other word and decide what to pay attention to, and stacking that simple idea many times, at scale, is enough to learn language.
 
-Next: [Chapter 2, Scaling Laws and Chinchilla](./02-scaling-laws-and-compute.md), where we ask how big these models should actually be.
+Next: [Chapter 2, Scaling Laws and Chinchilla](chapter-02-scaling-laws-and-compute.md), where we ask how big these models should actually be.
 
 ## Review
 

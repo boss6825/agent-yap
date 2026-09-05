@@ -2,22 +2,22 @@
 
 **Paper:** *Mixtral of Experts* (2024)
 
-We end folder 01 with a clever architecture trick. Chapter 2 taught us that bigger models are smarter but more expensive to run. What if you could have the knowledge of a big model while paying the running cost of a small one? That is exactly what a [Mixture of Experts](./glossary.md#mixture-of-experts-moe), or MoE, delivers, and Mixtral is the open model that made the idea famous.
+We end folder 01 with a clever architecture trick. Chapter 2 taught us that bigger models are smarter but more expensive to run. What if you could have the knowledge of a big model while paying the running cost of a small one? That is exactly what a [Mixture of Experts](chapter-07-glossary.md#mixture-of-experts-moe), or MoE, delivers, and Mixtral is the open model that made the idea famous.
 
 ## The tension we are trying to escape
 
 Recall the trade-off from earlier chapters:
 
 - A bigger model knows more and reasons better.
-- But every time you use a normal model, **all** of its parameters do work, so a bigger model costs more for every single answer. This running cost is called [inference](./glossary.md#inference).
+- But every time you use a normal model, **all** of its parameters do work, so a bigger model costs more for every single answer. This running cost is called [inference](chapter-07-glossary.md#inference).
 
-A normal model is [dense](./glossary.md#sparse-and-dense-models): the whole network fires for every word. MoE breaks this rule. It builds a model with a huge total number of parameters, but arranges things so that only a **small slice** of them activates for any given word. Lots of knowledge stored, little work done per word.
+A normal model is [dense](chapter-07-glossary.md#sparse-and-dense-models): the whole network fires for every word. MoE breaks this rule. It builds a model with a huge total number of parameters, but arranges things so that only a **small slice** of them activates for any given word. Lots of knowledge stored, little work done per word.
 
 ## The expert panel analogy
 
 Imagine a hospital with eight specialist doctors: a cardiologist, a neurologist, a dermatologist, and so on. A patient walks in. You do not make all eight examine every patient, that would be slow and wasteful. Instead, a receptionist glances at the symptoms and routes the patient to the two most relevant specialists.
 
-That is exactly how Mixtral works. The "specialists" are small sub-networks called experts. The "receptionist" is a small, fast component called the [router](./glossary.md#router-gating-network).
+That is exactly how Mixtral works. The "specialists" are small sub-networks called experts. The "receptionist" is a small, fast component called the [router](chapter-07-glossary.md#router-gating-network).
 
 ```mermaid
 flowchart TD
@@ -32,7 +32,7 @@ flowchart TD
 
 ## How Mixtral is built
 
-Inside each layer of the Transformer, Mixtral replaces the single [feed-forward network](./glossary.md#feed-forward-network) from Chapter 1 with **eight** of them, the experts. For every word, the router scores the experts and sends the word to just the **top two**. The other six do nothing for that word and cost nothing.
+Inside each layer of the Transformer, Mixtral replaces the single [feed-forward network](chapter-07-glossary.md#feed-forward-network) from Chapter 1 with **eight** of them, the experts. For every word, the router scores the experts and sends the word to just the **top two**. The other six do nothing for that word and cost nothing.
 
 The numbers tell the story. Mixtral (often written 8x7B) holds about 47 billion parameters in total, so it has a large store of knowledge. But because only two of eight experts are active per word, only about 13 billion parameters actually do work for each word. So:
 
@@ -69,4 +69,4 @@ flowchart LR
 
 A Mixture of Experts model stores the knowledge of a very large model but, for each word, a small router activates only a couple of expert sub-networks, so you get big-model quality at small-model running cost, paying for it with extra memory to keep all the experts on standby.
 
-Next: [Chapter 6, Judging models](./06-evaluating-models.md), where we ask how anyone can possibly measure whether one model is better than another.
+Next: [Chapter 6, Judging models](chapter-06-evaluating-models.md), where we ask how anyone can possibly measure whether one model is better than another.

@@ -12,7 +12,7 @@ The model has soaked up enormous knowledge, but it has no sense of what makes a 
 
 ## Paper 1: InstructGPT and the RLHF recipe
 
-[RLHF](./glossary.md#rlhf) stands for Reinforcement Learning from Human Feedback. It is a three-step pipeline. Let us walk through each step.
+[RLHF](chapter-07-glossary.md#rlhf) stands for Reinforcement Learning from Human Feedback. It is a three-step pipeline. Let us walk through each step.
 
 ```mermaid
 flowchart TD
@@ -33,19 +33,19 @@ flowchart TD
 
 ### Step 1: Supervised fine-tuning (show it what good looks like)
 
-Humans write high-quality answers to a collection of prompts. The model is then trained to imitate these examples. This step is called [supervised fine-tuning](./glossary.md#supervised-fine-tuning-sft), or SFT. It is like an apprentice copying a master. After this step the model is already much more helpful, but humans cannot write enough examples to cover everything.
+Humans write high-quality answers to a collection of prompts. The model is then trained to imitate these examples. This step is called [supervised fine-tuning](chapter-07-glossary.md#supervised-fine-tuning-sft), or SFT. It is like an apprentice copying a master. After this step the model is already much more helpful, but humans cannot write enough examples to cover everything.
 
 ### Step 2: Train a reward model (teach the machine our taste)
 
 This is the clever part. Instead of writing more answers, humans now just **compare** them. The model produces several answers to a prompt, and a person ranks them from best to worst. Ranking is much faster and more reliable for humans than writing.
 
-These rankings are used to train a separate model called a [reward model](./glossary.md#reward-model). Its only job is to look at any answer and output a score that predicts how much a human would like it. In effect, we have bottled human judgment into a piece of software that can grade an unlimited number of answers automatically.
+These rankings are used to train a separate model called a [reward model](chapter-07-glossary.md#reward-model). Its only job is to look at any answer and output a score that predicts how much a human would like it. In effect, we have bottled human judgment into a piece of software that can grade an unlimited number of answers automatically.
 
 ### Step 3: Reinforcement learning (practice to score well)
 
-Now the main model practices. It writes an answer, the reward model grades it, and the model nudges itself to produce answers that earn higher scores. This is [reinforcement learning](./glossary.md#reinforcement-learning), and the specific method used is called [PPO](./glossary.md#ppo). Over many rounds, the model gets better and better at pleasing the reward model, which stands in for pleasing humans.
+Now the main model practices. It writes an answer, the reward model grades it, and the model nudges itself to produce answers that earn higher scores. This is [reinforcement learning](chapter-07-glossary.md#reinforcement-learning), and the specific method used is called [PPO](chapter-07-glossary.md#ppo). Over many rounds, the model gets better and better at pleasing the reward model, which stands in for pleasing humans.
 
-There is one danger here. If the model only chases a high score, it might find weird tricks that fool the reward model while producing nonsense, the way a student might game a test. To prevent this, the training adds a leash called a [KL penalty](./glossary.md#kl-divergence), which discourages the model from drifting too far from its sensible Step 1 self. Reward on one side, leash on the other, keeps it both helpful and grounded.
+There is one danger here. If the model only chases a high score, it might find weird tricks that fool the reward model while producing nonsense, the way a student might game a test. To prevent this, the training adds a leash called a [KL penalty](chapter-07-glossary.md#kl-divergence), which discourages the model from drifting too far from its sensible Step 1 self. Reward on one side, leash on the other, keeps it both helpful and grounded.
 
 ### The headline result
 
@@ -57,7 +57,7 @@ RLHF works, but it is complicated and fragile. You have to train and maintain a 
 
 The answer is yes, and the insight is captured by the paper's subtitle: **your language model is secretly a reward model**. The authors showed with math that you do not need a separate reward model and an RL loop at all. You can fold the whole thing into a single, direct training step on the human comparison data.
 
-[DPO](./glossary.md#dpo) works straight from [preference pairs](./glossary.md#preference-data): a prompt, a preferred answer, and a rejected answer. It then trains the model with one simple objective: **make the preferred answer more likely and the rejected answer less likely**, while gently staying close to the original model (the same leash idea as before, baked right in).
+[DPO](chapter-07-glossary.md#dpo) works straight from [preference pairs](chapter-07-glossary.md#preference-data): a prompt, a preferred answer, and a rejected answer. It then trains the model with one simple objective: **make the preferred answer more likely and the rejected answer less likely**, while gently staying close to the original model (the same leash idea as before, baked right in).
 
 ```mermaid
 flowchart LR
@@ -93,4 +93,4 @@ Notice the bottom row. Both methods are powered by the same fuel: humans compari
 
 A pre-trained model is just a powerful autocomplete, and alignment is the process of teaching it human preferences, either through the three-step RLHF pipeline (demonstrations, a reward model, then reinforcement learning) or through DPO, which reaches the same place with a single, simpler training step.
 
-Next: [Chapter 4, LoRA](./04-efficient-fine-tuning-lora.md), where we learn to customize giant models without retraining all of them.
+Next: [Chapter 4, LoRA](chapter-04-efficient-fine-tuning-lora.md), where we learn to customize giant models without retraining all of them.

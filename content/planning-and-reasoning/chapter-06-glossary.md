@@ -2,7 +2,7 @@
 
 This is your shared reference for folder 02. Every term the chapters link to is explained here from scratch, in plain language, with enough depth to actually understand it rather than just recognize it. Read it straight through as a primer, or jump in whenever a chapter sends you here.
 
-A few foundational terms (like how a Transformer works, or what parameters are) live in the [folder 01 glossary](../../01-Foundational-Modelling/explanations/glossary.md). This glossary focuses on the ideas specific to reasoning and planning.
+A few foundational terms (like how a Transformer works, or what parameters are) live in the [folder 01 glossary](../foundational-modelling/chapter-07-glossary.md). This glossary focuses on the ideas specific to reasoning and planning.
 
 Terms are grouped by theme so related ideas sit together.
 

@@ -2,11 +2,11 @@
 
 **Paper:** *LoRA: Low-Rank Adaptation of Large Language Models* (2021)
 
-By now you can build a model (Chapter 1), scale it (Chapter 2), and align it (Chapter 3). But there is a practical problem. Suppose you have a giant model and you want to teach it a new specialty: your company's writing style, legal documents, medical Q&A. The obvious approach is [fine-tuning](./glossary.md#fine-tuning), which means continuing to train the model on your new data. The trouble is that fine-tuning a model with billions of parameters is brutally expensive. LoRA is the trick that makes it cheap and practical.
+By now you can build a model (Chapter 1), scale it (Chapter 2), and align it (Chapter 3). But there is a practical problem. Suppose you have a giant model and you want to teach it a new specialty: your company's writing style, legal documents, medical Q&A. The obvious approach is [fine-tuning](chapter-07-glossary.md#fine-tuning), which means continuing to train the model on your new data. The trouble is that fine-tuning a model with billions of parameters is brutally expensive. LoRA is the trick that makes it cheap and practical.
 
 ## Why normal fine-tuning hurts
 
-When you fine-tune a model the usual way, you adjust **all** of its [parameters](./glossary.md#parameters-weights). For a model with billions of them, this causes three pains:
+When you fine-tune a model the usual way, you adjust **all** of its [parameters](chapter-07-glossary.md#parameters-weights). For a model with billions of them, this causes three pains:
 
 1. **Memory.** Training needs several times more memory than just running the model, because it has to track how to adjust every single parameter. This can require many expensive GPUs.
 2. **Storage.** Every fine-tuned copy is a full-size model. If you want ten specialized versions, you store ten enormous files.
@@ -16,7 +16,7 @@ For most people and companies, this is simply out of reach. LoRA changes that.
 
 ## The key insight: big changes can hide in small matrices
 
-Here is the idea that makes LoRA work. When you fine-tune a model for a new task, the **change** you make to its weights turns out to be surprisingly simple. Even though the weights are a huge grid of numbers, the *adjustment* needed to specialize them can be captured by something much smaller. In technical terms, the update has a low [rank](./glossary.md#matrix-rank-low-rank).
+Here is the idea that makes LoRA work. When you fine-tune a model for a new task, the **change** you make to its weights turns out to be surprisingly simple. Even though the weights are a huge grid of numbers, the *adjustment* needed to specialize them can be captured by something much smaller. In technical terms, the update has a low [rank](chapter-07-glossary.md#matrix-rank-low-rank).
 
 Let us unpack rank with a picture. A model's weights live in big grids of numbers called matrices. A large matrix might be 1000 by 1000, which is one million numbers. But some large matrices can be reconstructed by multiplying two skinny ones together. A 1000 by 1000 matrix can be approximated by a 1000 by 8 matrix times an 8 by 1000 matrix. Count the numbers: that is 8000 plus 8000, which is 16000 numbers instead of one million. Almost the same information, a tiny fraction of the storage.
 
@@ -66,7 +66,7 @@ This is wonderfully efficient. Instead of storing ten full models, you store one
 
 ### No slowdown when running
 
-A natural worry: does adding an adapter make the model slower to use? No. After training, the adapter's adjustment can be merged back into the original weights, producing a model that runs at exactly the original speed. You get the customization for free at [inference](./glossary.md#inference) time.
+A natural worry: does adding an adapter make the model slower to use? No. After training, the adapter's adjustment can be merged back into the original weights, producing a model that runs at exactly the original speed. You get the customization for free at [inference](chapter-07-glossary.md#inference) time.
 
 ### A simple analogy
 
@@ -80,4 +80,4 @@ LoRA democratized fine-tuning. Suddenly a hobbyist with a single GPU, not just a
 
 LoRA fine-tunes a giant model cheaply by freezing the original and training only a tiny pair of low-rank matrices that capture the small adjustment a new task requires, which slashes memory and storage, lets one base model wear many swappable adapters, and adds no slowdown when the model runs.
 
-Next: [Chapter 5, Mixtral and Mixture of Experts](./05-mixture-of-experts-mixtral.md), where models get a bigger brain without getting slower.
+Next: [Chapter 5, Mixtral and Mixture of Experts](chapter-05-mixture-of-experts-mixtral.md), where models get a bigger brain without getting slower.

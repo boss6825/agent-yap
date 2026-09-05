@@ -10,8 +10,8 @@ Suppose a student solves a long math problem and gets the right final number. Di
 
 This is the difference between two ways of giving feedback, and it is the central idea of the paper.
 
-- [Outcome supervision](./glossary.md#outcome-supervision-vs-process-supervision): reward the model based only on whether the final answer is correct.
-- [Process supervision](./glossary.md#outcome-supervision-vs-process-supervision): reward the model based on whether each individual step of the reasoning is correct.
+- [Outcome supervision](chapter-06-glossary.md#outcome-supervision-vs-process-supervision): reward the model based only on whether the final answer is correct.
+- [Process supervision](chapter-06-glossary.md#outcome-supervision-vs-process-supervision): reward the model based on whether each individual step of the reasoning is correct.
 
 ```mermaid
 flowchart TD
@@ -24,12 +24,12 @@ flowchart TD
 
 ## Two kinds of graders
 
-To put this into practice, the researchers trained two kinds of grading models, both relatives of the [reward model](./glossary.md#reward-model) you met in folder 01.
+To put this into practice, the researchers trained two kinds of grading models, both relatives of the [reward model](chapter-06-glossary.md#reward-model) you met in folder 01.
 
-- An [outcome reward model (ORM)](./glossary.md#outcome-reward-model-orm) looks at a whole solution and judges only the final answer.
-- A [process reward model (PRM)](./glossary.md#process-reward-model-prm) looks at the solution step by step and judges each step as it goes.
+- An [outcome reward model (ORM)](chapter-06-glossary.md#outcome-reward-model-orm) looks at a whole solution and judges only the final answer.
+- A [process reward model (PRM)](chapter-06-glossary.md#process-reward-model-prm) looks at the solution step by step and judges each step as it goes.
 
-The PRM is a step-by-step [verifier](./glossary.md#verifier): a model whose job is to check reasoning, not to produce it. Human labelers went through thousands of solutions marking each step as correct or not, and the PRM learned to imitate those judgments.
+The PRM is a step-by-step [verifier](chapter-06-glossary.md#verifier): a model whose job is to check reasoning, not to produce it. Human labelers went through thousands of solutions marking each step as correct or not, and the PRM learned to imitate those judgments.
 
 ## How a verifier makes a model smarter
 
@@ -61,4 +61,4 @@ This work established a principle that shapes today's most advanced reasoning sy
 
 Grading every step of a model's reasoning, rather than only its final answer, produces a verifier that is much harder to fool, picks correct solutions to hard problems far more reliably, and rewards genuinely sound thinking instead of lucky guesses.
 
-Next: [Chapter 4, DeepSeek-R1](./04-deepseek-r1.md), where a model learns to reason not from human examples but from reinforcement learning.
+Next: [Chapter 4, DeepSeek-R1](chapter-04-deepseek-r1.md), where a model learns to reason not from human examples but from reinforcement learning.

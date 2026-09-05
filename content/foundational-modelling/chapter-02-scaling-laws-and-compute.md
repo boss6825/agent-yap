@@ -8,9 +8,9 @@ Once you have the Transformer engine from Chapter 1, an obvious question appears
 
 When training a language model, you mostly control three things:
 
-1. **Model size**, the number of [parameters](./glossary.md#parameters-weights). Parameters are the adjustable dials inside the model. More dials means more capacity to store patterns.
-2. **Data size**, the number of [tokens](./glossary.md#token) of text you train on. A token is roughly a word or a piece of a word.
-3. **Compute**, the total amount of calculation you do, measured in [FLOPs](./glossary.md#compute-and-flops). Compute is basically time multiplied by hardware, which translates into money.
+1. **Model size**, the number of [parameters](chapter-07-glossary.md#parameters-weights). Parameters are the adjustable dials inside the model. More dials means more capacity to store patterns.
+2. **Data size**, the number of [tokens](chapter-07-glossary.md#token) of text you train on. A token is roughly a word or a piece of a word.
+3. **Compute**, the total amount of calculation you do, measured in [FLOPs](chapter-07-glossary.md#compute-and-flops). Compute is basically time multiplied by hardware, which translates into money.
 
 These three are linked. More compute lets you train a bigger model, or train on more data, or both. The whole game is deciding how to spend a fixed compute budget.
 
@@ -18,7 +18,7 @@ These three are linked. More compute lets you train a bigger model, or train on 
 
 Before this paper, people knew bigger models tended to be better, but it felt like alchemy. The Scaling Laws paper showed something striking: the improvement is **smooth and predictable**.
 
-Specifically, as you increase model size, data, or compute, the model's error (measured as [loss](./glossary.md#loss-function), where lower is better) drops along a clean curve called a power law. When you plot it on the right kind of graph, it is almost a straight line over many orders of magnitude.
+Specifically, as you increase model size, data, or compute, the model's error (measured as [loss](chapter-07-glossary.md#loss-function), where lower is better) drops along a clean curve called a power law. When you plot it on the right kind of graph, it is almost a straight line over many orders of magnitude.
 
 ```mermaid
 flowchart LR
@@ -57,7 +57,7 @@ The old approach built a giant kitchen but barely let the chefs practice. Chinch
 
 ### Why a smaller, well-trained model is a double win
 
-A Chinchilla-style model is not only better, it is also **cheaper to run**. Every time you use a model (called [inference](./glossary.md#inference)), the cost depends on its size. A 70 billion parameter model costs far less per use than a 280 billion one. So training in a balanced way gives you a model that is both stronger and cheaper to serve to millions of users. That is why this paper reshaped how essentially every modern model is trained.
+A Chinchilla-style model is not only better, it is also **cheaper to run**. Every time you use a model (called [inference](chapter-07-glossary.md#inference)), the cost depends on its size. A 70 billion parameter model costs far less per use than a 280 billion one. So training in a balanced way gives you a model that is both stronger and cheaper to serve to millions of users. That is why this paper reshaped how essentially every modern model is trained.
 
 ## Putting the two papers together
 
@@ -74,4 +74,4 @@ These papers are not in conflict. The first one discovered that scaling works in
 
 Model quality improves in a smooth, predictable way as you add parameters, data, and compute, and the smartest way to spend a compute budget is to grow the model and its training data together, not to just make the model enormous.
 
-Next: [Chapter 3, Alignment with RLHF and DPO](./03-alignment-instructgpt-and-dpo.md), where a raw text predictor learns to become a helpful assistant.
+Next: [Chapter 3, Alignment with RLHF and DPO](chapter-03-alignment-instructgpt-and-dpo.md), where a raw text predictor learns to become a helpful assistant.

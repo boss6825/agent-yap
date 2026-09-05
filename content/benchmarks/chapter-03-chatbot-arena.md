@@ -6,9 +6,9 @@ The first two benchmarks both score answers against something objective: a known
 
 ## The problem it solves
 
-A [static benchmark](./glossary.md#static-vs-live-benchmark) with [ground truth](./glossary.md#ground-truth) answers has three weaknesses when you care about open-ended chat quality. Its questions are fixed, so they cannot capture the messy, interactive way people really use a chatbot. Its fixed test set can leak into training data and become [contaminated](./glossary.md#contamination), quietly inflating scores. And for many real requests, like "help me word this difficult email," there simply is no single correct answer to grade against.
+A [static benchmark](chapter-04-glossary.md#static-vs-live-benchmark) with [ground truth](chapter-04-glossary.md#ground-truth) answers has three weaknesses when you care about open-ended chat quality. Its questions are fixed, so they cannot capture the messy, interactive way people really use a chatbot. Its fixed test set can leak into training data and become [contaminated](chapter-04-glossary.md#contamination), quietly inflating scores. And for many real requests, like "help me word this difficult email," there simply is no single correct answer to grade against.
 
-What you actually want to know is which model people *prefer* when they use it for real. That calls for a different kind of benchmark: one whose questions are [live](./glossary.md#static-vs-live-benchmark), always fresh from real users, and whose metric is [human preference](./glossary.md#human-preference) rather than a correct answer.
+What you actually want to know is which model people *prefer* when they use it for real. That calls for a different kind of benchmark: one whose questions are [live](chapter-04-glossary.md#static-vs-live-benchmark), always fresh from real users, and whose metric is [human preference](chapter-04-glossary.md#human-preference) rather than a correct answer.
 
 ## The core idea
 
@@ -27,9 +27,9 @@ flowchart TD
 
 Hiding the names is the crucial trick. It makes the vote a blind, fair comparison, so a famous brand cannot win on reputation alone. Each vote is a single head-to-head result, like one match in a sports league: this model beat that model on this question. The paper reports the platform had already gathered over 240,000 such votes.
 
-The remaining challenge is turning a pile of individual match results into a trustworthy ranking. You cannot make every model play every other model an equal number of times on equal questions, so the data is lopsided and noisy. Chatbot Arena handles this with established statistical tools. The familiar version of the idea is the [Elo rating](../../01-Foundational-Modelling/explanations/glossary.md#elo-rating) system borrowed from chess, where beating a strong opponent raises your score more than beating a weak one. The paper formalizes this with the [Bradley-Terry model](./glossary.md#bradley-terry-model), a clean statistical method for estimating each model's underlying strength from many pairwise wins and losses, and it reports a [confidence interval](./glossary.md#confidence-interval) around each rating so readers can see how certain a ranking really is.
+The remaining challenge is turning a pile of individual match results into a trustworthy ranking. You cannot make every model play every other model an equal number of times on equal questions, so the data is lopsided and noisy. Chatbot Arena handles this with established statistical tools. The familiar version of the idea is the [Elo rating](../foundational-modelling/chapter-07-glossary.md#elo-rating) system borrowed from chess, where beating a strong opponent raises your score more than beating a weak one. The paper formalizes this with the [Bradley-Terry model](chapter-04-glossary.md#bradley-terry-model), a clean statistical method for estimating each model's underlying strength from many pairwise wins and losses, and it reports a [confidence interval](chapter-04-glossary.md#confidence-interval) around each rating so readers can see how certain a ranking really is.
 
-To get reliable rankings without wasting votes, the platform also chooses *which* pairs of models to show using [active sampling](./glossary.md#active-sampling): it preferentially matches up models whose relative strength is still uncertain, the same way a tournament organizer schedules the games that are most informative.
+To get reliable rankings without wasting votes, the platform also chooses *which* pairs of models to show using [active sampling](chapter-04-glossary.md#active-sampling): it preferentially matches up models whose relative strength is still uncertain, the same way a tournament organizer schedules the games that are most informative.
 
 ## Why you can trust it
 
@@ -47,4 +47,4 @@ Chatbot Arena filled the one quadrant the other benchmarks could not reach: live
 
 **Chatbot Arena measures the unmeasurable, open-ended chat quality, by staging blind head-to-head battles between anonymous models and letting a crowd of real users vote, then converting hundreds of thousands of votes into a trustworthy ranking with proven statistical methods.**
 
-That completes the tour of the three benchmarks. To review any term, see the [Glossary](./glossary.md), or head back to the [start-here page](./00-start-here.md) for the big picture.
+That completes the tour of the three benchmarks. To review any term, see the [Glossary](chapter-04-glossary.md), or head back to the [start-here page](chapter-00-start-here.md) for the big picture.

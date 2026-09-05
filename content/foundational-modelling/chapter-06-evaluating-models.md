@@ -6,7 +6,7 @@ We have built, scaled, aligned, and optimized our model. One question remains, a
 
 ## Why measuring chat models is genuinely hard
 
-For a long time, models were tested with [benchmarks](./glossary.md#benchmark) made of questions that have one clearly correct answer, often multiple choice. That works for "What is the capital of France?" But modern assistants are judged on open-ended tasks: "Write me a polite email declining this meeting," or "Explain recursion to a ten-year-old." These have no single right answer. A good response must be helpful, clear, well-toned, and genuinely useful, all qualities that resist a simple answer key.
+For a long time, models were tested with [benchmarks](chapter-07-glossary.md#benchmark) made of questions that have one clearly correct answer, often multiple choice. That works for "What is the capital of France?" But modern assistants are judged on open-ended tasks: "Write me a polite email declining this meeting," or "Explain recursion to a ten-year-old." These have no single right answer. A good response must be helpful, clear, well-toned, and genuinely useful, all qualities that resist a simple answer key.
 
 So how do you score something that has thousands of valid answers, each better or worse in fuzzy human ways? This paper offers two complementary tools and one provocative idea.
 
@@ -27,7 +27,7 @@ flowchart TD
     Elo --> Board[Public leaderboard]
 ```
 
-Because the model names are hidden, the votes are unbiased by reputation. The votes feed an [Elo rating](./glossary.md#elo-rating), the same system used to rank chess players, where beating a strong opponent raises your score more than beating a weak one. With enough votes, this produces a remarkably trustworthy ranking grounded directly in human preference. The catch is that it is slow and expensive: it needs a constant stream of thousands of human voters.
+Because the model names are hidden, the votes are unbiased by reputation. The votes feed an [Elo rating](chapter-07-glossary.md#elo-rating), the same system used to rank chess players, where beating a strong opponent raises your score more than beating a weak one. With enough votes, this produces a remarkably trustworthy ranking grounded directly in human preference. The catch is that it is slow and expensive: it needs a constant stream of thousands of human voters.
 
 ## The big idea: let an LLM be the judge
 
@@ -79,4 +79,4 @@ Together they form a practical toolkit: use the fast LLM judge for everyday iter
 
 Judging open-ended chat quality is hard because there is no single right answer, and this paper showed that a strong model can stand in for a human judge about 80 percent of the time, fast and cheap, as long as you stay alert to its position, verbosity, and self-preference biases.
 
-That completes folder 01. You now understand how modern models are built, scaled, aligned, made efficient, and measured. For any unfamiliar term, the [glossary](./glossary.md) is your friend. When you are ready, move on to [folder 02, Planning and Reasoning](../../02-Planning-and-Reasoning/explanations/00-start-here.md), where models learn to think step by step.
+That completes folder 01. You now understand how modern models are built, scaled, aligned, made efficient, and measured. For any unfamiliar term, the [glossary](chapter-07-glossary.md) is your friend. When you are ready, move on to [folder 02, Planning and Reasoning](../planning-and-reasoning/chapter-00-start-here.md), where models learn to think step by step.

@@ -2,7 +2,7 @@
 
 This is your shared reference for folder 04. Every term the chapters link to is explained here from scratch, in plain language, with enough depth to actually understand it rather than just recognize it. Read it straight through as a primer, or jump in whenever a chapter sends you here.
 
-A few foundational terms live in the earlier folders and are linked across rather than repeated: what a [benchmark](../../01-Foundational-Modelling/explanations/glossary.md#benchmark) is at heart, the [Elo rating](../../01-Foundational-Modelling/explanations/glossary.md#elo-rating) system, [emergent ability](../../01-Foundational-Modelling/explanations/glossary.md#emergent-ability), [sparse and dense models](../../01-Foundational-Modelling/explanations/glossary.md#sparse-and-dense-models), [long context](../../02-Planning-and-Reasoning/explanations/glossary.md#context-window-and-long-context), and [agent](../../02-Planning-and-Reasoning/explanations/glossary.md#agent). This glossary focuses on the ideas specific to evaluation.
+A few foundational terms live in the earlier folders and are linked across rather than repeated: what a [benchmark](../foundational-modelling/chapter-07-glossary.md#benchmark) is at heart, the [Elo rating](../foundational-modelling/chapter-07-glossary.md#elo-rating) system, [emergent ability](../foundational-modelling/chapter-07-glossary.md#emergent-ability), [sparse and dense models](../foundational-modelling/chapter-07-glossary.md#sparse-and-dense-models), [long context](../planning-and-reasoning/chapter-06-glossary.md#context-window-and-long-context), and [agent](../planning-and-reasoning/chapter-06-glossary.md#agent). This glossary focuses on the ideas specific to evaluation.
 
 Terms are grouped by theme so related ideas sit together.
 
@@ -17,7 +17,7 @@ Terms are grouped by theme so related ideas sit together.
 
 ### Benchmark
 
-A benchmark is a shared, standardized test that many different models are run through so their results can be compared on equal footing. Think of it as a common exam: if everyone sits the same paper under the same rules, the scores mean something relative to each other. The deeper idea is explained in the [folder 01 glossary](../../01-Foundational-Modelling/explanations/glossary.md#benchmark); this whole folder is about what separates a good benchmark from a misleading one. The short version is that a benchmark is only useful if it is hard to fake, broad enough to be representative, and resistant to going stale.
+A benchmark is a shared, standardized test that many different models are run through so their results can be compared on equal footing. Think of it as a common exam: if everyone sits the same paper under the same rules, the scores mean something relative to each other. The deeper idea is explained in the [folder 01 glossary](../foundational-modelling/chapter-07-glossary.md#benchmark); this whole folder is about what separates a good benchmark from a misleading one. The short version is that a benchmark is only useful if it is hard to fake, broad enough to be representative, and resistant to going stale.
 
 ### Static vs live benchmark
 
@@ -65,7 +65,7 @@ An aggregate score is a single number that summarizes performance across many ta
 
 ### Breakthrough behavior
 
-Breakthrough behavior describes a skill that barely improves as a model grows, then jumps sharply once the model crosses some critical size. Plotted against scale, the curve stays flat and then suddenly climbs, rather than rising smoothly. BIG-Bench found that tasks with breakthrough behavior tend to require several reasoning steps chained together, while tasks that improve smoothly tend to lean on knowledge or memorization. This is the same phenomenon as [emergent ability](../../01-Foundational-Modelling/explanations/glossary.md#emergent-ability), observed across hundreds of tasks at once. A practical warning attached to it: whether a task looks like a breakthrough can depend on the exact metric used, so these curves should be read with care.
+Breakthrough behavior describes a skill that barely improves as a model grows, then jumps sharply once the model crosses some critical size. Plotted against scale, the curve stays flat and then suddenly climbs, rather than rising smoothly. BIG-Bench found that tasks with breakthrough behavior tend to require several reasoning steps chained together, while tasks that improve smoothly tend to lean on knowledge or memorization. This is the same phenomenon as [emergent ability](../foundational-modelling/chapter-07-glossary.md#emergent-ability), observed across hundreds of tasks at once. A practical warning attached to it: whether a task looks like a breakthrough can depend on the exact metric used, so these curves should be read with care.
 
 ### Brittleness
 
@@ -105,7 +105,7 @@ HumanEval is an earlier and very popular coding benchmark in which a model is as
 
 ### SWE-Llama
 
-SWE-Llama is a pair of open models (7 billion and 13 billion parameters) that the SWE-bench authors created by fine-tuning Meta's CodeLlama on their training set, SWE-bench-train. The point was to show that open models could be specialized for real software-engineering tasks; SWE-Llama had to handle very [long contexts](../../02-Planning-and-Reasoning/explanations/glossary.md#context-window-and-long-context) of over 100,000 tokens to read enough of a codebase, and in some settings it was competitive with much larger proprietary models.
+SWE-Llama is a pair of open models (7 billion and 13 billion parameters) that the SWE-bench authors created by fine-tuning Meta's CodeLlama on their training set, SWE-bench-train. The point was to show that open models could be specialized for real software-engineering tasks; SWE-Llama had to handle very [long contexts](../planning-and-reasoning/chapter-06-glossary.md#context-window-and-long-context) of over 100,000 tokens to read enough of a codebase, and in some settings it was competitive with much larger proprietary models.
 
 ---
 
@@ -125,7 +125,7 @@ A leaderboard is a public ranking of models from best to worst according to some
 
 ### Elo rating
 
-Elo is a rating system, originally from chess, that estimates each player's strength from the outcomes of head-to-head matches. The full mechanics are explained in the [folder 01 glossary](../../01-Foundational-Modelling/explanations/glossary.md#elo-rating). The key intuition for this folder is that beating a strong opponent raises your rating more than beating a weak one, and losing to a weak opponent costs you more. Chatbot Arena uses Elo-style ratings as an intuitive way to rank models from pairwise votes.
+Elo is a rating system, originally from chess, that estimates each player's strength from the outcomes of head-to-head matches. The full mechanics are explained in the [folder 01 glossary](../foundational-modelling/chapter-07-glossary.md#elo-rating). The key intuition for this folder is that beating a strong opponent raises your rating more than beating a weak one, and losing to a weak opponent costs you more. Chatbot Arena uses Elo-style ratings as an intuitive way to rank models from pairwise votes.
 
 ### Bradley-Terry model
 
