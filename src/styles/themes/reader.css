@@ -89,6 +89,7 @@ position: relative;
 
 :is(.reader-nav-brand, .sys-reader__brand-group){
 display: flex;
+  flex: 1 1 0%;
   align-items: center;
   gap: 14px;
   min-width: 112px;
@@ -125,18 +126,21 @@ color: var(--reader-text);
 }
 
 :is(.chapter-crumb, .sys-reader__chapter-label){
-min-width: 0;
+flex: 1 1 0%;
+  min-width: 0;
   overflow: hidden;
   color: var(--reader-text-muted);
   font-size: 13px;
   letter-spacing: -0.1px;
   line-height: 16px;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 :is(.reader-nav-actions, .sys-reader__actions){
 display: flex;
+  flex: 1 1 0%;
   flex-shrink: 0;
   align-items: center;
   justify-content: flex-end;
@@ -261,6 +265,11 @@ margin-top: 8px;
   letter-spacing: 0.09em;
   line-height: 14px;
   text-transform: uppercase;
+}
+
+/* .reader-icon-btn display beats Tailwind lg:hidden. */
+.reader-sidebar-close{
+display: none;
 }
 
 :is(.reader-toc, .sys-reader__nav){
@@ -726,7 +735,11 @@ background: var(--reader-dot-active);
 /* -------------------------------------------------------------- mobile */
 
 @media (max-width: 1023px){
-:is(.chapter-crumb, .sys-reader__chapter-label){
+.reader-sidebar-close{
+    display: inline-flex;
+  }
+
+  :is(.chapter-crumb, .sys-reader__chapter-label){
 display: none;
   }
 

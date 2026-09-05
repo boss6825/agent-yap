@@ -94,7 +94,7 @@ export function Rail({
             type="button"
             onClick={onClose}
             aria-label="Close contents"
-            className="reader-icon-btn lg:hidden"
+            className="reader-icon-btn reader-sidebar-close"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
               <path
