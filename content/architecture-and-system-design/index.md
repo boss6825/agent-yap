@@ -1,3 +1,11 @@
+---
+title: Architecture and System Design
+tagline: Design any LLM agent, from the loop out to production
+track: Foundations
+order: 10
+accent: teal
+featured: true
+---
 # Architecture and System Design for AI Agents
 
 > A general, technology-agnostic guide to designing AI agents: the systems, patterns, trade-offs, and best practices that apply when you build an LLM-powered agent that uses tools, processes documents, and acts on a user's behalf.

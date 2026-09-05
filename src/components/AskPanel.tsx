@@ -88,14 +88,15 @@ export function AskPanel({
             e.preventDefault();
             ask(question);
           }}
-          className="mt-3 flex items-center gap-2 rounded-xl bg-canvas-2 px-3 outline-2 -outline-offset-1 outline-transparent transition-[outline-color] focus-within:outline-blue"
+          className="field-ring mt-3 flex items-center gap-2 rounded-xl bg-canvas-2 px-3"
         >
           <input
             ref={inputRef}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Ask a question about designing agents…"
-            className="flex-1 bg-transparent py-3 text-ink outline-none placeholder:text-ink-2/60"
+            // The ring lives on the `.field-ring` row, not the bare input.
+            className="flex-1 bg-transparent py-3 text-ink outline-none"
           />
           <button
             type="submit"

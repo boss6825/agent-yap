@@ -7,23 +7,9 @@ import { SearchPanel } from "@/components/SearchPanel";
 import { AskPanel } from "@/components/AskPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { initHomeFx } from "@/components/home/fx";
-import { useProgress } from "@/lib/progress";
-
-export interface HomeChapter {
-  number: number;
-  title: string;
-  blurb: string;
-  href: string;
-  slideCount: number;
-}
-
-export interface HomeData {
-  title: string;
-  description: string;
-  total: number;
-  startHref: string;
-  chapters: HomeChapter[];
-}
+import { SubjectShelf } from "@/components/SubjectShelf";
+import type { ShelfData } from "@/lib/shelf";
+import { lastReadOverall, useProgress } from "@/lib/progress";
 
 const STRATA = [
   { name: "Working context", desc: "what the model sees right now", bg: "#3A3A3E" },
@@ -38,7 +24,7 @@ const AGENT_CAPTIONS = [
   "Orchestration is deciding what each model sees, does, and reports back.",
 ];
 
-export function Home({ data }: { data: HomeData }) {
+export function Home({ shelf }: { shelf: ShelfData }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
@@ -48,15 +34,14 @@ export function Home({ data }: { data: HomeData }) {
     return initHomeFx(rootRef.current);
   }, []);
 
-  const firstChapter = data.chapters[0];
-
-  // Resume where the reader left off (localStorage; neutral until mounted).
+  // Resume where the reader left off, across every book (localStorage; neutral
+  // until mounted). Every entry point below reads `ctaHref` so the page cannot
+  // contradict itself about where the reader currently is.
   const progress = useProgress();
+  const lastRead = lastReadOverall(progress);
   const resumeHref =
-    progress?.lastHref && progress.lastHref !== data.startHref
-      ? progress.lastHref
-      : null;
-  const ctaHref = resumeHref ?? data.startHref;
+    lastRead && lastRead.href !== shelf.startHref ? lastRead.href : null;
+  const ctaHref = resumeHref ?? shelf.startHref;
   const ctaLabel = resumeHref ? "Continue reading" : "Start learning";
 
   return (
@@ -83,18 +68,18 @@ export function Home({ data }: { data: HomeData }) {
               Philosophy
             </a>
             <a
-              href="#curriculum"
+              href="#subjects"
               data-nav-text="1"
               className="flex h-11 items-center px-3 text-xs text-snow transition-colors duration-500"
             >
-              Curriculum
+              Subjects
             </a>
             <Link
-              href={data.startHref}
+              href="/read"
               data-nav-text="1"
               className="flex h-11 items-center px-3 text-xs text-snow transition-colors duration-500"
             >
-              Reader
+              Library
             </Link>
             <button
               type="button"
@@ -260,9 +245,9 @@ export function Home({ data }: { data: HomeData }) {
         </div>
       </section>
 
-      {/* ============ 5. CURRICULUM ============ */}
+      {/* ============ 5. SUBJECTS ============ */}
       <section
-        id="curriculum"
+        id="subjects"
         data-navtheme="light"
         className="bg-canvas px-6 py-[clamp(120px,16vh,180px)]"
       >
@@ -278,36 +263,16 @@ export function Home({ data }: { data: HomeData }) {
               data-scramble="1000"
               className="m-0 font-display text-[clamp(32px,4.6vw,48px)] font-semibold leading-[1.1] tracking-[-0.01em] text-ink"
             >
-              {data.chapters.length} chapters. No hand-waving.
+              {shelf.bookCount} subjects. No hand-waving.
             </h2>
             <p data-rise="0.1" className="mt-6 max-w-[620px] text-[21px] leading-[1.5] text-ink-2">
-              {data.title}: a sequence of slide-based chapters. Read one in an
-              evening. Reference it for years.
+              {shelf.chapterCount} chapters, {shelf.slideCount} slides, each one
+              a screen you page through. Read a subject in an evening.
+              Reference it for years.
             </p>
           </div>
-          <div className="mt-[72px] grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-5">
-            {data.chapters.map((c) => (
-              <Link
-                key={c.href}
-                href={c.href}
-                data-rise="0"
-                className="flex min-h-[280px] flex-col rounded-card bg-canvas-2 p-8 px-8 transition-[background,transform] duration-[400ms] ease-out hover:-translate-y-1 hover:bg-canvas-3 active:scale-[0.98]"
-              >
-                <span className="text-xs font-semibold tracking-[0.08em] text-ink-2">
-                  {String(c.number).padStart(2, "0")}
-                </span>
-                <span className="mt-3.5 font-display text-2xl font-semibold leading-[1.2] tracking-[-0.01em] text-ink">
-                  {c.title}
-                </span>
-                <span className="mt-3.5 flex-1 text-[17px] leading-[1.47] text-ink-2">
-                  {c.blurb}
-                </span>
-                <span className="mt-7 flex items-center justify-between">
-                  <span className="text-xs text-ink-2">{c.slideCount} slides</span>
-                  <span className="text-sm text-blue">Read chapter</span>
-                </span>
-              </Link>
-            ))}
+          <div className="mt-[72px]">
+            <SubjectShelf data={shelf} />
           </div>
         </div>
       </section>
@@ -384,10 +349,10 @@ export function Home({ data }: { data: HomeData }) {
             The climb is the curriculum.
           </h2>
           <Link
-            href={data.startHref}
+            href={ctaHref}
             className="mt-9 inline-flex min-h-11 items-center rounded-pill bg-blue px-7 py-[13px] text-[17px] text-white transition-transform active:scale-95"
           >
-            Start with Chapter 1
+            {resumeHref ? "Continue reading" : "Start with Chapter 1"}
           </Link>
         </div>
       </section>
@@ -417,28 +382,28 @@ export function Home({ data }: { data: HomeData }) {
               the drama stays out here; the reader stays calm.
             </p>
             <Link
-              href={data.startHref}
+              href={shelf.startHref}
               data-rise="0.2"
               className="mt-5 inline-flex min-h-11 items-center text-[17px] text-blue hover:underline"
             >
               Open the reader
             </Link>
           </div>
-          <Link href={firstChapter?.href ?? data.startHref} data-rise="0.15" className="min-w-[320px] flex-[1.2]">
+          <Link href={shelf.preview.href} data-rise="0.15" className="min-w-[320px] flex-[1.2]">
             <div className="relative flex aspect-[16/10] flex-col overflow-hidden rounded-card bg-canvas p-[clamp(28px,4vw,48px)] shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-transform duration-[400ms] hover:-translate-y-1">
               <div className="absolute left-0 top-0 h-[3px] w-1/3 bg-blue" />
               <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-2">
-                {data.title} · Chapter {firstChapter?.number ?? 1}
+                {shelf.preview.bookTitle} · Chapter {shelf.preview.chapterNumber}
               </span>
               <span className="mt-[18px] font-display text-[clamp(22px,2.4vw,30px)] font-semibold leading-[1.15] tracking-[-0.01em] text-ink">
-                {firstChapter?.title}
+                {shelf.preview.chapterTitle}
               </span>
               <span className="mt-3.5 line-clamp-3 max-w-[420px] text-sm leading-[1.5] text-ink-2">
-                {firstChapter?.blurb}
+                {shelf.preview.blurb}
               </span>
               <div className="mt-auto flex items-center justify-between">
                 <span className="text-xs text-ink-2">
-                  01 / {String(data.total).padStart(2, "0")}
+                  01 / {String(shelf.preview.bookSlideCount).padStart(2, "0")}
                 </span>
                 <div className="flex gap-3">
                   <span className="flex h-11 w-11 items-center justify-center rounded-pill bg-canvas-2 text-[17px] text-ink">
@@ -464,11 +429,11 @@ export function Home({ data }: { data: HomeData }) {
             <a href="#philosophy" className="text-xs text-blue hover:underline">
               Philosophy
             </a>
-            <a href="#curriculum" className="text-xs text-blue hover:underline">
-              Curriculum
+            <a href="#subjects" className="text-xs text-blue hover:underline">
+              Subjects
             </a>
-            <Link href={data.startHref} className="text-xs text-blue hover:underline">
-              Reader
+            <Link href="/read" className="text-xs text-blue hover:underline">
+              Library
             </Link>
           </div>
         </div>

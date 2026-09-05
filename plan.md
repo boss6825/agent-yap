@@ -54,6 +54,12 @@ Design north star (from Brilliant): one idea per screen, generous whitespace, in
 
 ## Non-goals
 
-- No auth, no server-side progress, no points/leaderboards.
+- No auth, and no server-side **per-user** state. Anonymous aggregates
+  (per-item answer counts, cookieless page analytics) are permitted — see
+  ADR-006. Amended 2026-09-04; the original read "no auth, no server-side
+  progress, no points/leaderboards".
+- Streaks and a leaderboard are **in scope** as of 2026-09-04 (ADR-006),
+  reversing the redesign-2026 non-goal. Notifications and certificates remain
+  refused.
 - No infinite-scroll rewrite of the reader.
 - No video content.

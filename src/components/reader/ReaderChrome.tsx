@@ -16,12 +16,29 @@ import { setNavDirection } from "@/components/reader/nav-direction";
 import { AmbientBackdrop } from "@/components/reader/AmbientBackdrop";
 import { ChatPanel } from "@/components/reader/ChatPanel";
 import { Rail } from "@/components/reader/Rail";
+import type { ReaderBook } from "@/lib/shelf";
 import { ResumePill } from "@/components/reader/ResumePill";
 import { SearchPanel } from "@/components/SearchPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { getLastRead, markSlideRead, useProgress } from "@/lib/progress";
+import {
+  getLastRead,
+  getLastReadOverall,
+  markSlideRead,
+  useProgress,
+} from "@/lib/progress";
 
 const RAIL_PREF_KEY = "agent-yap:rail-open";
+
+/** Browsers leave a couple of lines on screen when they page down; so do we. */
+const PAGE_SCROLL_RATIO = 0.9;
+
+/**
+ * What the resume pill should offer: this book's own saved position, or — when
+ * this book has none — the book the reader was actually last in.
+ */
+type ResumeSuggestion =
+  | { kind: "in-book"; href: string }
+  | { kind: "cross-book"; href: string; bookTitle: string };
 
 function isDesktop(): boolean {
   return (
@@ -50,6 +67,32 @@ function getServerRailPref(): null {
   return null;
 }
 
+/**
+ * Whether the rail is docked rather than an overlay. The `lg:` breakpoint in
+ * the rail's own classes is the source of truth; this mirrors it in JS because
+ * `inert` cannot be expressed in CSS.
+ */
+const DOCKED_QUERY = "(min-width: 1024px)";
+
+function subscribeDocked(onChange: () => void): () => void {
+  const mq = window.matchMedia(DOCKED_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+function getDockedSnapshot(): boolean {
+  return window.matchMedia(DOCKED_QUERY).matches;
+}
+
+/**
+ * The server has no viewport. Returning `false` makes the first paint agree
+ * with the mobile-first CSS (rail off-screen), so `inert` is correct in the
+ * SSR HTML and does not flip during hydration.
+ */
+function getServerDocked(): boolean {
+  return false;
+}
+
 /** True while the user is typing somewhere shortcuts must not fire. */
 function isTypingTarget(el: Element | null): boolean {
   return (
@@ -62,9 +105,15 @@ function isTypingTarget(el: Element | null): boolean {
 
 export function ReaderChrome({
   manifest,
+  books = [],
   children,
 }: {
   manifest: NavManifest;
+  /** Every book on the site, in shelf order. Names a resume target that lives
+   *  outside `manifest`, and fills the rail's subject switcher. Optional so the
+   *  chrome still renders without it; the cross-book pill simply stays silent
+   *  and the switcher lists only the current book. */
+  books?: ReaderBook[];
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -86,6 +135,17 @@ export function ReaderChrome({
   );
   const railState =
     railOpen ?? (storedRailPref === null ? null : storedRailPref === "1");
+
+  const isDocked = useSyncExternalStore(
+    subscribeDocked,
+    getDockedSnapshot,
+    getServerDocked,
+  );
+
+  // What the CSS actually paints: docked desktop shows the rail unless it was
+  // explicitly closed; below `lg` it shows only when explicitly opened. `null`
+  // is the "auto" case, which is why this cannot be `railState === true`.
+  const railVisible = isDocked ? railState !== false : railState === true;
 
   const byHref = useMemo(() => {
     const m = new Map<string, NavSlide>();
@@ -116,19 +176,60 @@ export function ReaderChrome({
 
   // Resume pointer captured once on mount, before dwell-marking moves it;
   // cleared as soon as the reader navigates anywhere (they're oriented).
-  const [resumeHref, setResumeHref] = useState<string | null>(null);
+  // The pointer is per book now, so this book's href is always resolvable
+  // against this book's manifest. When the reader has never read this book but
+  // has a position elsewhere, offer that book instead of silently rendering
+  // nothing (SOL-13 / audit §3.9).
+  const [resume, setResume] = useState<ResumeSuggestion | null>(null);
   const initialPath = useRef(pathname);
+  // Props arrive fresh from the server on every render; snapshot what the
+  // one-shot lookup needs so the effect below genuinely runs once.
+  const resumeInputs = useRef({ bookSlug: manifest.bookSlug, books });
   useEffect(() => {
-    const last = getLastRead();
-    if (last && last.href !== initialPath.current) setResumeHref(last.href);
+    const { bookSlug, books: shelf } = resumeInputs.current;
+    const inBook = getLastRead(bookSlug);
+    if (inBook) {
+      if (inBook.href !== initialPath.current) {
+        setResume({ kind: "in-book", href: inBook.href });
+      }
+      return;
+    }
+    const elsewhere = getLastReadOverall();
+    if (!elsewhere || elsewhere.bookSlug === bookSlug) return;
+    const book = shelf.find((b) => b.slug === elsewhere.bookSlug);
+    if (book) {
+      setResume({ kind: "cross-book", href: elsewhere.href, bookTitle: book.title });
+    }
   }, []);
   useEffect(() => {
-    if (pathname !== initialPath.current) setResumeHref(null);
+    if (pathname !== initialPath.current) setResume(null);
   }, [pathname]);
-  const resumeTarget =
-    resumeHref && current?.globalIndex === 0 && resumeHref !== pathname
-      ? byHref.get(resumeHref)
-      : undefined;
+
+  const resumePill = useMemo(() => {
+    // Same product rule as before: only on the first slide of a book.
+    if (!resume || current?.globalIndex !== 0 || resume.href === pathname) {
+      return null;
+    }
+    if (resume.kind === "cross-book") {
+      return {
+        href: resume.href,
+        lead: "You were last reading",
+        destination: resume.bookTitle,
+      };
+    }
+    const slide = byHref.get(resume.href);
+    // A pointer this book's manifest no longer knows (renamed chapter, edited
+    // content): stay silent rather than link the reader into a 404.
+    if (!slide) return null;
+    return {
+      href: slide.href,
+      lead: "Continue where you left off",
+      destination:
+        slide.sectionIndex === 0
+          ? chapterDisplayTitle(slide.chapterTitle)
+          : slide.title,
+    };
+  }, [resume, current, pathname, byHref]);
 
   const anyModal = searchOpen;
 
@@ -184,7 +285,27 @@ export function ReaderChrome({
       // Modals and mobile overlays own the remaining keys.
       if (anyModal || ((railState === true || chatOpen) && !isDesktop())) return;
 
-      if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+      // Space is page-down, never next-slide. Whatever holds focus — a Review
+      // disclosure, a nav button, the scrollable diagram box — owns its own
+      // Space, so step in only when focus is nowhere: the stage is an inner
+      // overflow container, and the browser will not page one that neither
+      // holds focus nor contains it.
+      if (e.key === " ") {
+        const stage = stageScrollRef.current;
+        const active = document.activeElement;
+        const focusIsNowhere =
+          !active ||
+          active === document.body ||
+          active === document.documentElement;
+        if (stage && focusIsNowhere) {
+          e.preventDefault();
+          const page = stage.clientHeight * PAGE_SCROLL_RATIO;
+          stage.scrollBy({ top: e.shiftKey ? -page : page });
+        }
+        return;
+      }
+
+      if (e.key === "ArrowRight" || e.key === "PageDown") {
         e.preventDefault();
         go(next, 1);
       } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
@@ -322,6 +443,10 @@ export function ReaderChrome({
 
         <aside
           aria-label="Contents rail"
+          // Translated off-screen rather than unmounted, so without `inert` Tab
+          // walks the entire chapter tree and the subject switcher while none
+          // of it is visible.
+          inert={!railVisible}
           className={`glass-light fixed inset-y-0 left-0 z-50 overflow-hidden transition-transform duration-300 ease-out lg:relative lg:z-10 lg:translate-x-0 lg:transition-[width] ${
             railState === true ? "translate-x-0" : "-translate-x-full"
           } ${
@@ -337,6 +462,7 @@ export function ReaderChrome({
             onNavigate={closeRailOverlay}
             onClose={closeRailOverlay}
             readHrefs={readHrefs}
+            subjects={books}
           />
         </aside>
 
@@ -354,14 +480,11 @@ export function ReaderChrome({
               {children}
             </div>
 
-            {resumeTarget && (
+            {resumePill && (
               <ResumePill
-                href={resumeTarget.href}
-                title={
-                  resumeTarget.sectionIndex === 0
-                    ? chapterDisplayTitle(resumeTarget.chapterTitle)
-                    : resumeTarget.title
-                }
+                href={resumePill.href}
+                lead={resumePill.lead}
+                destination={resumePill.destination}
               />
             )}
 

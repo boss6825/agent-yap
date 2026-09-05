@@ -258,6 +258,9 @@ export function ChatPanel({
       )}
 
       <aside
+        // Slides out with `translate-x-full` but stays mounted, so it needs
+        // `inert` or Tab reaches the composer and the key form while hidden.
+        inert={!open}
         aria-label="Chat panel"
         onKeyDown={(e) => {
           if (e.key === "Escape") onClose();
@@ -393,7 +396,7 @@ export function ChatPanel({
                     e.preventDefault();
                     void send(draft);
                   }}
-                  className={`relative flex items-end gap-2 rounded-2xl px-3 py-2 ${
+                  className={`field-ring relative flex items-end gap-2 rounded-2xl px-3 py-2 ${
                     hasKey
                       ? "m-[5px] bg-canvas/90 rounded-xl"
                       : "border border-hairline bg-canvas-2/80"
@@ -410,7 +413,8 @@ export function ChatPanel({
                         ? "Ask about this page…"
                         : "Ask the docs (site-wide)…"
                     }
-                    className="max-h-40 flex-1 resize-none bg-transparent py-1 text-sm text-ink outline-none placeholder:text-ink-2/60"
+                    // The ring lives on the `.field-ring` row, not the bare textarea.
+                    className="max-h-40 flex-1 resize-none bg-transparent py-1 text-sm text-ink outline-none"
                   />
                   <button
                     type="submit"

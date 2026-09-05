@@ -3,15 +3,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { NavManifest } from "@/lib/content";
+import type { NavManifest, NavSlide } from "@/lib/content";
 import { chapterDisplayTitle } from "@/lib/display";
 import { getChapterArt } from "@/lib/art";
+import { SubjectMark } from "@/components/SubjectMark";
+import type { ReaderBook } from "@/lib/shelf";
+import { lastReadInBook, useProgress } from "@/lib/progress";
 
 /**
  * Left contents rail — the IDE-style file tree of the reader.
  * Chapters expand to slide lists; the current chapter stays expanded.
  * Progress decoration (checks / rings) hooks in via the optional props
  * so the tree renders fine before any progress exists.
+ *
+ * The header doubles as the subject switcher. With six books on the site,
+ * "which book am I in" and "take me to another one" are the same question, and
+ * answering it here means never leaving the reader to change subject. Each row
+ * links to that book's own resume point rather than its first slide, so
+ * switching away and back is lossless.
  */
 export function Rail({
   manifest,
@@ -20,6 +29,7 @@ export function Rail({
   onNavigate,
   onClose,
   readHrefs,
+  subjects,
 }: {
   manifest: NavManifest;
   currentHref: string;
@@ -31,11 +41,26 @@ export function Rail({
   onClose: () => void;
   /** Hrefs the reader has already seen (slice 2 wires this up). */
   readHrefs?: ReadonlySet<string>;
+  /** Every book on the site, in shelf order, for the subject switcher. */
+  subjects: ReaderBook[];
 }) {
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const progress = useProgress();
   const currentChapter = useMemo(
     () => manifest.slides.find((s) => s.href === currentHref)?.chapterSlug,
     [manifest, currentHref],
   );
+
+  // Chapters carry a `[start, count)` range into `manifest.slides` instead of
+  // their own copy of the slide objects, so resolve the ranges once per
+  // manifest rather than on every navigation re-render.
+  const slidesByChapter = useMemo(() => {
+    const byChapter = new Map<string, NavSlide[]>();
+    for (const c of manifest.chapters) {
+      byChapter.set(c.slug, manifest.slides.slice(c.start, c.start + c.count));
+    }
+    return byChapter;
+  }, [manifest]);
 
   const [expanded, setExpanded] = useState<Set<string>>(
     () => new Set(currentChapter ? [currentChapter] : []),
@@ -62,11 +87,16 @@ export function Rail({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      // The switcher is the innermost layer, so it unwinds first: Escape
+      // should not close the whole rail out from under someone who only
+      // opened the subject list.
+      if (switcherOpen) setSwitcherOpen(false);
+      else onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, switcherOpen]);
 
   // When opened as a mobile overlay, move focus into the rail (a11y);
   // the shell restores focus to the toggle button on close.
@@ -86,7 +116,9 @@ export function Rail({
     });
   };
 
-  const art = currentChapter ? getChapterArt(currentChapter) : undefined;
+  const art = currentChapter
+    ? getChapterArt(manifest.bookSlug, currentChapter)
+    : undefined;
 
   return (
     <div className="relative flex h-full w-[min(320px,85vw)] flex-col lg:w-[300px]">
@@ -106,24 +138,104 @@ export function Rail({
         </div>
       )}
 
-      <div className="relative flex items-center justify-between gap-3 border-b border-hairline px-5 py-4">
-        <span className="min-w-0">
-          <span className="block truncate font-display text-[15px] font-semibold text-ink">
-            {manifest.bookTitle}
-          </span>
-          <span className="block text-xs text-ink-2">
-            {manifest.chapters.length} chapters · {manifest.total} slides
-          </span>
-        </span>
-        <button
-          ref={closeRef}
-          type="button"
-          onClick={onClose}
-          aria-label="Close contents"
-          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-pill text-ink-2 transition-colors hover:bg-canvas-2 hover:text-ink lg:hidden"
-        >
-          ✕
-        </button>
+      <div className="relative border-b border-hairline">
+        <div className="flex items-center gap-1.5 px-2.5 py-3">
+          <button
+            type="button"
+            onClick={() => setSwitcherOpen((v) => !v)}
+            aria-expanded={switcherOpen}
+            aria-controls="rail-subjects"
+            title="Switch subject"
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left transition-colors hover:bg-canvas-2/80"
+          >
+            <SubjectMark
+              slug={manifest.bookSlug}
+              className="h-[18px] w-[18px] shrink-0 text-ink-2"
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-display text-[15px] font-semibold text-ink">
+                {manifest.bookTitle}
+              </span>
+              <span className="block text-xs text-ink-2">
+                {manifest.chapters.length} chapters · {manifest.total} slides
+              </span>
+            </span>
+            <svg
+              viewBox="0 0 12 12"
+              aria-hidden
+              className={`h-3 w-3 shrink-0 text-ink-2 transition-transform duration-200 ${
+                switcherOpen ? "rotate-180" : ""
+              }`}
+            >
+              <path
+                d="M2.5 4.5 6 8l3.5-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Close contents"
+            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-pill text-ink-2 transition-colors hover:bg-canvas-2 hover:text-ink lg:hidden"
+          >
+            ✕
+          </button>
+        </div>
+
+        {switcherOpen && (
+          <div
+            id="rail-subjects"
+            className="scrollbar-thin max-h-[46vh] overflow-y-auto border-t border-hairline px-2.5 py-2"
+          >
+            <ul>
+              {subjects.map((subject) => {
+                const resume = lastReadInBook(progress, subject.slug);
+                const current = subject.slug === manifest.bookSlug;
+                return (
+                  <li key={subject.slug}>
+                    <Link
+                      href={resume?.href ?? subject.href}
+                      onClick={() => {
+                        setSwitcherOpen(false);
+                        onNavigate();
+                      }}
+                      aria-current={current ? "true" : undefined}
+                      className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-colors ${
+                        current
+                          ? "bg-blue/10 font-semibold text-blue"
+                          : "text-ink-2 hover:bg-canvas-2/70 hover:text-ink"
+                      }`}
+                    >
+                      <SubjectMark
+                        slug={subject.slug}
+                        className="h-4 w-4 shrink-0"
+                      />
+                      <span className="min-w-0 flex-1 truncate">
+                        {subject.title}
+                      </span>
+                      <span className="shrink-0 text-[10px] tabular-nums text-ink-2">
+                        {resume ? "resume" : subject.slideCount}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <Link
+              href="/read"
+              onClick={() => setSwitcherOpen(false)}
+              className="mt-1 flex items-center gap-2.5 rounded-lg border-t border-hairline px-2.5 py-2 pt-2.5 text-[13px] text-blue transition-colors hover:bg-canvas-2/70"
+            >
+              All subjects
+            </Link>
+          </div>
+        )}
       </div>
 
       <nav
@@ -131,12 +243,13 @@ export function Rail({
         className="scrollbar-thin relative flex-1 overflow-y-auto px-2.5 py-3"
       >
         {manifest.chapters.map((c) => {
+          const slides = slidesByChapter.get(c.slug) ?? [];
           const isOpen = expanded.has(c.slug);
           const isCurrent = c.slug === currentChapter;
           const readCount = readHrefs
-            ? c.slides.reduce((n, s) => n + (readHrefs.has(s.href) ? 1 : 0), 0)
+            ? slides.reduce((n, s) => n + (readHrefs.has(s.href) ? 1 : 0), 0)
             : 0;
-          const done = readHrefs ? readCount === c.slides.length : false;
+          const done = readHrefs ? readCount === c.count : false;
 
           return (
             <div key={c.slug} className="mb-0.5">
@@ -173,7 +286,7 @@ export function Rail({
                 {readHrefs && (
                   <ChapterMeter
                     read={readCount}
-                    total={c.slides.length}
+                    total={c.count}
                     done={done}
                   />
                 )}
@@ -181,7 +294,7 @@ export function Rail({
 
               {isOpen && (
                 <ul className="ml-[30px] mt-0.5 border-l border-hairline pb-1.5 pl-2.5">
-                  {c.slides.map((s) => {
+                  {slides.map((s) => {
                     const active = s.href === currentHref;
                     const read = readHrefs?.has(s.href) ?? false;
                     return (
