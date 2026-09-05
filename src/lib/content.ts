@@ -23,6 +23,8 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { extractReview, type Question, type ReviewSkip } from "@/lib/questions";
+import { assertContentValid } from "@/lib/content-validate";
 
 /** Card tints the shelf knows how to render. Unknown values fall back. */
 export const ACCENTS = [
@@ -152,6 +154,18 @@ export interface Chapter {
   href: string;
   /** Frontmatter `order`, when a book departs from its filename numbering. */
   order?: number;
+  /**
+   * The chapter's `## Review` multiple-choice items, as data. Empty when the
+   * chapter has no Review section. These are NOT slides: the Review tail used
+   * to render as a wall of prose at the end of every chapter.
+   */
+  questions: Question[];
+  /**
+   * Review items that are not multiple choice (open-ended, coding challenges)
+   * or that failed to parse. Surfaced so a format variant cannot go missing
+   * silently; see the build-time report in `reviewReport()`.
+   */
+  reviewSkips: ReviewSkip[];
 }
 
 /** A subject: one book folder under `content/`. */
@@ -268,8 +282,77 @@ interface RawSection {
 }
 
 /**
+ * A `##` section long enough to stop being a slide and start being a chapter.
+ *
+ * Chosen from the corpus, not picked round. After the Review tail was extracted
+ * (SOL-17) the distribution across 428 slides is: p50 111 words, p75 162,
+ * p90 320, p95 447, p99 901, max 1235. A slide at 700 words is roughly 1.5x the
+ * 95th percentile and reads as three or more screens, which is the point at
+ * which "one page you page through" stops being true.
+ *
+ * Deliberately above p95: sub-splitting renumbers slides and therefore changes
+ * URLs, so the rule should catch genuine outliers, not trim the tail.
+ */
+const SUBSPLIT_WORD_THRESHOLD = 700;
+
+/** Minimum `###` headings needed before a long section can be split at all. */
+const SUBSPLIT_MIN_HEADINGS = 2;
+
+function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/**
+ * Break one oversized `##` section at its `###` headings.
+ *
+ * The prose before the first `###` keeps the `##` title. Each `###` then
+ * becomes its own slide titled by that heading. When there is no lead prose the
+ * empty section is dropped rather than emitted with a duplicated title.
+ */
+function subSplitSection(section: RawSection): RawSection[] {
+  const lines = section.markdown.split(/\r?\n/);
+  const parts: RawSection[] = [];
+  let current: RawSection = { title: section.title, markdown: "" };
+  let buffer: string[] = [];
+  let fence: string | null = null;
+
+  const flush = () => {
+    current.markdown = buffer.join("\n").trim();
+    parts.push(current);
+    buffer = [];
+  };
+
+  for (const line of lines) {
+    // `###` inside a fenced block is a comment, not a heading.
+    const fenceMatch = line.match(/^\s{0,3}(\`{3,}|~{3,})/);
+    if (fenceMatch) {
+      const marker = fenceMatch[1][0];
+      if (fence === null) fence = marker;
+      else if (marker === fence) fence = null;
+      buffer.push(line);
+      continue;
+    }
+
+    const h3 = fence === null ? line.match(/^###\s+(.*)$/) : null;
+    if (h3) {
+      flush();
+      current = { title: h3[1].trim(), markdown: "" };
+      continue;
+    }
+    buffer.push(line);
+  }
+  flush();
+
+  // Drop an empty lead section (a `##` that opens straight into a `###`).
+  return parts.filter((p, i) => i > 0 || p.markdown.length > 0);
+}
+
+/**
  * Split a chapter's markdown into an intro section plus one section per `##`.
  * The H1 line is dropped (its text becomes the chapter/intro title).
+ *
+ * Sections longer than `SUBSPLIT_WORD_THRESHOLD` are then broken again at their
+ * `###` headings, so a 1,200-word "Concept explanation" stops being one slide.
  */
 function splitIntoSections(markdown: string, chapterTitle: string): RawSection[] {
   const lines = markdown.split(/\r?\n/);
@@ -301,7 +384,14 @@ function splitIntoSections(markdown: string, chapterTitle: string): RawSection[]
   flush();
 
   // Drop an empty leading intro (chapter that opens straight into a `##`).
-  return sections.filter((s, i) => i > 0 || s.markdown.length > 0);
+  const kept = sections.filter((s, i) => i > 0 || s.markdown.length > 0);
+
+  return kept.flatMap((section) => {
+    if (wordCount(section.markdown) <= SUBSPLIT_WORD_THRESHOLD) return [section];
+    const headings = (section.markdown.match(/^###\s+/gm) ?? []).length;
+    if (headings < SUBSPLIT_MIN_HEADINGS) return [section];
+    return subSplitSection(section);
+  });
 }
 
 /* ------------------------------- book loading ------------------------------ */
@@ -322,6 +412,11 @@ function loadBooks(): Book[] {
     // Do not cache a miss — cwd/root can recover on the next request.
     return books;
   }
+
+  // The build is the only gate this repo has (ADR-005), so content mistakes
+  // are made impossible by refusing to build. Runs before any parsing, so the
+  // error names the folder rather than surfacing later as an empty book.
+  assertContentValid(contentRoot);
 
   const bookDirs = fs
     .readdirSync(contentRoot, { withFileTypes: true })
@@ -364,7 +459,11 @@ function loadBooks(): Book[] {
       const h1 =
         chapterMeta.title ?? firstHeading(md, 1) ?? `Chapter ${chapterNumber}`;
       const chapterTitle = cleanChapterTitle(h1);
-      const sections = splitIntoSections(md, chapterTitle);
+
+      // Pull `## Review` out before splitting into slides: its items become
+      // `questions[]` and its prose stops being emitted as a slide.
+      const review = extractReview(md);
+      const sections = splitIntoSections(review.body, chapterTitle);
 
       const slides: Slide[] = sections.map((section, sectionIndex) => {
         const href = `/read/${bookSlug}/${chapterSlug}/${sectionIndex}`;
@@ -394,6 +493,8 @@ function loadBooks(): Book[] {
         slides,
         href: slides[0]?.href ?? `/read/${bookSlug}/${chapterSlug}/0`,
         order: chapterMeta.order,
+        questions: review.questions,
+        reviewSkips: review.skipped,
       });
     }
 
@@ -652,6 +753,54 @@ export function getShelf(): Track[] {
     const bo = rank(b);
     if (ao !== bo) return ao - bo;
     return a.name.localeCompare(b.name);
+  });
+}
+
+/** Per-book roll-up of what the Review extractor found. */
+export interface ReviewReport {
+  bookSlug: string;
+  questions: number;
+  openEnded: number;
+  /** Items that looked like questions but did not parse. Should be zero. */
+  unparsed: ReviewSkip[];
+  chaptersWithReview: number;
+  chapters: number;
+}
+
+/**
+ * What `## Review` extraction produced, per book.
+ *
+ * Exists so a format variant cannot go missing quietly. `unparsed` is the
+ * number that matters: open-ended items are expected and counted separately,
+ * but anything with options that failed to yield a question is a parser gap,
+ * and a silent gap would not surface until the grading engine was built on it.
+ */
+export function reviewReport(): ReviewReport[] {
+  return loadBooks().map((book) => {
+    const unparsed: ReviewSkip[] = [];
+    let openEnded = 0;
+    let chaptersWithReview = 0;
+    let questions = 0;
+
+    for (const chapter of book.chapters) {
+      if (chapter.questions.length > 0 || chapter.reviewSkips.length > 0) {
+        chaptersWithReview++;
+      }
+      questions += chapter.questions.length;
+      for (const skip of chapter.reviewSkips) {
+        if (skip.reason.startsWith("open-ended")) openEnded++;
+        else unparsed.push(skip);
+      }
+    }
+
+    return {
+      bookSlug: book.slug,
+      questions,
+      openEnded,
+      unparsed,
+      chaptersWithReview,
+      chapters: book.chapters.length,
+    };
   });
 }
 
