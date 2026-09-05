@@ -1,0 +1,63 @@
+/**
+ * Shared reader theme contract.
+ *
+ * Light fills these on `:root` and `[data-reader-theme="light"]`
+ * in `light.css`. Dark / sepia / sepia-dark agents override the same
+ * names in their own files. Do not put dark or sepia values here.
+ *
+ * Attribute hooks (set on `<html>` or the reader root):
+ *   data-reader-theme = light | dark | sepia | sepia-dark
+ *   data-reader-family = system | paper
+ *
+ * Surfaces
+ *   --reader-bg            page / stage canvas
+ *   --reader-sidebar-bg    contents rail
+ *   --reader-bar-bg        top bar
+ *
+ * Text
+ *   --reader-text           titles / primary UI
+ *   --reader-text-secondary secondary labels (chapter chip, Search/Chat)
+ *   --reader-text-muted     quiet UI (counters, collapsed numbers)
+ *   --reader-text-faint     hints, unread totals, keyboard legend
+ *   --reader-text-body      slide prose
+ *
+ * Accent
+ *   --reader-accent         primary blue / family accent
+ *   --reader-accent-soft    active row wash
+ *   --reader-accent-strong  pressed / hover accent
+ *
+ * Lines + progress
+ *   --reader-border         hairline (bar, sidebar, nested rail)
+ *   --reader-border-subtle  expanded chapter card stroke
+ *   --reader-track          3px top progress track
+ *   --reader-progress-fill  top progress fill
+ *
+ * Chapter card
+ *   --reader-card-bg
+ *   --reader-card-border
+ *   --reader-card-shadow
+ *
+ * Tree + dashes
+ *   --reader-active-row     current slide row
+ *   --reader-dot            incomplete slide marker
+ *   --reader-dash-inactive  chapter dash (not current)
+ *
+ * Footer nav buttons
+ *   --reader-prev-bg
+ *   --reader-prev-border
+ *   --reader-prev-icon
+ *   --reader-next-bg
+ *   --reader-next-shadow
+ *   --reader-next-icon
+ *
+ * Meter
+ *   --reader-ring-track     circular progress gutter
+ *   --reader-check-done     completed-slide check (faded)
+ *
+ * Family
+ *   --reader-family         "system" (light/dark) or "paper" (sepia pair)
+ *
+ * Type (shared, not re-themed per sibling)
+ *   --reader-font-ui
+ *   --reader-font-mono
+ */
