@@ -54,7 +54,7 @@ export default async function SlidePage({
   const eyebrow = `CHAPTER ${String(s.chapterNumber).padStart(2, "0")} · ${displayTitle}`;
 
   return (
-    <article className="sys-reader__article">
+    <article className="reader-slide">
       <SlideContextBridge
         href={s.href}
         title={s.title}
@@ -62,17 +62,15 @@ export default async function SlidePage({
         chapterTitle={displayTitle}
         markdown={s.markdown}
       />
-      <p className="sys-reader__eyebrow">{eyebrow}</p>
+      <p className="slide-kicker">{eyebrow}</p>
       <h1
-        className={
-          isIntro
-            ? "sys-reader__title"
-            : "sys-reader__title sys-reader__title--section"
-        }
+        className={isIntro ? "slide-title" : "slide-title slide-title--section"}
       >
         {isIntro ? displayTitle : s.title}
       </h1>
-      <Markdown>{s.markdown}</Markdown>
+      <div className="slide-body">
+        <Markdown>{s.markdown}</Markdown>
+      </div>
     </article>
   );
 }

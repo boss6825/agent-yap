@@ -1,8 +1,6 @@
 import type { ReactNode, RefObject } from "react";
 import Link from "next/link";
 
-/** Shared SVG marks for the system-family (light/dark) reader chrome. */
-
 export function SidebarToggleGlyph() {
   return (
     <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden>
@@ -31,7 +29,7 @@ export function SidebarToggleGlyph() {
 export function ChevronDownGlyph() {
   return (
     <svg
-      className="sys-reader__chevron"
+      className="toc-chevron"
       width="12"
       height="12"
       viewBox="0 0 12 12"
@@ -52,7 +50,7 @@ export function ChevronDownGlyph() {
 export function ChevronRightGlyph() {
   return (
     <svg
-      className="sys-reader__chevron"
+      className="toc-chevron"
       width="12"
       height="12"
       viewBox="0 0 12 12"
@@ -102,16 +100,18 @@ export function NavChevronRight() {
 
 export function SlideCheck({ faded = false }: { faded?: boolean }) {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
-      <path
-        d="M2.5 6.5 5 9l4.5-6"
-        fill="none"
-        stroke={faded ? "var(--reader-check-done)" : "var(--reader-accent)"}
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <span className="toc-check">
+      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+        <path
+          d="M2.5 6.5 5 9l4.5-6"
+          fill="none"
+          stroke={faded ? "var(--reader-check-done)" : "var(--reader-accent)"}
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
   );
 }
 
@@ -121,7 +121,7 @@ export function ChapterRing({ frac }: { frac: number }) {
   const clamped = Math.min(1, Math.max(0, frac));
   return (
     <svg
-      className="sys-reader__ring"
+      className="toc-progress-ring"
       width="14"
       height="14"
       viewBox="0 0 14 14"
@@ -151,9 +151,16 @@ export function ChapterRing({ frac }: { frac: number }) {
 
 export function SystemProgressTrack({ percent }: { percent: number }) {
   return (
-    <div className="sys-reader__progress" aria-hidden>
+    <div
+      className="reader-progress"
+      role="progressbar"
+      aria-label="Reading progress"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(Math.min(100, Math.max(0, percent)))}
+    >
       <div
-        className="sys-reader__progress-fill"
+        className="reader-progress-fill"
         style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
       />
     </div>
@@ -184,12 +191,12 @@ export function SystemTopBar({
   themeControl: ReactNode;
 }) {
   return (
-    <header className="sys-reader__bar">
-      <div className="sys-reader__brand-group">
+    <header className="reader-nav">
+      <div className="reader-nav-brand">
         <button
           ref={railToggleRef}
           type="button"
-          className="sys-reader__icon-btn"
+          className="reader-icon-btn"
           onClick={onToggleRail}
           title="Contents (t)"
           aria-label={railExpanded ? "Collapse contents" : "Expand contents"}
@@ -197,15 +204,15 @@ export function SystemTopBar({
         >
           <SidebarToggleGlyph />
         </button>
-        <Link href="/" className="sys-reader__brand">
+        <Link href="/" className="reader-wordmark">
           Agent YAP
         </Link>
       </div>
-      <span className="sys-reader__chapter-label">{chapterLabel}</span>
-      <div className="sys-reader__actions">
+      <span className="chapter-crumb">{chapterLabel}</span>
+      <div className="reader-nav-actions">
         <button
           type="button"
-          className="sys-reader__text-btn"
+          className="reader-text-btn"
           onClick={onSearch}
           title="Search (/)"
         >
@@ -213,15 +220,15 @@ export function SystemTopBar({
         </button>
         <button
           type="button"
-          className="sys-reader__text-btn"
+          className="reader-text-btn"
           onClick={onChat}
-          title="Chat with this page"
+          title="Ask the docs"
           aria-pressed={chatOpen}
           aria-expanded={chatOpen}
         >
           Chat
         </button>
-        <span className="sys-reader__counter">
+        <span className="reader-counter">
           {indexLabel} / {totalLabel}
         </span>
         {themeControl}
@@ -248,25 +255,23 @@ export function SystemFooter({
   const dashes = Math.max(1, dashCount);
   const shrink = dashes > 9;
   return (
-    <footer className="sys-reader__footer">
-      <span className="sys-reader__hint">← → arrow keys work too</span>
-      <div className="sys-reader__dashes" aria-hidden>
+    <footer className="reader-footer">
+      <span className="reader-footer-hint">← → arrow keys work too</span>
+      <div className="chapter-dots" aria-hidden>
         {Array.from({ length: dashes }, (_, i) => (
           <span
             key={i}
             className={
-              i === dashActive
-                ? "sys-reader__dash sys-reader__dash--on"
-                : "sys-reader__dash"
+              i === dashActive ? "chapter-dot chapter-dot--active" : "chapter-dot"
             }
             style={shrink ? { width: 14 } : undefined}
           />
         ))}
       </div>
-      <div className="sys-reader__nav-btns">
+      <div className="reader-pager">
         <button
           type="button"
-          className="sys-reader__circle sys-reader__circle--prev"
+          className="nav-back"
           onClick={onPrev}
           disabled={!hasPrev}
           aria-label="Previous slide"
@@ -275,12 +280,13 @@ export function SystemFooter({
         </button>
         <button
           type="button"
-          className="sys-reader__circle sys-reader__circle--next"
+          className="nav-next"
           onClick={onNext}
           disabled={!hasNext}
           aria-label="Next slide"
         >
           <NavChevronRight />
+          <span className="nav-next-label">Next</span>
         </button>
       </div>
     </footer>

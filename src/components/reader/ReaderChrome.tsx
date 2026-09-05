@@ -12,7 +12,6 @@ import { usePathname, useRouter } from "next/navigation";
 import type { NavManifest, NavSlide } from "@/lib/content";
 import { chapterDisplayTitle } from "@/lib/display";
 import { setNavDirection } from "@/components/reader/nav-direction";
-import { ChatPanel } from "@/components/reader/ChatPanel";
 import { Rail } from "@/components/reader/Rail";
 import { ResumePill } from "@/components/reader/ResumePill";
 import {
@@ -20,11 +19,8 @@ import {
   SystemProgressTrack,
   SystemTopBar,
 } from "@/components/reader/chrome/SystemReaderChrome";
-import {
-  ReaderThemeCycleButton,
-  useReaderTheme,
-} from "@/components/reader/theme/ReaderThemeProvider";
-import { familyForTheme } from "@/components/reader/theme/theme-types";
+import { ThemeSwitcher, familyForTheme, legacyThemeId, useTheme } from "@/lib/theme";
+import { AskPanel } from "@/components/AskPanel";
 import { SearchPanel } from "@/components/SearchPanel";
 import { getLastRead, markSlideRead, useProgress } from "@/lib/progress";
 
@@ -73,11 +69,12 @@ export function ReaderChrome({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { theme } = useReaderTheme();
+  const { theme } = useTheme();
+  const family = familyForTheme(theme);
 
   const [railOpen, setRailOpen] = useState<boolean | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
   const railToggleRef = useRef<HTMLButtonElement>(null);
   const stageScrollRef = useRef<HTMLDivElement>(null);
 
@@ -134,7 +131,7 @@ export function ReaderChrome({
       ? byHref.get(resumeHref)
       : undefined;
 
-  const anyModal = searchOpen;
+  const anyModal = searchOpen || askOpen;
 
   const toggleRail = useCallback(() => {
     const effective = railState ?? isDesktop();
@@ -183,7 +180,7 @@ export function ReaderChrome({
         toggleRail();
         return;
       }
-      if (anyModal || ((railState === true || chatOpen) && !isDesktop())) return;
+      if (anyModal || (railState === true && !isDesktop())) return;
 
       if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
         e.preventDefault();
@@ -195,7 +192,7 @@ export function ReaderChrome({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [next, prev, go, anyModal, railState, chatOpen, toggleRail]);
+  }, [next, prev, go, anyModal, railState, toggleRail]);
 
   const touch = useRef<{ x: number; y: number } | null>(null);
   const onTouchStart = (e: React.TouchEvent) => {
@@ -203,11 +200,7 @@ export function ReaderChrome({
     touch.current = { x: t.clientX, y: t.clientY };
   };
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (
-      !touch.current ||
-      anyModal ||
-      ((railState === true || chatOpen) && !isDesktop())
-    )
+    if (!touch.current || anyModal || (railState === true && !isDesktop()))
       return;
     const t = e.changedTouches[0];
     const dx = t.clientX - touch.current.x;
@@ -227,11 +220,13 @@ export function ReaderChrome({
 
   return (
     <div
-      className="sys-reader"
-      data-reader-theme={theme}
-      data-reader-family={familyForTheme(theme)}
+      className="reader-shell"
+      data-theme={theme}
+      data-theme-family={family}
+      data-reader-theme={legacyThemeId(theme)}
+      data-reader-family={family === "sepia" ? "paper" : "system"}
     >
-      <a href="#reader-stage" className="sys-reader__skip">
+      <a href="#reader-stage" className="reader-skip">
         Skip to slide
       </a>
       <SystemProgressTrack percent={progressPct} />
@@ -242,16 +237,16 @@ export function ReaderChrome({
         chapterLabel={`Chapter ${current?.chapterNumber ?? 1} · ${chapterTitle}`}
         indexLabel={pad(index + 1)}
         totalLabel={pad(total)}
-        chatOpen={chatOpen}
+        chatOpen={askOpen}
         onSearch={() => setSearchOpen(true)}
-        onChat={() => setChatOpen((v) => !v)}
-        themeControl={<ReaderThemeCycleButton />}
+        onChat={() => setAskOpen((v) => !v)}
+        themeControl={<ThemeSwitcher />}
       />
 
-      <div className="sys-reader__body">
+      <div className="reader-body">
         {mobileOpen ? (
           <div
-            className="sys-reader__scrim lg:hidden"
+            className="reader-scrim lg:hidden"
             onClick={closeRailOverlay}
             aria-hidden
           />
@@ -260,11 +255,11 @@ export function ReaderChrome({
         <aside
           aria-label="Contents rail"
           className={[
-            "sys-reader__sidebar-slot",
-            desktopOpen ? "" : "sys-reader__sidebar-slot--closed",
+            "reader-sidebar-slot",
+            desktopOpen ? "" : "reader-sidebar-slot--closed",
             "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-50 max-lg:w-[min(300px,85vw)]",
             mobileOpen
-              ? "sys-reader__sidebar-slot--overlay max-lg:translate-x-0"
+              ? "reader-sidebar-slot--overlay max-lg:translate-x-0"
               : "max-lg:-translate-x-full",
           ].join(" ")}
         >
@@ -280,11 +275,11 @@ export function ReaderChrome({
 
         <main
           id="reader-stage"
-          className="sys-reader__stage"
+          className="reader-stage"
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
-          <div ref={stageScrollRef} className="sys-reader__stage-scroll">
+          <div ref={stageScrollRef} className="reader-stage-scroll">
             {children}
           </div>
 
@@ -308,11 +303,10 @@ export function ReaderChrome({
             onNext={() => go(next, 1)}
           />
         </main>
-
-        <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
       </div>
 
       <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <AskPanel open={askOpen} onClose={() => setAskOpen(false)} />
     </div>
   );
 }

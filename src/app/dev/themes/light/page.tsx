@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LightReader } from "@/components/reader/previews/LightReader";
+import { PlainLightReader } from "@/components/reader/previews/PlainLightReader";
 
 export const metadata: Metadata = {
   title: "Light theme preview",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function LightThemePreviewPage() {
-  return <LightReader />;
+  return <PlainLightReader />;
 }

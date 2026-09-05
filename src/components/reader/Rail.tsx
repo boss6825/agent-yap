@@ -78,10 +78,10 @@ export function Rail({
   const titleLines = wrapBookTitle(manifest.bookTitle);
 
   return (
-    <div className="sys-reader__sidebar" style={{ width: "100%" }}>
-      <div className="sys-reader__sidebar-head">
+    <div className="reader-sidebar" style={{ width: "100%" }}>
+      <div className="reader-sidebar-head">
         <div className="flex items-start justify-between gap-2">
-          <div className="sys-reader__book-title">
+          <div className="reader-book-title">
             {titleLines.map((line, i) => (
               <span key={line}>
                 {i > 0 ? <br /> : null}
@@ -94,7 +94,7 @@ export function Rail({
             type="button"
             onClick={onClose}
             aria-label="Close contents"
-            className="sys-reader__icon-btn lg:hidden"
+            className="reader-icon-btn lg:hidden"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
               <path
@@ -107,12 +107,12 @@ export function Rail({
             </svg>
           </button>
         </div>
-        <div className="sys-reader__book-meta">
+        <div className="reader-book-meta">
           {chapterCount} CHAPTERS · {manifest.total} SLIDES
         </div>
       </div>
 
-      <nav aria-label="Book contents" className="sys-reader__nav">
+      <nav aria-label="Book contents" className="reader-toc">
         {manifest.chapters.map((c) => {
           const isOpen = expanded.has(c.slug);
           const readCount = readHrefs
@@ -122,39 +122,32 @@ export function Rail({
           const num = String(c.number).padStart(2, "0");
 
           return (
-            <div
-              key={c.slug}
-              className={
-                isOpen
-                  ? "sys-reader__chapter-block"
-                  : "sys-reader__chapter-block"
-              }
-            >
+            <div key={c.slug} className="toc-chapter">
               <button
                 type="button"
                 onClick={() => toggleChapter(c.slug)}
                 aria-expanded={isOpen}
                 className={
                   isOpen
-                    ? "sys-reader__chapter-row sys-reader__chapter-row--open"
-                    : "sys-reader__chapter-row"
+                    ? "toc-chapter-row toc-chapter-row--open"
+                    : "toc-chapter-row"
                 }
               >
                 {isOpen ? <ChevronDownGlyph /> : <ChevronRightGlyph />}
-                <span className="sys-reader__chapter-num">{num}</span>
-                <span className="sys-reader__chapter-title">
+                <span className="toc-chapter-num">{num}</span>
+                <span className="toc-chapter-title">
                   {chapterDisplayTitle(c.title)}
                 </span>
-                <span className="sys-reader__meter">
+                <span className="toc-meter">
                   {readHrefs && readCount > 0 ? (
                     <>
-                      <span className="sys-reader__meter-count">
+                      <span className="toc-meter-count">
                         {readCount}/{total}
                       </span>
                       <ChapterRing frac={readCount / total} />
                     </>
                   ) : (
-                    <span className="sys-reader__meter-count sys-reader__meter-count--faint">
+                    <span className="toc-meter-count toc-meter-count--faint">
                       {total}
                     </span>
                   )}
@@ -162,14 +155,14 @@ export function Rail({
               </button>
 
               {isOpen ? (
-                <div className="sys-reader__slides">
+                <div className="toc-slides">
                   {c.slides.map((s) => {
                     const active = s.href === currentHref;
                     const read = readHrefs?.has(s.href) ?? false;
                     const rowClass = [
-                      "sys-reader__slide-row",
-                      active ? "sys-reader__slide-row--active" : "",
-                      !read && !active ? "sys-reader__slide-row--todo" : "",
+                      "toc-slide",
+                      active ? "toc-slide--current" : "",
+                      !read && !active ? "toc-slide--unseen" : "",
                     ]
                       .filter(Boolean)
                       .join(" ");
@@ -182,14 +175,14 @@ export function Rail({
                         aria-current={active ? "page" : undefined}
                         className={rowClass}
                       >
-                        <span className="sys-reader__mark">
+                        <span className="toc-mark">
                           {read || active ? (
                             <SlideCheck faded={read && !active} />
                           ) : (
-                            <span className="sys-reader__dot" />
+                            <span className="toc-dot" />
                           )}
                         </span>
-                        <span className="sys-reader__slide-label">
+                        <span className="toc-slide-label">
                           {s.sectionIndex === 0 ? "Overview" : s.title}
                         </span>
                       </Link>
