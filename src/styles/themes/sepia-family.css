@@ -818,14 +818,16 @@
   color: var(--reader-text);
 }
 
-:is([data-theme^="sepia"], [data-reader-theme^="sepia"], [data-theme-family="sepia"]) .sys-reader__hint {
+:is([data-theme^="sepia"], [data-reader-theme^="sepia"], [data-theme-family="sepia"]) .sys-reader__hint,
+:is([data-theme^="sepia"], [data-reader-theme^="sepia"], [data-theme-family="sepia"]) .reader-footer-hint {
   width: 230px;
   font-size: 0;
   line-height: 0;
   letter-spacing: 0;
 }
 
-:is([data-theme^="sepia"], [data-reader-theme^="sepia"], [data-theme-family="sepia"]) .sys-reader__hint::after {
+:is([data-theme^="sepia"], [data-reader-theme^="sepia"], [data-theme-family="sepia"]) .sys-reader__hint::after,
+:is([data-theme^="sepia"], [data-reader-theme^="sepia"], [data-theme-family="sepia"]) .reader-footer-hint::after {
   content: "use \2190  and \2192  to turn the page";
   font-family: var(--reader-paper-serif);
   font-size: 13px;
