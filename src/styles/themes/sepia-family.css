@@ -19,23 +19,6 @@
    Preview chrome uses .pr (PaperReaderChrome). Live reader uses .sys-reader
    and Agent 1’s .reader-shell aliases. */
 
-:is([data-theme^="sepia"], [data-reader-theme^="sepia"], [data-theme-family="sepia"]) {
-  /* Real property so this custom-prop block is not dropped by LightningCSS. */
-  color: var(--reader-text);
-
-  --reader-paper-serif: var(--font-display, Georgia, "Times New Roman", Times, serif);
-  --reader-paper-sans: var(--font-ui, "Segoe UI", ui-sans-serif, system-ui, sans-serif);
-  --reader-paper-mark-slot: 11px;
-  --reader-paper-sidebar: 300px;
-  --reader-paper-bar: 56px;
-  --reader-paper-progress: 3px;
-  --reader-paper-footer: 82px;
-  --reader-paper-radius: 8px;
-  --reader-paper-row-radius: 6px;
-  --reader-paper-next-radius: 23px;
-  --reader-paper-ease: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
 /* ------------------------------------------------------------------ .pr
    Pixel chrome for /dev/themes/sepia-light (Paper 459-0). */
 
@@ -995,27 +978,27 @@
 /* Agent 1 .reader-shell aliases — complete the stubs in reader.css. */
 [data-theme-family="sepia"] .reader-shell,
 .reader-shell[data-theme-family="sepia"] {
-  font-family: var(--font-display, Georgia, "Times New Roman", Times, serif);
+  font-family: var(--font-display, Georgia, serif);
   background: var(--reader-bg);
   color: var(--reader-text);
 }
 
 [data-theme-family="sepia"] :is(.slide-kicker, .sys-reader__eyebrow) {
-  font-family: var(--font-ui, "Segoe UI", system-ui, sans-serif);
+  font-family: var(--font-ui, system-ui, sans-serif);
   color: var(--reader-kicker);
   letter-spacing: 0.24em;
   text-transform: uppercase;
 }
 
 [data-theme-family="sepia"] :is(.slide-title, .sys-reader__title) {
-  font-family: var(--font-display, Georgia, "Times New Roman", Times, serif);
+  font-family: var(--font-display, Georgia, serif);
   font-size: 56px;
   line-height: 60px;
   font-weight: 700;
 }
 
 [data-theme-family="sepia"] :is(.slide-body, .sys-reader__lede, .prose-yap) {
-  font-family: var(--font-display, Georgia, "Times New Roman", Times, serif);
+  font-family: var(--font-display, Georgia, serif);
   font-size: 19px;
   line-height: 33px;
   color: var(--reader-body);
