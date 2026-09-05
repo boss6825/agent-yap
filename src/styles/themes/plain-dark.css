@@ -7,7 +7,8 @@
  * no shadcn match found: custom Apple HIG reader chrome, not a generic sidebar.
  */
 
-[data-theme="plain-dark"] {
+[data-theme="plain-dark"],
+[data-reader-theme="dark"] {
   --reader-bg: #000000;
   --reader-sidebar-bg: #1c1c1e;
   --reader-nav-bg: #000000;
@@ -79,22 +80,57 @@
 }
 
 /* reader.css hover washes are black-on-light; invert for this skin. */
-[data-theme="plain-dark"] .toc-chapter-row:hover {
+[data-theme="plain-dark"] .toc-chapter-row:hover,
+[data-reader-theme="dark"] .toc-chapter-row:hover {
   background: rgb(255 255 255 / 4%);
 }
 
-[data-theme="plain-dark"] .toc-chapter-row--open:hover {
+[data-theme="plain-dark"] .toc-chapter-row--open:hover,
+[data-reader-theme="dark"] .toc-chapter-row--open:hover {
   background: var(--reader-toc-active-bg);
 }
 
-[data-theme="plain-dark"] .toc-slide:hover {
+[data-theme="plain-dark"] .toc-slide:hover,
+[data-reader-theme="dark"] .toc-slide:hover {
   background: rgb(255 255 255 / 4%);
 }
 
-[data-theme="plain-dark"] .toc-slide--current:hover {
+[data-theme="plain-dark"] .toc-slide--current:hover,
+[data-reader-theme="dark"] .toc-slide--current:hover {
   background: var(--reader-slide-current-bg);
 }
 
-[data-theme="plain-dark"] .reader-sidebar {
+[data-theme="plain-dark"] .reader-sidebar,
+[data-reader-theme="dark"] .reader-sidebar,
+[data-reader-theme="dark"] .sys-reader__sidebar {
   border-right-color: var(--reader-toc-active-border);
+}
+
+/* light.css still hard-codes a few light-only paints used by .sys-reader. */
+[data-reader-theme="dark"] .sys-reader__book-meta {
+  color: var(--reader-book-meta);
+}
+
+[data-reader-theme="dark"] .sys-reader__chevron {
+  color: var(--reader-chevron);
+}
+
+[data-reader-theme="dark"] .sys-reader__chapter-row:hover {
+  background: rgb(255 255 255 / 4%);
+}
+
+[data-reader-theme="dark"] .sys-reader__chapter-row--open:hover {
+  background: var(--reader-toc-active-bg);
+}
+
+[data-reader-theme="dark"] .sys-reader__slide-row:hover {
+  background: rgb(255 255 255 / 4%);
+}
+
+[data-reader-theme="dark"] .sys-reader__slide-row--active:hover {
+  background: var(--reader-slide-current-bg);
+}
+
+[data-reader-theme="dark"] .sys-reader__circle--prev:not(:disabled):hover {
+  background: var(--reader-toc-active-bg);
 }
