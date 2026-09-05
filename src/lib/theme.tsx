@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 export const THEME_IDS = [
@@ -91,16 +92,6 @@ function readStoredTheme(): ThemeId {
   return "plain-light";
 }
 
-function persistTheme(theme: ThemeId) {
-  applyTheme(theme, document.documentElement);
-  try {
-    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
-    window.localStorage.setItem(LEGACY_THEME_STORAGE_KEY, legacyThemeId(theme));
-  } catch {
-    // Theme still applies for this session.
-  }
-}
-
 function restoreSiteTheme() {
   try {
     const site = window.localStorage.getItem(SITE_THEME_STORAGE_KEY);
@@ -126,30 +117,62 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+const themeListeners = new Set<() => void>();
+
+function subscribeTheme(onStoreChange: () => void) {
+  themeListeners.add(onStoreChange);
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === THEME_STORAGE_KEY || e.key === LEGACY_THEME_STORAGE_KEY) {
+      onStoreChange();
+    }
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    themeListeners.delete(onStoreChange);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function emitTheme() {
+  for (const cb of themeListeners) cb();
+}
+
+function persistTheme(theme: ThemeId) {
+  applyTheme(theme, document.documentElement);
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    window.localStorage.setItem(LEGACY_THEME_STORAGE_KEY, legacyThemeId(theme));
+  } catch {
+    // Theme still applies for this session.
+  }
+  emitTheme();
+}
+
+function getServerTheme(): ThemeId {
+  return "plain-light";
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeId>("plain-light");
+  const theme = useSyncExternalStore(
+    subscribeTheme,
+    readStoredTheme,
+    getServerTheme,
+  );
 
   useEffect(() => {
-    const stored = readStoredTheme();
-    setThemeState(stored);
-    persistTheme(stored);
+    persistTheme(theme);
     return () => {
       restoreSiteTheme();
     };
-  }, []);
+  }, [theme]);
 
   const setTheme = useCallback((next: ThemeId) => {
-    setThemeState(next);
     persistTheme(next);
   }, []);
 
   const cycleTheme = useCallback(() => {
-    setThemeState((current) => {
-      const next = nextTheme(current);
-      persistTheme(next);
-      return next;
-    });
-  }, []);
+    persistTheme(nextTheme(theme));
+  }, [theme]);
 
   const value = useMemo(
     () => ({
