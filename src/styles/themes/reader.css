@@ -20,6 +20,18 @@ box-sizing: border-box;
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* .prose-yap / Tailwind text-ink still read --color-* from globals.css,
+     which only remaps for [data-theme="dark"]. Reader themes are
+     plain-dark / sepia-dark, so inherit those tokens from the reader palette. */
+  --color-ink: var(--reader-text);
+  --color-ink-2: var(--reader-text-muted);
+  --color-canvas: var(--reader-bg);
+  --color-canvas-2: var(--reader-sidebar-bg);
+  --color-canvas-3: var(--reader-toc-active-bg);
+  --color-hairline: var(--reader-border);
+  --color-blue: var(--reader-accent);
+  --color-blue-deep: var(--reader-accent-strong);
+  --color-blue-bright: var(--reader-accent);
 }
 
 :is(.reader-shell, .sys-reader) *, :is(.reader-shell, .sys-reader) *::before, :is(.reader-shell, .sys-reader) *::after{
@@ -523,6 +535,19 @@ margin-top: 1em;
 
 :is(.reader-shell, .sys-reader) .prose-yap a{
 color: var(--reader-accent);
+}
+
+:is(.reader-shell, .sys-reader) .prose-yap :is(strong, b, em, h3, h4, th, td){
+color: var(--reader-text);
+}
+
+:is(.reader-shell, .sys-reader) .prose-yap blockquote,
+:is(.reader-shell, .sys-reader) .prose-yap ol > li::marker{
+color: var(--reader-text-muted);
+}
+
+:is(.reader-shell, .sys-reader) .prose-yap ul > li::before{
+background: var(--reader-accent);
 }
 
 :is(.reader-shell, .sys-reader) .prose-yap code{

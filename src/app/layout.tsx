@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
+import "@/styles/themes/tokens.css";
+import "@/styles/themes/reader.css";
+import "@/styles/themes/sepia-family.css";
+import "@/styles/themes/sepia-light.css";
+import "@/styles/themes/sepia-dark.css";
+import "@/styles/themes/light.css";
+import "@/styles/themes/plain-dark.css";
 
 const SITE = "Agent YAP";
 const TAGLINE =

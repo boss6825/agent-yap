@@ -1,10 +1,8 @@
 @import "tailwindcss";
-@import "../styles/themes/tokens.css";
-@import "../styles/themes/reader.css";
-@import "../styles/themes/sepia-light.css";
-@import "../styles/themes/sepia-dark.css";
-@import "../styles/themes/light.css";
-@import "../styles/themes/plain-dark.css";
+
+/* Reader theme sheets are imported from src/app/layout.tsx via `@/styles/themes/*`.
+   Do not @import them here: after `@import "tailwindcss"`, Turbopack/PostCSS
+   resolves `../styles/...` from the project root and looks outside the repo. */
 
 /* ============================================================ design tokens
    Apple-inspired light system: white canvas, #F5F5F7 surfaces, #1D1D1F ink,
