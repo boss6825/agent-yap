@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState } from "react";
+import Link from "next/link";
 
 type SlideState = "current" | "visited" | "unread";
 
@@ -259,9 +260,9 @@ export function SepiaDarkReader() {
         <header className="sd-bar">
           <div className="sd-brand">
             <BookMark />
-            <a className="sd-brand__name" href="/">
+            <Link className="sd-brand__name" href="/">
               Agent YAP
-            </a>
+            </Link>
           </div>
 
           <p className="sd-chapter-label">
@@ -411,9 +412,9 @@ export function SepiaDarkReader() {
               aria-label={`Slide ${currentIndex + 1} of ${slides.length || 7} in this chapter`}
             >
               {(slides.length > 0 ? slides : Array.from({ length: 7 })).map(
-                (slide, i) => (
+                (_slide, i) => (
                   <i
-                    key={typeof slide === "object" ? slide.id : i}
+                    key={i}
                     data-on={i === currentIndex ? "true" : undefined}
                   />
                 ),

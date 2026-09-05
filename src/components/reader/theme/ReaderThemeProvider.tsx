@@ -4,9 +4,8 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
 } from "react";
 import {
   READER_THEME_STORAGE_KEY,
@@ -34,6 +33,20 @@ function readStoredTheme(): ReaderTheme {
   return "light";
 }
 
+const themeListeners = new Set<() => void>();
+
+function subscribeTheme(onStoreChange: () => void) {
+  themeListeners.add(onStoreChange);
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === READER_THEME_STORAGE_KEY) onStoreChange();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    themeListeners.delete(onStoreChange);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
 function persistTheme(theme: ReaderTheme) {
   applyReaderTheme(theme, document.documentElement);
   try {
@@ -41,6 +54,7 @@ function persistTheme(theme: ReaderTheme) {
   } catch {
     // Theme still applies for this session.
   }
+  for (const cb of themeListeners) cb();
 }
 
 export function ReaderThemeProvider({
@@ -48,26 +62,19 @@ export function ReaderThemeProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [theme, setThemeState] = useState<ReaderTheme>("light");
-
-  useEffect(() => {
-    const stored = readStoredTheme();
-    setThemeState(stored);
-    persistTheme(stored);
-  }, []);
+  const theme = useSyncExternalStore(
+    subscribeTheme,
+    readStoredTheme,
+    () => "light" as const,
+  );
 
   const setTheme = useCallback((next: ReaderTheme) => {
-    setThemeState(next);
     persistTheme(next);
   }, []);
 
   const cycleTheme = useCallback(() => {
-    setThemeState((current) => {
-      const next = nextReaderTheme(current);
-      persistTheme(next);
-      return next;
-    });
-  }, []);
+    persistTheme(nextReaderTheme(theme));
+  }, [theme]);
 
   const value = useMemo(
     () => ({ theme, setTheme, cycleTheme }),
