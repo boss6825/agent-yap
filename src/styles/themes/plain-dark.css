@@ -1,13 +1,13 @@
-/* Agent YAP — plain-family DARK tokens (Paper 491-0).
-   no shadcn match found: custom Apple HIG reader chrome, not a generic sidebar.
+/**
+ * plain-dark — Agent 2 owns this file.
+ *
+ * Paper node 491-0. Tokens only; shared chrome lives in reader.css
+ * (circular next, progress rings, Segoe/system sans).
+ *
+ * no shadcn match found: custom Apple HIG reader chrome, not a generic sidebar.
+ */
 
-   Contract (Agent 1): [data-theme="plain-dark"] plus the --reader-* names below.
-   Production switcher still sets data-reader-theme="dark"; the same block
-   aliases those names onto the live .sys-reader chrome so Dark picks this up. */
-
-[data-theme="plain-dark"],
-[data-reader-theme="plain-dark"],
-[data-reader-theme="dark"] {
+[data-theme="plain-dark"] {
   --reader-bg: #000000;
   --reader-sidebar-bg: #1c1c1e;
   --reader-nav-bg: #000000;
@@ -49,265 +49,52 @@
 
   --reader-family: plain;
 
-  /* Aliases for the live .sys-reader chrome (light.css class contract). */
+  --reader-accent-strong: #0a84ff;
+  --reader-toc-active-shadow: #00000066 0 1px 2px;
+  --reader-unread-dot: #ffffff47;
+  --reader-book-meta: #98989d;
+  --reader-chevron: #8a8a8f;
+  --reader-ring-track: rgb(255 255 255 / 14%);
+  --reader-check-done: rgb(41 151 255 / 60%);
+  --reader-icon: #86868b;
+
+  color-scheme: dark;
+
   --reader-bar-bg: var(--reader-nav-bg);
   --reader-text-secondary: var(--reader-text-muted);
   --reader-text-body: var(--reader-body);
-  --reader-accent-strong: #0a84ff;
-  --reader-border-subtle: var(--reader-toc-active-border);
   --reader-track: var(--reader-progress-track);
   --reader-card-bg: var(--reader-toc-active-bg);
   --reader-card-border: var(--reader-toc-active-border);
-  --reader-card-shadow: #00000066 0 1px 2px;
+  --reader-card-shadow: var(--reader-toc-active-shadow);
   --reader-active-row: var(--reader-slide-current-bg);
-  --reader-dot: #ffffff47;
+  --reader-dot: var(--reader-unread-dot);
   --reader-dash-inactive: var(--reader-dot-idle);
   --reader-prev-bg: var(--reader-back-bg);
   --reader-prev-border: var(--reader-back-border);
   --reader-prev-icon: var(--reader-back-icon);
   --reader-next-icon: var(--reader-next-fg);
-  --reader-ring-track: rgb(255 255 255 / 14%);
-  --reader-check-done: rgb(41 151 255 / 60%);
   --reader-font-ui: var(--font-ui);
-  --reader-font-sans: var(--font-ui);
   --reader-font-mono: var(--font-mono);
-  --reader-icon-chrome: #86868b;
-
-  color-scheme: dark;
 }
 
-/* Color-only overrides for hardcoded light values in light.css. */
-[data-theme="plain-dark"] .sys-reader,
-[data-reader-theme="plain-dark"] .sys-reader,
-[data-reader-theme="dark"] .sys-reader {
-  background: var(--reader-bg);
-  color: var(--reader-text);
-  font-family: var(--font-ui);
+/* reader.css hover washes are black-on-light; invert for this skin. */
+[data-theme="plain-dark"] .toc-chapter-row:hover {
+  background: rgb(255 255 255 / 4%);
 }
 
-[data-theme="plain-dark"] .sys-reader__progress,
-[data-reader-theme="plain-dark"] .sys-reader__progress,
-[data-reader-theme="dark"] .sys-reader__progress {
-  background: var(--reader-progress-track);
+[data-theme="plain-dark"] .toc-chapter-row--open:hover {
+  background: var(--reader-toc-active-bg);
 }
 
-[data-theme="plain-dark"] .sys-reader__progress-fill,
-[data-reader-theme="plain-dark"] .sys-reader__progress-fill,
-[data-reader-theme="dark"] .sys-reader__progress-fill {
-  background: var(--reader-progress-fill);
+[data-theme="plain-dark"] .toc-slide:hover {
+  background: rgb(255 255 255 / 4%);
 }
 
-[data-theme="plain-dark"] .sys-reader__bar,
-[data-reader-theme="plain-dark"] .sys-reader__bar,
-[data-reader-theme="dark"] .sys-reader__bar {
-  background: var(--reader-nav-bg);
-  border-bottom-color: var(--reader-border);
+[data-theme="plain-dark"] .toc-slide--current:hover {
+  background: var(--reader-slide-current-bg);
 }
 
-[data-theme="plain-dark"] .sys-reader__sidebar,
-[data-reader-theme="plain-dark"] .sys-reader__sidebar,
-[data-reader-theme="dark"] .sys-reader__sidebar {
-  background: var(--reader-sidebar-bg);
+[data-theme="plain-dark"] .reader-sidebar {
   border-right-color: var(--reader-toc-active-border);
-}
-
-[data-theme="plain-dark"] .sys-reader__sidebar-head,
-[data-reader-theme="plain-dark"] .sys-reader__sidebar-head,
-[data-reader-theme="dark"] .sys-reader__sidebar-head {
-  border-bottom-color: var(--reader-border);
-}
-
-[data-theme="plain-dark"] .sys-reader__book-meta,
-[data-reader-theme="plain-dark"] .sys-reader__book-meta,
-[data-reader-theme="dark"] .sys-reader__book-meta {
-  color: var(--reader-text-muted);
-  font-family: var(--font-mono);
-}
-
-[data-theme="plain-dark"] .sys-reader__chapter-num,
-[data-reader-theme="plain-dark"] .sys-reader__chapter-num,
-[data-reader-theme="dark"] .sys-reader__chapter-num {
-  color: var(--reader-chapter-num);
-  font-family: var(--font-mono);
-}
-
-[data-theme="plain-dark"] .sys-reader__chapter-row--open .sys-reader__chapter-num,
-[data-reader-theme="plain-dark"] .sys-reader__chapter-row--open .sys-reader__chapter-num,
-[data-reader-theme="dark"] .sys-reader__chapter-row--open .sys-reader__chapter-num {
-  color: var(--reader-accent);
-}
-
-[data-theme="plain-dark"] .sys-reader__chapter-row--open,
-[data-reader-theme="plain-dark"] .sys-reader__chapter-row--open,
-[data-reader-theme="dark"] .sys-reader__chapter-row--open {
-  background: var(--reader-toc-active-bg);
-  border-color: var(--reader-toc-active-border);
-  box-shadow: var(--reader-card-shadow);
-}
-
-[data-theme="plain-dark"] .sys-reader__chapter-row:hover,
-[data-reader-theme="plain-dark"] .sys-reader__chapter-row:hover,
-[data-reader-theme="dark"] .sys-reader__chapter-row:hover {
-  background: rgb(255 255 255 / 4%);
-}
-
-[data-theme="plain-dark"] .sys-reader__chapter-row--open:hover,
-[data-reader-theme="plain-dark"] .sys-reader__chapter-row--open:hover,
-[data-reader-theme="dark"] .sys-reader__chapter-row--open:hover {
-  background: var(--reader-toc-active-bg);
-}
-
-[data-theme="plain-dark"] .sys-reader__chevron,
-[data-reader-theme="plain-dark"] .sys-reader__chevron,
-[data-reader-theme="dark"] .sys-reader__chevron {
-  color: var(--reader-text-faint);
-}
-
-[data-theme="plain-dark"] .sys-reader__chapter-row--open .sys-reader__chevron,
-[data-reader-theme="plain-dark"] .sys-reader__chapter-row--open .sys-reader__chevron,
-[data-reader-theme="dark"] .sys-reader__chapter-row--open .sys-reader__chevron {
-  color: var(--reader-text-muted);
-}
-
-[data-theme="plain-dark"] .sys-reader__slides,
-[data-reader-theme="plain-dark"] .sys-reader__slides,
-[data-reader-theme="dark"] .sys-reader__slides {
-  border-left-color: var(--reader-border);
-}
-
-[data-theme="plain-dark"] .sys-reader__slide-row:hover,
-[data-reader-theme="plain-dark"] .sys-reader__slide-row:hover,
-[data-reader-theme="dark"] .sys-reader__slide-row:hover {
-  background: rgb(255 255 255 / 4%);
-  color: var(--reader-text);
-}
-
-[data-theme="plain-dark"] .sys-reader__slide-row--active,
-[data-reader-theme="plain-dark"] .sys-reader__slide-row--active,
-[data-reader-theme="dark"] .sys-reader__slide-row--active {
-  background: var(--reader-slide-current-bg);
-  color: var(--reader-accent);
-}
-
-[data-theme="plain-dark"] .sys-reader__slide-row--active:hover,
-[data-reader-theme="plain-dark"] .sys-reader__slide-row--active:hover,
-[data-reader-theme="dark"] .sys-reader__slide-row--active:hover {
-  background: var(--reader-slide-current-bg);
-  color: var(--reader-accent);
-}
-
-[data-theme="plain-dark"] .sys-reader__eyebrow,
-[data-reader-theme="plain-dark"] .sys-reader__eyebrow,
-[data-reader-theme="dark"] .sys-reader__eyebrow {
-  color: var(--reader-kicker);
-  font-family: var(--font-mono);
-}
-
-[data-theme="plain-dark"] .sys-reader__title,
-[data-reader-theme="plain-dark"] .sys-reader__title,
-[data-reader-theme="dark"] .sys-reader__title {
-  color: var(--reader-text);
-  font-family: var(--font-display);
-}
-
-[data-theme="plain-dark"] .sys-reader__lede,
-[data-theme="plain-dark"] .sys-reader .prose-yap,
-[data-reader-theme="plain-dark"] .sys-reader__lede,
-[data-reader-theme="plain-dark"] .sys-reader .prose-yap,
-[data-reader-theme="dark"] .sys-reader__lede,
-[data-reader-theme="dark"] .sys-reader .prose-yap {
-  color: var(--reader-body);
-}
-
-[data-theme="plain-dark"] .sys-reader__hint,
-[data-reader-theme="plain-dark"] .sys-reader__hint,
-[data-reader-theme="dark"] .sys-reader__hint {
-  color: var(--reader-footer-hint);
-  font-family: var(--font-mono);
-}
-
-[data-theme="plain-dark"] .sys-reader__dash,
-[data-reader-theme="plain-dark"] .sys-reader__dash,
-[data-reader-theme="dark"] .sys-reader__dash {
-  background: var(--reader-dot-idle);
-}
-
-[data-theme="plain-dark"] .sys-reader__dash--on,
-[data-reader-theme="plain-dark"] .sys-reader__dash--on,
-[data-reader-theme="dark"] .sys-reader__dash--on {
-  background: var(--reader-dot-active);
-}
-
-[data-theme="plain-dark"] .sys-reader__circle--prev,
-[data-reader-theme="plain-dark"] .sys-reader__circle--prev,
-[data-reader-theme="dark"] .sys-reader__circle--prev {
-  background: var(--reader-back-bg);
-  border-color: var(--reader-back-border);
-  color: var(--reader-back-icon);
-}
-
-[data-theme="plain-dark"] .sys-reader__circle--prev:not(:disabled),
-[data-reader-theme="plain-dark"] .sys-reader__circle--prev:not(:disabled),
-[data-reader-theme="dark"] .sys-reader__circle--prev:not(:disabled) {
-  color: var(--reader-text-muted);
-}
-
-[data-theme="plain-dark"] .sys-reader__circle--prev:not(:disabled):hover,
-[data-reader-theme="plain-dark"] .sys-reader__circle--prev:not(:disabled):hover,
-[data-reader-theme="dark"] .sys-reader__circle--prev:not(:disabled):hover {
-  background: var(--reader-toc-active-bg);
-}
-
-[data-theme="plain-dark"] .sys-reader__circle--prev:disabled,
-[data-reader-theme="plain-dark"] .sys-reader__circle--prev:disabled,
-[data-reader-theme="dark"] .sys-reader__circle--prev:disabled {
-  color: var(--reader-back-icon);
-}
-
-[data-theme="plain-dark"] .sys-reader__circle--next,
-[data-reader-theme="plain-dark"] .sys-reader__circle--next,
-[data-reader-theme="dark"] .sys-reader__circle--next {
-  background: var(--reader-next-bg);
-  color: var(--reader-next-fg);
-  box-shadow: var(--reader-next-shadow);
-}
-
-[data-theme="plain-dark"] .sys-reader__counter,
-[data-reader-theme="plain-dark"] .sys-reader__counter,
-[data-reader-theme="dark"] .sys-reader__counter {
-  font-family: var(--font-mono);
-}
-
-[data-theme="plain-dark"] .sys-reader__meter-count,
-[data-reader-theme="plain-dark"] .sys-reader__meter-count,
-[data-reader-theme="dark"] .sys-reader__meter-count {
-  font-family: var(--font-mono);
-}
-
-[data-theme="plain-dark"] .sys-reader .prose-yap a,
-[data-reader-theme="plain-dark"] .sys-reader .prose-yap a,
-[data-reader-theme="dark"] .sys-reader .prose-yap a {
-  color: var(--reader-accent);
-}
-
-[data-theme="plain-dark"] .sys-reader .prose-yap code,
-[data-theme="plain-dark"] .sys-reader .prose-yap pre,
-[data-reader-theme="plain-dark"] .sys-reader .prose-yap code,
-[data-reader-theme="plain-dark"] .sys-reader .prose-yap pre,
-[data-reader-theme="dark"] .sys-reader .prose-yap code,
-[data-reader-theme="dark"] .sys-reader .prose-yap pre {
-  background: var(--reader-sidebar-bg);
-  color: var(--reader-text);
-}
-
-[data-theme="plain-dark"] .sys-reader__scrim,
-[data-reader-theme="plain-dark"] .sys-reader__scrim,
-[data-reader-theme="dark"] .sys-reader__scrim {
-  background: rgb(0 0 0 / 55%);
-}
-
-[data-theme="plain-dark"] .sys-reader :focus-visible,
-[data-reader-theme="plain-dark"] .sys-reader :focus-visible,
-[data-reader-theme="dark"] .sys-reader :focus-visible {
-  outline-color: var(--reader-accent);
 }

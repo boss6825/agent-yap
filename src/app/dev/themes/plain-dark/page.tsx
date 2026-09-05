@@ -1,13 +1,4 @@
 import type { Metadata } from "next";
-import {
-  ChapterRing,
-  ChevronDownGlyph,
-  ChevronRightGlyph,
-  NavChevronLeft,
-  NavChevronRight,
-  SidebarToggleGlyph,
-  SlideCheck,
-} from "@/components/reader/chrome/SystemReaderChrome";
 import "@/styles/themes/plain-dark.css";
 
 export const metadata: Metadata = {
@@ -16,90 +7,81 @@ export const metadata: Metadata = {
 };
 
 /**
- * Pixel replica of Paper node 491-0 (plain dark). 1440×900.
- * Same layout as /dev/themes/light — color-only, moon instead of sun.
+ * Pixel replica of Paper node 491-0 (plain dark), 1440×900.
+ * Same layout as /dev/themes/plain-light — color-only, moon instead of sun.
  */
 export default function PlainDarkThemePreviewPage() {
   return (
     <div
-      className="sys-reader sys-reader--preview"
+      className="reader-shell reader-shell--preview"
       data-theme="plain-dark"
-      data-reader-theme="dark"
-      data-reader-family="system"
+      data-theme-family="plain"
     >
-      <a className="sys-reader__skip" href="#plain-dark-stage">
+      <a className="reader-skip" href="#plain-dark-stage">
         Skip to slide
       </a>
 
       <div
-        className="sys-reader__progress"
+        className="reader-progress"
         role="progressbar"
         aria-label="Reading progress"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={11}
       >
-        <div className="sys-reader__progress-fill" style={{ width: "11%" }} />
+        <div className="reader-progress-fill" style={{ width: "11%" }} />
       </div>
 
-      <header className="sys-reader__bar">
-        <div className="sys-reader__brand-group">
+      <header className="reader-nav">
+        <div className="reader-nav-brand">
           <button
             type="button"
-            className="sys-reader__icon-btn"
+            className="reader-icon-btn"
             aria-label="Toggle contents"
             aria-expanded="true"
             aria-controls="plain-dark-toc"
           >
-            <SidebarToggleGlyph />
+            <SidebarGlyph />
           </button>
-          <span className="sys-reader__brand">Agent YAP</span>
+          <span className="reader-wordmark">Agent YAP</span>
         </div>
-        <span className="sys-reader__chapter-label">
-          Chapter 1 · Anatomy of an AI Agent
-        </span>
-        <div className="sys-reader__actions">
-          <button type="button" className="sys-reader__text-btn">
+        <span className="chapter-crumb">Chapter 1 · Anatomy of an AI Agent</span>
+        <div className="reader-nav-actions">
+          <button type="button" className="reader-text-btn">
             Search
           </button>
-          <button type="button" className="sys-reader__text-btn">
+          <button type="button" className="reader-text-btn">
             Chat
           </button>
-          <span className="sys-reader__counter">01 / 199</span>
-          <span className="sys-reader__icon-btn" aria-label="Dark mode" role="img">
+          <span className="reader-counter">01 / 199</span>
+          <span className="reader-icon-btn" aria-label="Dark mode" role="img">
             <MoonGlyph />
           </span>
         </div>
       </header>
 
-      <div className="sys-reader__body">
-        <aside className="sys-reader__sidebar" aria-label="Contents">
-          <div className="sys-reader__sidebar-head">
-            <div className="sys-reader__book-title">
+      <div className="reader-body">
+        <aside className="reader-sidebar" aria-label="Contents">
+          <div className="reader-sidebar-head">
+            <div className="reader-book-title">
               Architecture &amp; System
               <br />
               Design for AI Agents
             </div>
-            <div className="sys-reader__book-meta">18 CHAPTERS · 199 SLIDES</div>
+            <div className="reader-book-meta">18 CHAPTERS · 199 SLIDES</div>
           </div>
-          <nav
-            id="plain-dark-toc"
-            className="sys-reader__nav"
-            aria-label="Book contents"
-          >
-            <div className="sys-reader__chapter-block">
-              <div className="sys-reader__chapter-row sys-reader__chapter-row--open">
-                <ChevronDownGlyph />
-                <span className="sys-reader__chapter-num">01</span>
-                <span className="sys-reader__chapter-title">
-                  Anatomy of an AI Agent
-                </span>
-                <span className="sys-reader__meter">
-                  <span className="sys-reader__meter-count">5/7</span>
-                  <ChapterRing frac={5 / 7} />
+          <nav id="plain-dark-toc" className="reader-toc" aria-label="Book contents">
+            <div className="toc-chapter">
+              <div className="toc-chapter-row toc-chapter-row--open">
+                <ChevronDown />
+                <span className="toc-chapter-num">01</span>
+                <span className="toc-chapter-title">Anatomy of an AI Agent</span>
+                <span className="toc-meter">
+                  <span className="toc-meter-count">5/7</span>
+                  <Ring frac={5 / 7} />
                 </span>
               </div>
-              <div className="sys-reader__slides">
+              <div className="toc-slides">
                 <SlideRow active check>
                   Overview
                 </SlideRow>
@@ -112,57 +94,42 @@ export default function PlainDarkThemePreviewPage() {
               </div>
             </div>
 
-            <div className="sys-reader__chapter-stack">
-              <CollapsedChapter
-                num="02"
-                title="The Agent Loop Pattern"
-                count="7/10"
-                frac={7 / 10}
-              />
-              <CollapsedChapter
-                num="03"
-                title="Tool Design"
-                count="5/13"
-                frac={5 / 13}
-              />
-              <CollapsedChapter
-                num="04"
-                title="Model-Provider Abstraction"
-                count="4/10"
-                frac={4 / 10}
-              />
-              <CollapsedChapter
-                num="05"
-                title="Context Engineering & Memory"
-                total="13"
-              />
-              <CollapsedChapter num="06" title="Prompt Architecture" total="11" />
-              <CollapsedChapter
-                num="07"
-                title="Retrieval: RAG vs Tools"
-                total="8"
-              />
-              <CollapsedChapter
-                num="08"
-                title="Streaming and Real-Time"
-                count="1/12"
-                frac={1 / 12}
-              />
-            </div>
+            <CollapsedChapter
+              num="02"
+              title="The Agent Loop Pattern"
+              count="7/10"
+              frac={7 / 10}
+            />
+            <CollapsedChapter
+              num="03"
+              title="Tool Design"
+              count="5/13"
+              frac={5 / 13}
+            />
+            <CollapsedChapter
+              num="04"
+              title="Model-Provider Abstraction"
+              count="4/10"
+              frac={4 / 10}
+            />
+            <CollapsedChapter num="05" title="Context Engineering & Memory" total="13" />
+            <CollapsedChapter num="06" title="Prompt Architecture" total="11" />
+            <CollapsedChapter num="07" title="Retrieval: RAG vs Tools" total="8" />
+            <CollapsedChapter
+              num="08"
+              title="Streaming and Real-Time"
+              count="1/12"
+              frac={1 / 12}
+            />
           </nav>
         </aside>
 
-        <main id="plain-dark-stage" className="sys-reader__stage">
-          <div
-            className="sys-reader__stage-scroll"
-            style={{ paddingBottom: 56 }}
-          >
-            <article className="sys-reader__article">
-              <p className="sys-reader__eyebrow">
-                CHAPTER 01 · ANATOMY OF AN AI AGENT
-              </p>
-              <h1 className="sys-reader__title">Anatomy of an AI Agent</h1>
-              <p className="sys-reader__lede">
+        <main id="plain-dark-stage" className="reader-stage">
+          <div className="reader-stage-scroll" style={{ paddingBottom: 56 }}>
+            <article className="reader-slide">
+              <p className="slide-kicker">CHAPTER 01 · ANATOMY OF AN AI AGENT</p>
+              <h1 className="slide-title">Anatomy of an AI Agent</h1>
+              <p className="slide-body">
                 Before you can design an agent, you need a clear mental model of
                 its parts. This chapter lays out that anatomy and the vocabulary
                 the rest of the folder uses — every term here recurs throughout,
@@ -171,32 +138,29 @@ export default function PlainDarkThemePreviewPage() {
             </article>
           </div>
 
-          <footer className="sys-reader__footer">
-            <span className="sys-reader__hint">← → arrow keys work too</span>
-            <div className="sys-reader__dashes" aria-hidden>
-              <span className="sys-reader__dash sys-reader__dash--on" />
-              <span className="sys-reader__dash" />
-              <span className="sys-reader__dash" />
-              <span className="sys-reader__dash" />
-              <span className="sys-reader__dash" />
-              <span className="sys-reader__dash" />
-              <span className="sys-reader__dash" />
+          <footer className="reader-footer">
+            <span className="reader-footer-hint">← → arrow keys work too</span>
+            <div className="chapter-dots" aria-hidden>
+              <span className="chapter-dot chapter-dot--active" />
+              <span className="chapter-dot" />
+              <span className="chapter-dot" />
+              <span className="chapter-dot" />
+              <span className="chapter-dot" />
+              <span className="chapter-dot" />
+              <span className="chapter-dot" />
             </div>
-            <div className="sys-reader__nav-btns">
+            <div className="reader-pager">
               <button
                 type="button"
-                className="sys-reader__circle sys-reader__circle--prev"
+                className="nav-back"
                 aria-label="Previous slide"
                 disabled
               >
-                <NavChevronLeft />
+                <ChevronLeft />
               </button>
-              <button
-                type="button"
-                className="sys-reader__circle sys-reader__circle--next"
-                aria-label="Next slide"
-              >
-                <NavChevronRight />
+              <button type="button" className="nav-next" aria-label="Next slide">
+                <ChevronRight />
+                <span className="nav-next-label">Next</span>
               </button>
             </div>
           </footer>
@@ -216,22 +180,24 @@ function SlideRow({
   check?: boolean;
 }) {
   const cls = [
-    "sys-reader__slide-row",
-    active ? "sys-reader__slide-row--active" : "",
-    !check && !active ? "sys-reader__slide-row--todo" : "",
+    "toc-slide",
+    active ? "toc-slide--current" : "",
+    !check && !active ? "toc-slide--unseen" : "",
   ]
     .filter(Boolean)
     .join(" ");
   return (
     <div className={cls} aria-current={active ? "page" : undefined}>
-      <span className="sys-reader__mark">
+      <span className="toc-mark">
         {check ? (
-          <SlideCheck faded={!active} />
+          <span className="toc-check">
+            <Check faded={!active} />
+          </span>
         ) : (
-          <span className="sys-reader__dot" />
+          <span className="toc-dot" />
         )}
       </span>
-      <span className="sys-reader__slide-label">{children}</span>
+      <span className="toc-slide-label">{children}</span>
     </div>
   );
 }
@@ -250,23 +216,70 @@ function CollapsedChapter({
   frac?: number;
 }) {
   return (
-    <div className="sys-reader__chapter-row">
-      <ChevronRightGlyph />
-      <span className="sys-reader__chapter-num">{num}</span>
-      <span className="sys-reader__chapter-title">{title}</span>
-      <span className="sys-reader__meter">
+    <div className="toc-chapter-row">
+      <ChevronRightSmall />
+      <span className="toc-chapter-num">{num}</span>
+      <span className="toc-chapter-title">{title}</span>
+      <span className="toc-meter">
         {count ? (
           <>
-            <span className="sys-reader__meter-count">{count}</span>
-            {frac != null ? <ChapterRing frac={frac} /> : null}
+            <span className="toc-meter-count">{count}</span>
+            {frac != null ? <Ring frac={frac} /> : null}
           </>
         ) : (
-          <span className="sys-reader__meter-count sys-reader__meter-count--faint">
-            {total}
-          </span>
+          <span className="toc-meter-count toc-meter-count--faint">{total}</span>
         )}
       </span>
     </div>
+  );
+}
+
+function Ring({ frac }: { frac: number }) {
+  const r = 5;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.min(1, Math.max(0, frac));
+  return (
+    <svg
+      className="toc-progress-ring"
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      aria-hidden
+    >
+      <circle
+        cx="7"
+        cy="7"
+        r={r}
+        fill="none"
+        stroke="var(--reader-ring-track)"
+        strokeWidth="2"
+      />
+      <circle
+        cx="7"
+        cy="7"
+        r={r}
+        fill="none"
+        stroke="var(--reader-accent)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeDasharray={`${c * clamped} ${c}`}
+      />
+    </svg>
+  );
+}
+
+function Check({ faded }: { faded?: boolean }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+      <path
+        d="M2.5 6.5 5 9l4.5-6"
+        fill="none"
+        stroke={faded ? "var(--reader-check-done)" : "var(--reader-accent)"}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -276,6 +289,91 @@ function MoonGlyph() {
       <path
         d="M20.4 14.7A8.6 8.6 0 0 1 9.3 3.6a.75.75 0 0 0-.9-1A10.1 10.1 0 1 0 21.4 15.6a.75.75 0 0 0-1-.9Z"
         fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function SidebarGlyph() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden>
+      <rect
+        x="2.5"
+        y="3.5"
+        width="15"
+        height="13"
+        rx="2.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <line
+        x1="7.5"
+        y1="3.5"
+        x2="7.5"
+        y2="16.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
+function ChevronDown() {
+  return (
+    <svg className="toc-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+      <path
+        d="M2.5 4 6 8l3.5-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ChevronRightSmall() {
+  return (
+    <svg className="toc-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+      <path
+        d="M4.5 2.5 8 6l-3.5 3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ChevronLeft() {
+  return (
+    <svg width="9" height="15" viewBox="0 0 9 15" aria-hidden>
+      <path
+        d="M7.5 1.5 1.5 7.5l6 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ChevronRight() {
+  return (
+    <svg width="9" height="15" viewBox="0 0 9 15" aria-hidden>
+      <path
+        d="M1.5 1.5 7.5 7.5l-6 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );

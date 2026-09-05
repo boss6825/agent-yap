@@ -6,8 +6,7 @@ export default function PlainDarkThemePreviewLayout({
   return (
     <div
       data-theme="plain-dark"
-      data-reader-theme="dark"
-      data-reader-family="system"
+      data-theme-family="plain"
       style={{
         width: 1440,
         height: 900,
