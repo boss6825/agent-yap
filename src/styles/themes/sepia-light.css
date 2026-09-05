@@ -1,9 +1,4 @@
-/* @import "./sepia-family.css";
-   Temporarily disabled: Tailwind v4/Turbopack fails this file with
-   `Missing opening {` at line 37, which 500s the entire Next compiler
-   (including /read and /dev/themes/plain-light). Restore once the family
-   sheet parses. Shared chrome already has [data-theme-family="sepia"] hooks
-   in reader.css. */
+@import "./sepia-family.css";
 
 /* Agent YAP — sepia-family LIGHT tokens (Paper 459-0, B · Study — Light).
    no shadcn match found: editorial paper reader, not a dashboard sidebar.
@@ -65,6 +60,8 @@
   --reader-paper-chevron-open: #8a8377;
   --reader-paper-chevron-idle: #b3ab9d;
   --reader-paper-count-idle: #b3ab9d;
+  --reader-paper-mark-slot: 11px;
+  --reader-paper-ease: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Aliases for live .sys-reader / .pr chrome (light.css class contract). */
   --reader-bar-bg: var(--reader-nav-bg);

@@ -1,6 +1,8 @@
 /* Sepia / paper family — shared editorial chrome.
-   Consume: import `sepia-light.css` (it @imports this file) or import this
-   file next to a sepia token sheet. Agent 4 (sepia-dark) should reuse it.
+   Consume: import `sepia-light.css` (it @imports this file) so the sheet
+   lands in the layout/globals CSS chunk. Agent 4 (sepia-dark) should
+   `@import "./sepia-family.css"` the same way, or rely on this file being
+   pulled once via a sepia token sheet in `src/app/globals.css`.
 
    Host attributes (any one is enough):
      data-theme^="sepia" | data-theme="sepia-light" | data-theme="sepia-dark"
