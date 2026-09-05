@@ -85,4 +85,11 @@
   --reader-font-mono: var(--font-mono);
   --reader-paper-serif: var(--font-display);
   --reader-paper-sans: var(--font-ui);
+  --reader-paper-sidebar: 300px;
+  --reader-paper-bar: 56px;
+  --reader-paper-progress: 3px;
+  --reader-paper-footer: 82px;
+  --reader-paper-radius: 8px;
+  --reader-paper-row-radius: 6px;
+  --reader-paper-next-radius: 23px;
 }
