@@ -1,63 +1,128 @@
 /**
  * Shared reader theme contract.
  *
- * Light fills these on `:root` and `[data-reader-theme="light"]`
- * in `light.css`. Dark / sepia / sepia-dark agents override the same
- * names in their own files. Do not put dark or sepia values here.
+ * Agent 1 fills :root / [data-theme="plain-light"] (this file).
+ * Agents 2–4 override the SAME names in:
+ *   plain-dark.css     → [data-theme="plain-dark"]
+ *   sepia-light.css    → [data-theme="sepia-light"]
+ *   sepia-dark.css     → [data-theme="sepia-dark"]
  *
- * Attribute hooks (set on `<html>` or the reader root):
- *   data-reader-theme = light | dark | sepia | sepia-dark
- *   data-reader-family = system | paper
+ * Do not put layout here. Chrome lives in reader.css and restyles via these
+ * variables plus [data-theme-family="plain" | "sepia"] hooks.
  *
- * Surfaces
- *   --reader-bg            page / stage canvas
- *   --reader-sidebar-bg    contents rail
- *   --reader-bar-bg        top bar
+ * Attribute hooks (html and/or .reader-shell):
+ *   data-theme         = plain-light | plain-dark | sepia-light | sepia-dark
+ *   data-theme-family  = plain | sepia
+ *   --reader-family    = plain | sepia
  *
- * Text
- *   --reader-text           titles / primary UI
- *   --reader-text-secondary secondary labels (chapter chip, Search/Chat)
- *   --reader-text-muted     quiet UI (counters, collapsed numbers)
- *   --reader-text-faint     hints, unread totals, keyboard legend
- *   --reader-text-body      slide prose
- *
- * Accent
- *   --reader-accent         primary blue / family accent
- *   --reader-accent-soft    active row wash
- *   --reader-accent-strong  pressed / hover accent
- *
- * Lines + progress
- *   --reader-border         hairline (bar, sidebar, nested rail)
- *   --reader-border-subtle  expanded chapter card stroke
- *   --reader-track          3px top progress track
- *   --reader-progress-fill  top progress fill
- *
- * Chapter card
- *   --reader-card-bg
- *   --reader-card-border
- *   --reader-card-shadow
- *
- * Tree + dashes
- *   --reader-active-row     current slide row
- *   --reader-dot            incomplete slide marker
- *   --reader-dash-inactive  chapter dash (not current)
- *
- * Footer nav buttons
- *   --reader-prev-bg
- *   --reader-prev-border
- *   --reader-prev-icon
- *   --reader-next-bg
- *   --reader-next-shadow
- *   --reader-next-icon
- *
- * Meter
- *   --reader-ring-track     circular progress gutter
- *   --reader-check-done     completed-slide check (faded)
- *
- * Family
- *   --reader-family         "system" (light/dark) or "paper" (sepia pair)
- *
- * Type (shared, not re-themed per sibling)
- *   --reader-font-ui
- *   --reader-font-mono
+ * Required variables:
+ *   --reader-bg --reader-sidebar-bg --reader-nav-bg
+ *   --reader-text --reader-text-muted --reader-text-faint --reader-body
+ *   --reader-accent --reader-accent-soft --reader-kicker
+ *   --reader-border --reader-progress-track --reader-progress-fill
+ *   --reader-toc-active-bg --reader-toc-active-border --reader-slide-current-bg
+ *   --reader-chapter-num --reader-footer-hint
+ *   --reader-dot-active --reader-dot-idle
+ *   --reader-back-bg --reader-back-border --reader-back-icon
+ *   --reader-next-bg --reader-next-fg --reader-next-shadow
+ *   --font-ui --font-display --font-mono
+ *   --reader-family: plain | sepia
+ */
+
+:root,
+[data-theme="plain-light"] {
+  --reader-bg: #ffffff;
+  --reader-sidebar-bg: #f6f6f8;
+  --reader-nav-bg: #ffffff;
+
+  --reader-text: #1d1d1f;
+  --reader-text-muted: #6e6e73;
+  --reader-text-faint: #86868b;
+  --reader-body: #42424a;
+
+  --reader-accent: #0071e3;
+  --reader-accent-soft: #0071e317;
+  --reader-kicker: #0071e3;
+
+  --reader-border: #00000017;
+  --reader-progress-track: #0000000f;
+  --reader-progress-fill: #0071e3;
+
+  --reader-toc-active-bg: #ffffff;
+  --reader-toc-active-border: #0000000a;
+  --reader-slide-current-bg: #0071e317;
+
+  --reader-chapter-num: #86868b;
+  --reader-footer-hint: #b0b0b5;
+
+  --reader-dot-active: #0071e3;
+  --reader-dot-idle: #0000001f;
+
+  --reader-back-bg: #f6f6f8;
+  --reader-back-border: #0000001a;
+  --reader-back-icon: #c4c4c8;
+  --reader-next-bg: #0071e3;
+  --reader-next-fg: #ffffff;
+  --reader-next-shadow: #0071e352 0 4px 12px;
+
+  --font-ui: "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui,
+    sans-serif;
+  --font-mono: Consolas, "SF Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --reader-family: plain;
+
+  /* Optional extras used by the shared chrome (override per theme as needed). */
+  --reader-accent-strong: #0077ed;
+  --reader-toc-active-shadow: 0 1px 2px #0000000d;
+  --reader-unread-dot: #00000038;
+  --reader-book-meta: #9a9aa0;
+  --reader-chevron: #b0b0b5;
+  --reader-ring-track: rgb(0 0 0 / 10%);
+  --reader-check-done: rgb(0 113 227 / 55%);
+  --reader-icon: #86868b;
+
+  color-scheme: light;
+
+  /* ---- aliases for older --reader-* names (do not remove) ---- */
+  --reader-bar-bg: var(--reader-nav-bg);
+  --reader-text-secondary: var(--reader-text-muted);
+  --reader-text-body: var(--reader-body);
+  --reader-track: var(--reader-progress-track);
+  --reader-card-bg: var(--reader-toc-active-bg);
+  --reader-card-border: var(--reader-toc-active-border);
+  --reader-card-shadow: var(--reader-toc-active-shadow);
+  --reader-active-row: var(--reader-slide-current-bg);
+  --reader-dot: var(--reader-unread-dot);
+  --reader-dash-inactive: var(--reader-dot-idle);
+  --reader-prev-bg: var(--reader-back-bg);
+  --reader-prev-border: var(--reader-back-border);
+  --reader-prev-icon: var(--reader-back-icon);
+  --reader-next-icon: var(--reader-next-fg);
+  --reader-font-ui: var(--font-ui);
+  --reader-font-mono: var(--font-mono);
+}
+
+/*
+ * Agent 2 — plain-dark
+ * File: src/styles/themes/plain-dark.css
+ * Selector: [data-theme="plain-dark"]
+ * Family: --reader-family: plain; keep circular next, progress rings, sans type.
+ */
+
+/*
+ * Agent 3 — sepia-light
+ * File: src/styles/themes/sepia-light.css
+ * Selector: [data-theme="sepia-light"]
+ * Family: --reader-family: sepia;
+ * Override --font-display / --font-ui to Georgia. Chrome already hooks:
+ *   italic .chapter-crumb, drop-cap .slide-body, pill .nav-next,
+ *   square .toc-dot, hidden .toc-progress-ring.
+ */
+
+/*
+ * Agent 4 — sepia-dark
+ * File: src/styles/themes/sepia-dark.css
+ * Selector: [data-theme="sepia-dark"]
+ * Family: --reader-family: sepia; same structural hooks as sepia-light.
  */
