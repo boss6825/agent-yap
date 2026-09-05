@@ -67,6 +67,32 @@ function getServerRailPref(): null {
   return null;
 }
 
+/**
+ * Whether the rail is docked rather than an overlay. The `lg:` breakpoint in
+ * the rail's own classes is the source of truth; this mirrors it in JS because
+ * `inert` cannot be expressed in CSS.
+ */
+const DOCKED_QUERY = "(min-width: 1024px)";
+
+function subscribeDocked(onChange: () => void): () => void {
+  const mq = window.matchMedia(DOCKED_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+function getDockedSnapshot(): boolean {
+  return window.matchMedia(DOCKED_QUERY).matches;
+}
+
+/**
+ * The server has no viewport. Returning `false` makes the first paint agree
+ * with the mobile-first CSS (rail off-screen), so `inert` is correct in the
+ * SSR HTML and does not flip during hydration.
+ */
+function getServerDocked(): boolean {
+  return false;
+}
+
 /** True while the user is typing somewhere shortcuts must not fire. */
 function isTypingTarget(el: Element | null): boolean {
   return (
@@ -109,6 +135,17 @@ export function ReaderChrome({
   );
   const railState =
     railOpen ?? (storedRailPref === null ? null : storedRailPref === "1");
+
+  const isDocked = useSyncExternalStore(
+    subscribeDocked,
+    getDockedSnapshot,
+    getServerDocked,
+  );
+
+  // What the CSS actually paints: docked desktop shows the rail unless it was
+  // explicitly closed; below `lg` it shows only when explicitly opened. `null`
+  // is the "auto" case, which is why this cannot be `railState === true`.
+  const railVisible = isDocked ? railState !== false : railState === true;
 
   const byHref = useMemo(() => {
     const m = new Map<string, NavSlide>();
@@ -406,6 +443,10 @@ export function ReaderChrome({
 
         <aside
           aria-label="Contents rail"
+          // Translated off-screen rather than unmounted, so without `inert` Tab
+          // walks the entire chapter tree and the subject switcher while none
+          // of it is visible.
+          inert={!railVisible}
           className={`glass-light fixed inset-y-0 left-0 z-50 overflow-hidden transition-transform duration-300 ease-out lg:relative lg:z-10 lg:translate-x-0 lg:transition-[width] ${
             railState === true ? "translate-x-0" : "-translate-x-full"
           } ${
