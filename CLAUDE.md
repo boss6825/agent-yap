@@ -16,6 +16,7 @@ restate AGENTS.md's rules. Edit rules in `AGENTS.md`; edit navigation here.
 | Need | Location |
 |---|---|
 | **Feature status (source of truth)** | `FEATURE-STATUS.md` |
+| Why a long-lived branch still exists | `docs/branches.md` |
 | Growth: GTM research + master plan | `docs/growth/` |
 | Agent rules, lanes, frontend workflow | `AGENTS.md` |
 | Constitution (rules C1–C10) | `specs/CONSTITUTION.md` |
