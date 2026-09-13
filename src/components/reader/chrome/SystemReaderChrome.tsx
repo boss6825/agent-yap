@@ -178,6 +178,7 @@ export function SystemTopBar({
   onSearch,
   onChat,
   themeControl,
+  motionControl,
 }: {
   railToggleRef: RefObject<HTMLButtonElement | null>;
   railExpanded: boolean | undefined;
@@ -189,6 +190,7 @@ export function SystemTopBar({
   onSearch: () => void;
   onChat: () => void;
   themeControl: ReactNode;
+  motionControl?: ReactNode;
 }) {
   return (
     <header className="reader-nav">
@@ -231,6 +233,7 @@ export function SystemTopBar({
         <span className="reader-counter">
           {indexLabel} / {totalLabel}
         </span>
+        {motionControl}
         {themeControl}
       </div>
     </header>

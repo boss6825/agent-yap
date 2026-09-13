@@ -23,6 +23,10 @@ import { ThemeSwitcher, familyForTheme, legacyThemeId, useTheme } from "@/lib/th
 import { AskPanel } from "@/components/AskPanel";
 import { SearchPanel } from "@/components/SearchPanel";
 import { getLastRead, markSlideRead, useProgress } from "@/lib/progress";
+import { ShaderBackdrop } from "@/components/reader/shaders/ShaderBackdrop";
+import { NoDistractionToggle } from "@/components/reader/shaders/NoDistractionToggle";
+import { polarityFromTheme, shaderForChapterIndex } from "@/components/reader/shaders/registry";
+import { useShaderMotion } from "@/components/reader/shaders/motion-pref";
 
 const RAIL_PREF_KEY = "agent-yap:rail-open";
 
@@ -60,6 +64,15 @@ function isTypingTarget(el: Element | null): boolean {
   );
 }
 
+function isInteractiveControl(el: Element | null): boolean {
+  if (!(el instanceof HTMLElement)) return false;
+  if (isTypingTarget(el)) return true;
+  const tag = el.tagName;
+  if (tag === "BUTTON" || tag === "A" || tag === "SUMMARY") return true;
+  const role = el.getAttribute("role");
+  return role === "button" || role === "option" || role === "menuitem";
+}
+
 export function ReaderChrome({
   manifest,
   children,
@@ -71,6 +84,8 @@ export function ReaderChrome({
   const pathname = usePathname();
   const { theme } = useTheme();
   const family = familyForTheme(theme);
+  const { animationsOn, hydrated } = useShaderMotion();
+  const shadersActive = hydrated && animationsOn;
 
   const [railOpen, setRailOpen] = useState<boolean | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -103,6 +118,12 @@ export function ReaderChrome({
       manifest.chapters[0],
     [manifest, current],
   );
+  const chapterIndex = useMemo(() => {
+    const slug = current?.chapterSlug ?? currentChapter?.slug;
+    const i = manifest.chapters.findIndex((c) => c.slug === slug);
+    return i < 0 ? 0 : i;
+  }, [manifest.chapters, current, currentChapter]);
+  const shaderId = shaderForChapterIndex(chapterIndex).id;
 
   const progress = useProgress();
   const readHrefs = useMemo(() => {
@@ -181,6 +202,7 @@ export function ReaderChrome({
         return;
       }
       if (anyModal || (railState === true && !isDesktop())) return;
+      if (isInteractiveControl(document.activeElement)) return;
 
       if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
         e.preventDefault();
@@ -225,6 +247,8 @@ export function ReaderChrome({
       data-theme-family={family}
       data-reader-theme={legacyThemeId(theme)}
       data-reader-family={family === "sepia" ? "paper" : "system"}
+      data-shaders={shadersActive ? "on" : "off"}
+      data-shader={shaderId}
     >
       <a href="#reader-stage" className="reader-skip">
         Skip to slide
@@ -241,6 +265,7 @@ export function ReaderChrome({
         onSearch={() => setSearchOpen(true)}
         onChat={() => setAskOpen((v) => !v)}
         themeControl={<ThemeSwitcher />}
+        motionControl={<NoDistractionToggle />}
       />
 
       <div className="reader-body">
@@ -279,6 +304,10 @@ export function ReaderChrome({
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
+          <ShaderBackdrop
+            chapterIndex={chapterIndex}
+            polarity={polarityFromTheme(theme)}
+          />
           <div ref={stageScrollRef} className="reader-stage-scroll">
             {children}
           </div>
