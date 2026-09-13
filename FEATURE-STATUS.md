@@ -36,7 +36,7 @@
 | 6 | Dark theme + theme toggle | ✅ | `src/components/ThemeToggle.tsx`, `src/app/globals.css` | — |
 | 7 | Landing page | ✅ | `src/app/page.tsx`, `src/components/Home.tsx` | — |
 | 8 | Book TOC + not-found handling | ✅ | `src/app/read/[book]/page.tsx`, `src/app/not-found.tsx` | — |
-| 28 | Ambient shader layer + glass reading card (theme-aware, reduced-motion + WebGL fallback) | ✅ | `src/components/reader/AmbientBackdrop.tsx`, `src/app/globals.css` | `specs/features/reader/ide-shell/spec.md` |
+| 28 | Ambient Paper shader layer (4 chapter-cycled Grain Gradient / Liquid Metal looks, light+dark, no-distraction toggle) | ✅ | `src/components/reader/shaders/`, `AmbientBackdrop.tsx`, `ReaderChrome.tsx` | `specs/features/reader/ide-shell/spec.md` |
 | 29 | BYOK Gemini chat panel grounded in current slide (`/api/ask` fallback, key never leaves browser) | ✅ | `src/components/reader/ChatPanel.tsx`, `src/lib/chat/gemini.ts`, `slide-context.ts` | `specs/features/reader/ide-shell/spec.md` |
 | 30 | Per-chapter public-domain artwork in the rail (The Met, CC0; build-time fetch script) | ✅ | `scripts/fetch-art.mjs`, `src/lib/art.ts`, `public/art/` | `specs/features/reader/ide-shell/spec.md` |
 
