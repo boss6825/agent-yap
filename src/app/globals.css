@@ -126,17 +126,20 @@ html.lenis body {
   display: block;
 }
 
-/* Slow "drone footage" zoom used on the hero photograph. */
+/* Slow "drone footage" zoom used on the hero photograph.
+   Slight lateral drift plus a bigger scale delta so the motion reads
+   within a few seconds without feeling like a slideshow. */
 @keyframes kenburns {
   from {
-    transform: scale(1);
+    transform: scale(1) translate3d(0, 0, 0);
   }
   to {
-    transform: scale(1.09);
+    transform: scale(1.12) translate3d(-1.5%, 1%, 0);
   }
 }
 .animate-kenburns {
-  animation: kenburns 26s ease-in-out infinite alternate;
+  animation: kenburns 16s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 /* Reader slide entrance. */
